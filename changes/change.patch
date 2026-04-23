@@ -1,164 +1,60 @@
-diff --git a/app/Http/Controllers/Auth/RegisteredUserController.php b/app/Http/Controllers/Auth/RegisteredUserController.php
-index 5f483f148736498b15632504270628249f43731a..2720291f6e82ebbc69f74fdcbe325f3157e8d283 100644
---- a/app/Http/Controllers/Auth/RegisteredUserController.php
-+++ b/app/Http/Controllers/Auth/RegisteredUserController.php
-@@ -1,58 +1,112 @@
- <?php
-
- namespace App\Http\Controllers\Auth;
-
- use App\Http\Controllers\Controller;
-+use App\Models\PendingRegistration;
- use App\Models\User;
- use Illuminate\Auth\Events\Registered;
- use Illuminate\Http\RedirectResponse;
- use Illuminate\Http\Request;
- use Illuminate\Support\Facades\Auth;
- use Illuminate\Support\Facades\Hash;
-+use Illuminate\Support\Facades\Mail;
-+use Illuminate\Support\Str;
- use Illuminate\Validation\Rules;
- use Illuminate\Validation\ValidationException;
- use Illuminate\View\View;
-
- class RegisteredUserController extends Controller
- {
-     /**
-      * Display the registration view.
-      */
-     public function create(): View
-     {
-         return view('auth.register');
-     }
-
-     /**
-      * Handle an incoming registration request.
-      *
-      * @throws ValidationException
-      */
-     public function store(Request $request): RedirectResponse
-     {
--        $request->validate([
-+        $validated = $request->validate([
-             'name' => ['required', 'string', 'max:255'],
-             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-+            'accepted_terms' => ['accepted'],
-+            'accepted_privacy' => ['accepted'],
-         ]);
-
-+        $code = (string) random_int(100000, 999999);
-+
-+        PendingRegistration::where('email', $validated['email'])->delete();
-+
-+        PendingRegistration::create([
-+            'name' => $validated['name'],
-+            'email' => $validated['email'],
-+            'password' => Hash::make($validated['password']),
-+            'accepted_terms' => (bool) $request->boolean('accepted_terms'),
-+            'accepted_privacy' => (bool) $request->boolean('accepted_privacy'),
-+            'verification_code' => Hash::make($code),
-+            'code_expires_at' => now()->addMinutes(15),
-+        ]);
-+
-+        Mail::raw(
-+            "Twój kod aktywacyjny ETB: {$code}. Kod jest ważny 15 minut.",
-+            static fn ($message) => $message->to($validated['email'])->subject('Kod aktywacyjny ETB')
-+        );
-+
-+        return redirect()->route('register.verify.notice', ['email' => $validated['email']])
-+            ->with('status', 'Wysłaliśmy kod aktywacyjny na podany adres e-mail.');
-+    }
-+
-+    public function showVerificationForm(Request $request): View
-+    {
-+        return view('auth.verify-registration-code', [
-+            'email' => (string) $request->query('email'),
-+        ]);
-+    }
-+
-+    /**
-+     * @throws ValidationException
-+     */
-+    public function verifyCode(Request $request): RedirectResponse
-+    {
-+        $validated = $request->validate([
-+            'email' => ['required', 'email'],
-+            'code' => ['required', 'digits:6'],
-+        ]);
-+
-+        $pending = PendingRegistration::where('email', Str::lower($validated['email']))->latest('id')->first();
-+
-+        if (! $pending || now()->greaterThan($pending->code_expires_at) || ! Hash::check($validated['code'], $pending->verification_code)) {
-+            throw ValidationException::withMessages([
-+                'code' => 'Nieprawidłowy lub wygasły kod aktywacyjny.',
-+            ]);
-+        }
-+
-         $user = User::create([
--            'name' => $request->name,
--            'email' => $request->email,
--            'password' => Hash::make($request->password),
-+            'name' => $pending->name,
-+            'email' => $pending->email,
-+            'password' => $pending->password,
-             'role' => User::ROLE_FAN,
-         ]);
-
-         $user->fanProfile()->create([
-             'can_buy_tickets' => true,
-             'can_buy_merch' => true,
--
-         ]);
-
-+        $pending->delete();
-+
-         event(new Registered($user));
-
-         Auth::login($user);
-
-         return redirect(route('dashboard', absolute: false));
-     }
- }
-diff --git a/app/Models/PendingRegistration.php b/app/Models/PendingRegistration.php
+diff --git a/app/Models/AppSetting.php b/app/Models/AppSetting.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..a7711e1b3555b2a14cc5486fc4dbb8d7343f0c39
+index 0000000000000000000000000000000000000000..a6bd51f43e7ffb8d8432b4ad48d5707737f7b8c4
 --- /dev/null
-+++ b/app/Models/PendingRegistration.php
-@@ -0,0 +1,27 @@
++++ b/app/Models/AppSetting.php
+@@ -0,0 +1,20 @@
 +<?php
 +
 +namespace App\Models;
 +
 +use Illuminate\Database\Eloquent\Model;
 +
-+class PendingRegistration extends Model
++class AppSetting extends Model
 +{
-+    protected $fillable = [
-+        'name',
-+        'email',
-+        'password',
-+        'accepted_terms',
-+        'accepted_privacy',
-+        'verification_code',
-+        'code_expires_at',
-+    ];
++    protected $fillable = ['key', 'value'];
 +
-+    protected function casts(): array
++    public static function getValue(string $key, ?string $default = null): ?string
 +    {
-+        return [
-+            'accepted_terms' => 'boolean',
-+            'accepted_privacy' => 'boolean',
-+            'code_expires_at' => 'datetime',
-+        ];
++        return static::query()->where('key', $key)->value('value') ?? $default;
++    }
++
++    public static function setValue(string $key, string $value): void
++    {
++        static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
 +    }
 +}
-diff --git a/database/migrations/2026_04_23_120000_create_pending_registrations_table.php b/database/migrations/2026_04_23_120000_create_pending_registrations_table.php
+diff --git a/app/Models/Game.php b/app/Models/Game.php
+index 5f676afb388689085a3d637a85d9e1ff4cd75c91..c3006e37fcc1442206868354d5e97eac52f25193 100644
+--- a/app/Models/Game.php
++++ b/app/Models/Game.php
+@@ -1,19 +1,20 @@
+ <?php
+
+ namespace App\Models;
+
+ use Illuminate\Database\Eloquent\Model;
+
+ class Game extends Model
+ {
+     protected $fillable = [
+         'opponent',
+         'match_date',
+         'location',
++        'exact_address',
+         'is_home',
+         'image',
+         'home_logo',
+         'away_logo',
+         'stream_link',
+     ];
+ }
+diff --git a/database/migrations/2026_04_23_140000_create_app_settings_table.php b/database/migrations/2026_04_23_140000_create_app_settings_table.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..10b141cead01f0d96b4bdb9e7e0d94417bc66d7c
+index 0000000000000000000000000000000000000000..70530217c918efa026f4536fc2592377a901c2c5
 --- /dev/null
-+++ b/database/migrations/2026_04_23_120000_create_pending_registrations_table.php
-@@ -0,0 +1,34 @@
++++ b/database/migrations/2026_04_23_140000_create_app_settings_table.php
+@@ -0,0 +1,23 @@
 +<?php
 +
 +use Illuminate\Database\Migrations\Migration;
@@ -167,459 +63,573 @@ index 0000000000000000000000000000000000000000..10b141cead01f0d96b4bdb9e7e0d9441
 +
 +return new class extends Migration
 +{
-+    /**
-+     * Run the migrations.
-+     */
 +    public function up(): void
 +    {
-+        Schema::create('pending_registrations', function (Blueprint $table) {
++        Schema::create('app_settings', function (Blueprint $table) {
 +            $table->id();
-+            $table->string('name');
-+            $table->string('email')->index();
-+            $table->string('password');
-+            $table->boolean('accepted_terms');
-+            $table->boolean('accepted_privacy');
-+            $table->string('verification_code');
-+            $table->timestamp('code_expires_at');
++            $table->string('key')->unique();
++            $table->text('value')->nullable();
 +            $table->timestamps();
 +        });
 +    }
 +
-+    /**
-+     * Reverse the migrations.
-+     */
 +    public function down(): void
 +    {
-+        Schema::dropIfExists('pending_registrations');
++        Schema::dropIfExists('app_settings');
 +    }
 +};
-diff --git a/database/seeders/DatabaseSeeder.php b/database/seeders/DatabaseSeeder.php
-index ed99d1d9c504a232889e82c8678ade69620a3d94..7320750529aec6a1dc4b52d28848fd7676fbd564 100644
---- a/database/seeders/DatabaseSeeder.php
-+++ b/database/seeders/DatabaseSeeder.php
-@@ -1,26 +1,38 @@
- <?php
-
- namespace Database\Seeders;
-
- use App\Models\User;
- use Illuminate\Database\Console\Seeds\WithoutModelEvents;
- use Illuminate\Database\Seeder;
-+use Illuminate\Support\Facades\Hash;
-
- class DatabaseSeeder extends Seeder
- {
-     use WithoutModelEvents;
-
-     /**
-      * Seed the application's database.
-      */
-     public function run(): void
-     {
--        // User::factory(10)->create();
-+        $adminAccounts = [
-+            [
-+                'name' => 'ETB Admin',
-+                'email' => 'adminETB@admin.com',
-+                'password' => 'aminetb!2025',
-+            ],
-+        ];
-
--        User::factory()->create([
--            'name' => 'Test User',
--            'email' => 'test@example.com',
--            'role' => User::ROLE_ADMIN,
--        ]);
-+        foreach ($adminAccounts as $admin) {
-+            User::updateOrCreate(
-+                ['email' => $admin['email']],
-+                [
-+                    'name' => $admin['name'],
-+                    'password' => Hash::make($admin['password']),
-+                    'role' => User::ROLE_ADMIN,
-+                ]
-+            );
-+        }
-     }
- }
-diff --git a/resources/views/auth/login.blade.php b/resources/views/auth/login.blade.php
-index 78b684f7d1d6c4a09434933dac3ef3ae652d85f3..63bbed985c6388816a0428d5977a35210b55ad7c 100644
---- a/resources/views/auth/login.blade.php
-+++ b/resources/views/auth/login.blade.php
-@@ -1,47 +1,46 @@
- <x-guest-layout>
--    <!-- Session Status -->
--    <x-auth-session-status class="mb-4" :status="session('status')" />
-+    <x-auth-session-status class="mb-4 text-sm text-black" :status="session('status')" />
-
--    <form method="POST" action="{{ route('login') }}">
-+    <h1 class="text-2xl font-bold text-black">Zaloguj się</h1>
-+    <p class="mt-1 text-sm text-black/80">Nie masz konta? <a href="{{ route('register') }}" class="font-semibold underline">Zarejestruj się w tym samym panelu</a>.</p>
-+
-+    <form method="POST" action="{{ route('login') }}" class="mt-6 space-y-4">
-         @csrf
-
--        <!-- Email Address -->
-         <div>
--            <x-input-label for="email" :value="__('Email')" />
-+            <x-input-label for="email" class="text-black font-semibold" :value="__('Email')" />
-             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
--            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-+            <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-700" />
-         </div>
-
--        <!-- Password -->
--        <div class="mt-4">
--            <x-input-label for="password" :value="__('Password')" />
-+        <div>
-+            <x-input-label for="password" class="text-black font-semibold" :value="__('Password')" />
-
-             <x-text-input id="password" class="block mt-1 w-full"
-                             type="password"
-                             name="password"
-                             required autocomplete="current-password" />
-
--            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-+            <x-input-error :messages="$errors->get('password')" class="mt-2 text-red-700" />
-         </div>
-
--        <!-- Remember Me -->
--        <div class="block mt-4">
--            <label for="remember_me" class="inline-flex items-center">
--                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
--                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-+        <div class="block">
-+            <label for="remember_me" class="inline-flex items-center text-black">
-+                <input id="remember_me" type="checkbox" class="rounded border-black text-black shadow-sm focus:ring-black" name="remember">
-+                <span class="ms-2 text-sm">{{ __('Remember me') }}</span>
-             </label>
-         </div>
-
--        <div class="flex items-center justify-end mt-4">
-+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-             @if (Route::has('password.request'))
--                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-+                <a class="underline text-sm text-black hover:text-zinc-900 rounded-md focus:outline-none focus:ring-2 focus:ring-black" href="{{ route('password.request') }}">
-                     {{ __('Forgot your password?') }}
-                 </a>
-             @endif
-
--            <x-primary-button class="ms-3">
-+            <x-primary-button>
-                 {{ __('Log in') }}
-             </x-primary-button>
-         </div>
-     </form>
- </x-guest-layout>
-diff --git a/resources/views/auth/register.blade.php b/resources/views/auth/register.blade.php
-index a857242c86e14410e1302e5e2071cb8c2a85b33b..19badc84b104e61a9532e57b9ff65593a1119b9e 100644
---- a/resources/views/auth/register.blade.php
-+++ b/resources/views/auth/register.blade.php
-@@ -1,52 +1,51 @@
- <x-guest-layout>
--    <form method="POST" action="{{ route('register') }}">
-+    <h1 class="text-2xl font-bold text-black">Rejestracja konta</h1>
-+    <p class="mt-1 text-sm text-black/80">Masz już konto? <a href="{{ route('login') }}" class="font-semibold underline">Zaloguj się</a>.</p>
-+
-+    <form method="POST" action="{{ route('register') }}" class="mt-6 space-y-4">
-         @csrf
-
--        <!-- Name -->
-         <div>
--            <x-input-label for="name" :value="__('Name')" />
-+            <x-input-label for="name" class="text-black font-semibold" :value="__('Name')" />
-             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
--            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-+            <x-input-error :messages="$errors->get('name')" class="mt-2 text-red-700" />
-         </div>
-
--        <!-- Email Address -->
--        <div class="mt-4">
--            <x-input-label for="email" :value="__('Email')" />
-+        <div>
-+            <x-input-label for="email" class="text-black font-semibold" :value="__('Email')" />
-             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
--            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-+            <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-700" />
-         </div>
-
--        <!-- Password -->
--        <div class="mt-4">
--            <x-input-label for="password" :value="__('Password')" />
--
--            <x-text-input id="password" class="block mt-1 w-full"
--                            type="password"
--                            name="password"
--                            required autocomplete="new-password" />
--
--            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-+        <div>
-+            <x-input-label for="password" class="text-black font-semibold" :value="__('Password')" />
-+            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-+            <x-input-error :messages="$errors->get('password')" class="mt-2 text-red-700" />
-         </div>
-
--        <!-- Confirm Password -->
--        <div class="mt-4">
--            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
--
--            <x-text-input id="password_confirmation" class="block mt-1 w-full"
--                            type="password"
--                            name="password_confirmation" required autocomplete="new-password" />
--
--            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-+        <div>
-+            <x-input-label for="password_confirmation" class="text-black font-semibold" :value="__('Confirm Password')" />
-+            <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-+            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2 text-red-700" />
-         </div>
-
--        <div class="flex items-center justify-end mt-4">
--            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
--                {{ __('Already registered?') }}
--            </a>
-+        <div class="rounded-md border-2 border-black bg-white p-4 text-black space-y-3">
-+            <label class="flex items-start gap-2">
-+                <input type="checkbox" name="accepted_terms" value="1" class="mt-1 rounded border-black text-black focus:ring-black" {{ old('accepted_terms') ? 'checked' : '' }} required>
-+                <span class="text-sm">Akceptuję regulamin oraz warunki korzystania z platformy ETB.</span>
-+            </label>
-+            <label class="flex items-start gap-2">
-+                <input type="checkbox" name="accepted_privacy" value="1" class="mt-1 rounded border-black text-black focus:ring-black" {{ old('accepted_privacy') ? 'checked' : '' }} required>
-+                <span class="text-sm">Akceptuję politykę prywatności i przetwarzanie danych zgodnie z wymaganiami ETB.</span>
-+            </label>
-+            <x-input-error :messages="$errors->get('accepted_terms')" class="text-red-700" />
-+            <x-input-error :messages="$errors->get('accepted_privacy')" class="text-red-700" />
-+        </div>
-
--            <x-primary-button class="ms-4">
-+        <div class="flex items-center justify-end pt-2">
-+            <x-primary-button>
-                 {{ __('Register') }}
-             </x-primary-button>
-         </div>
-     </form>
- </x-guest-layout>
-diff --git a/resources/views/auth/verify-registration-code.blade.php b/resources/views/auth/verify-registration-code.blade.php
+diff --git a/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php b/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..7ab9ccd22366c16024efd58609d665533a5d9322
+index 0000000000000000000000000000000000000000..450fee2001d4d453a1b8e83b5c85faa8f0daddd2
 --- /dev/null
-+++ b/resources/views/auth/verify-registration-code.blade.php
-@@ -0,0 +1,29 @@
-+<x-guest-layout>
-+    <x-auth-session-status class="mb-4 text-sm text-black" :status="session('status')" />
++++ b/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php
+@@ -0,0 +1,22 @@
++<?php
 +
-+    <h1 class="text-2xl font-bold text-black">Weryfikacja maila</h1>
-+    <p class="mt-1 text-sm text-black/80">Wpisz 6-cyfrowy kod wysłany na adres e-mail, aby dokończyć tworzenie konta.</p>
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
 +
-+    <form method="POST" action="{{ route('register.verify') }}" class="mt-6 space-y-4">
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('games', function (Blueprint $table) {
++            $table->string('exact_address', 500)->nullable()->after('location');
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('games', function (Blueprint $table) {
++            $table->dropColumn('exact_address');
++        });
++    }
++};
+diff --git a/resources/views/admin/create-match.blade.php b/resources/views/admin/create-match.blade.php
+index 62ea9007f510836e82b77ac61a16c2ddbbc01557..f1e101de2f778a8bd5b97b13fe642903d47db4a3 100644
+--- a/resources/views/admin/create-match.blade.php
++++ b/resources/views/admin/create-match.blade.php
+@@ -1,18 +1,90 @@
+-<form method="POST" action="/admin/matches" class="p-10 space-y-4">
+-    @csrf
++@extends('layouts.app')
+
+-    <input type="text" name="opponent" placeholder="Przeciwnik" class="border p-2 w-full">
++@section('content')
++<section class="max-w-5xl mx-auto px-6 py-12">
++    <div class="flex items-center justify-between mb-6">
++        <div>
++            <h1 class="text-3xl font-bold text-yellow-400">Panel dodawania meczu</h1>
++            <p class="text-zinc-400 mt-2">Spójny widok administracyjny dla ról admin i pracownik.</p>
++        </div>
++        <a href="{{ route('profile.edit') }}#akcje" class="text-sm px-4 py-2 rounded border border-zinc-600 hover:bg-zinc-800">← Wróć do konta</a>
++    </div>
+
+-    <input type="datetime-local" name="match_date" class="border p-2 w-full">
++    @if (session('status'))
++        <div class="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 px-4 py-3">
++            {{ session('status') }}
++        </div>
++    @endif
+
+-    <input type="text" name="location" placeholder="Miejsce" class="border p-2 w-full">
++    @if ($errors->any())
++        <div class="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 px-4 py-3">
++            <p class="font-semibold mb-2">Popraw błędy formularza:</p>
++            <ul class="list-disc list-inside text-sm space-y-1">
++                @foreach ($errors->all() as $error)
++                    <li>{{ $error }}</li>
++                @endforeach
++            </ul>
++        </div>
++    @endif
+
+-    <label class="flex items-center gap-2">
+-        <input type="checkbox" name="is_home" checked>
+-        Mecz u siebie
+-    </label>
++    <form method="POST" action="{{ route('admin.matches.store') }}" enctype="multipart/form-data" class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 md:p-8 space-y-6">
 +        @csrf
+
+-    <button class="bg-yellow-400 px-4 py-2 font-bold">
+-        Dodaj mecz
+-    </button>
+-</form>
++        <div class="grid md:grid-cols-2 gap-4">
++            <div>
++                <label for="opponent" class="block text-sm text-zinc-300 mb-2">Przeciwnik</label>
++                <input id="opponent" type="text" name="opponent" value="{{ old('opponent') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
++            </div>
++            <div>
++                <label for="match_date" class="block text-sm text-zinc-300 mb-2">Data i godzina meczu</label>
++                <input id="match_date" type="datetime-local" name="match_date" value="{{ old('match_date') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
++            </div>
++        </div>
 +
-+        <div>
-+            <x-input-label for="email" class="text-black font-semibold" value="Email" />
-+            <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email', $email)" required autocomplete="email" />
-+            <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-700" />
++        <div class="grid md:grid-cols-2 gap-4">
++            <div>
++                <label for="location" class="block text-sm text-zinc-300 mb-2">Miejsce (nazwa skrócona)</label>
++                <input id="location" type="text" name="location" value="{{ old('location') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
++            </div>
++            <div>
++                <label for="exact_address" class="block text-sm text-zinc-300 mb-2">Dokładny adres (widoczny w szczegółach)</label>
++                <input id="exact_address" type="text" name="exact_address" value="{{ old('exact_address') }}" class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
++            </div>
++        </div>
++
++        <label class="inline-flex items-center gap-2">
++            <input type="checkbox" name="is_home" value="1" {{ old('is_home', '1') ? 'checked' : '' }}>
++            <span>Mecz u siebie</span>
++        </label>
++
++        <div class="grid md:grid-cols-2 gap-4">
++            <div class="rounded-lg border border-zinc-700 p-4">
++                <h2 class="font-semibold mb-2">Logo ETB (domyślne)</h2>
++                <p class="text-xs text-zinc-400 mb-3">To logo zapisuje się globalnie i jest podpinane automatycznie do kolejnych meczów. Możesz je nadpisać w każdej chwili.</p>
++                @if ($defaultHomeLogo)
++                    <img src="{{ asset('storage/' . $defaultHomeLogo) }}" alt="Domyślne logo ETB" class="h-20 w-20 object-contain bg-zinc-950 border border-zinc-700 rounded mb-3">
++                @else
++                    <div class="h-20 w-20 flex items-center justify-center text-xs text-zinc-500 bg-zinc-950 border border-dashed border-zinc-700 rounded mb-3">Brak logo</div>
++                @endif
++                <input type="file" name="default_home_logo" accept="image/*" class="w-full text-sm text-zinc-300">
++            </div>
++
++            <div class="rounded-lg border border-zinc-700 p-4">
++                <h2 class="font-semibold mb-2">Logo przeciwnika</h2>
++                <p class="text-xs text-zinc-400 mb-3">Pole startowo puste — dodaj logo dla konkretnego meczu.</p>
++                <div class="h-20 w-20 flex items-center justify-center text-xs text-zinc-500 bg-zinc-950 border border-dashed border-zinc-700 rounded mb-3">Dodaj logo</div>
++                <input type="file" name="away_logo" accept="image/*" class="w-full text-sm text-zinc-300">
++            </div>
 +        </div>
 +
 +        <div>
-+            <x-input-label for="code" class="text-black font-semibold" value="Kod aktywacyjny" />
-+            <x-text-input id="code" class="mt-1 block w-full tracking-[0.4em] text-center" type="text" name="code" maxlength="6" inputmode="numeric" :value="old('code')" required />
-+            <x-input-error :messages="$errors->get('code')" class="mt-2 text-red-700" />
++            <label for="image" class="block text-sm text-zinc-300 mb-2">Grafika meczu (opcjonalna)</label>
++            <input id="image" type="file" name="image" accept="image/*" class="w-full text-sm text-zinc-300">
 +        </div>
 +
-+        <div class="flex items-center justify-between pt-2">
-+            <a href="{{ route('register') }}" class="text-sm text-black underline">Wróć do rejestracji</a>
-+            <x-primary-button>
-+                Potwierdź kod
-+            </x-primary-button>
-+        </div>
++        <button class="bg-yellow-400 text-black px-5 py-2 rounded font-bold hover:bg-yellow-300 transition">
++            Dodaj mecz
++        </button>
 +    </form>
-+</x-guest-layout>
-diff --git a/resources/views/components/primary-button.blade.php b/resources/views/components/primary-button.blade.php
-index d71f0b6769964a104ae4b9c445a3b713b9997cf9..03534a8c06670dc98e78448d2bcb0e4ebe0e45a9 100644
---- a/resources/views/components/primary-button.blade.php
-+++ b/resources/views/components/primary-button.blade.php
-@@ -1,3 +1,3 @@
--<button {{ $attributes->merge(['type' => 'submit', 'class' => 'inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150']) }}>
-+<button {{ $attributes->merge(['type' => 'submit', 'class' => 'inline-flex items-center px-4 py-2 bg-black border-2 border-black rounded-md font-semibold text-xs text-yellow-300 uppercase tracking-widest hover:bg-zinc-800 focus:bg-zinc-800 active:bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-yellow-400 transition ease-in-out duration-150']) }}>
-     {{ $slot }}
- </button>
-diff --git a/resources/views/components/text-input.blade.php b/resources/views/components/text-input.blade.php
-index da1b12d81bc5ec6b19d854fdd400bcdb65e2170e..2c4a19b559a2a7162f1703b1da01213a9fd110ab 100644
---- a/resources/views/components/text-input.blade.php
-+++ b/resources/views/components/text-input.blade.php
-@@ -1,3 +1,3 @@
- @props(['disabled' => false])
++</section>
++@endsection
+diff --git a/resources/views/dashboard.blade.php b/resources/views/dashboard.blade.php
+index 56e6ec2e350a62c8e248826b76b11e2277940c0e..e46141d2c9e0cf785f9bdf3a29bfbb71e020b690 100644
+--- a/resources/views/dashboard.blade.php
++++ b/resources/views/dashboard.blade.php
+@@ -1,40 +1,16 @@
+ <x-app-layout>
+     <x-slot name="header">
+         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+             Panel użytkownika
+         </h2>
+     </x-slot>
 
--<input @disabled($disabled) {{ $attributes->merge(['class' => 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm']) }}>
-+<input @disabled($disabled) {{ $attributes->merge(['class' => 'bg-white text-black border-2 border-black focus:border-black focus:ring-2 focus:ring-black rounded-md shadow-sm']) }}>
-diff --git a/resources/views/layouts/guest.blade.php b/resources/views/layouts/guest.blade.php
-index 11feb470a101c9b83405bd14dbec124166120afe..b5b02d3f45f60e0a83ab184e8092de619bcc5cf2 100644
---- a/resources/views/layouts/guest.blade.php
-+++ b/resources/views/layouts/guest.blade.php
-@@ -1,30 +1,37 @@
- <!DOCTYPE html>
- <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-     <head>
-         <meta charset="utf-8">
-         <meta name="viewport" content="width=device-width, initial-scale=1">
-         <meta name="csrf-token" content="{{ csrf_token() }}">
+     <div class="py-12 bg-black min-h-screen">
+-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+-
+-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+-
+-                <p class="mb-6 text-gray-700">
+-                    Jesteś zalogowany.
+-                </p>
+-
+-                @if(auth()->user()->is_admin)
+-
+-                    <div class="grid md:grid-cols-2 gap-6">
+-
+-                        <a href="/admin/matches/create"
+-                           class="bg-yellow-400 text-black p-6 rounded-xl font-bold text-lg hover:bg-yellow-300 transition shadow">
+-                            ➕ Dodaj nowy mecz
+-                        </a>
+-
+-                    </div>
+-
+-                @else
+-
+-                    <p class="text-red-500 font-semibold">
+-                        Brak uprawnień administratora.
+-                    </p>
+-
+-                @endif
+-
++        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
++            <div class="bg-zinc-900 border border-zinc-800 overflow-hidden shadow-sm sm:rounded-lg p-6 text-zinc-200">
++                <p class="mb-4">Dashboard został uproszczony — główne zarządzanie kontem znajduje się teraz w zakładce <strong>Konto</strong>.</p>
++                <a href="{{ route('profile.edit') }}" class="inline-flex bg-yellow-400 text-black font-semibold px-4 py-2 rounded hover:bg-yellow-300 transition">Przejdź do konta</a>
+             </div>
+-
+         </div>
+     </div>
+ </x-app-layout>
+diff --git a/resources/views/partials/navbar.blade.php b/resources/views/partials/navbar.blade.php
+index dbfa4f60ab1b2a7035a3cf6db30b2314c388baa3..06efcb8aaaec5edb391a686f891365da333c2cb3 100644
+--- a/resources/views/partials/navbar.blade.php
++++ b/resources/views/partials/navbar.blade.php
+@@ -1,80 +1,85 @@
+ <div class="bg-zinc-200 text-zinc-900 text-sm py-2 px-6 flex justify-between items-center border-b border-zinc-300 shadow-sm">
+     <div class="font-semibold text-zinc-800">ETB - OFICJALNA STRONA</div>
 
-         <title>{{ config('app.name', 'Laravel') }}</title>
-
--        <!-- Fonts -->
-         <link rel="preconnect" href="https://fonts.bunny.net">
--        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600;700&display=swap" rel="stylesheet" />
-
--        <!-- Scripts -->
-         @vite(['resources/css/app.css', 'resources/js/app.js'])
-     </head>
--    <body class="font-sans text-gray-900 antialiased">
--        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
--            <div>
--                <a href="/">
--                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
--                </a>
--            </div>
-+    <body class="font-sans antialiased bg-black text-white">
-+        <div class="min-h-screen flex items-center justify-center p-6">
-+            <div class="w-full max-w-5xl grid lg:grid-cols-2 overflow-hidden rounded-xl border-4 border-yellow-400 shadow-2xl shadow-yellow-700/30">
-+                <div class="hidden lg:flex bg-zinc-900 border-r-4 border-yellow-400 p-10 items-center justify-center">
-+                    <div class="w-full h-full min-h-96 rounded-lg border-2 border-dashed border-yellow-400/80 bg-black/40 flex items-center justify-center text-center text-yellow-300 px-6">
-+                        <p class="text-sm uppercase tracking-[0.2em]">Miejsce na zdjęcie / grafikę organizacji</p>
-+                    </div>
-+                </div>
+-    <div class="flex items-center space-x-4"><a href="https://www.facebook.com/p/Eat-The-Ball-61572240317030/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
++    <div class="flex items-center space-x-4">
++        <a href="https://www.facebook.com/p/Eat-The-Ball-61572240317030/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                 <path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2.3V12h2.3V9.8c0-2.3 1.4-3.6 3.5-3.6 1 0 2 .2 2 .2v2.2h-1.1c-1.1 0-1.5.7-1.5 1.4V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12"/>
+             </svg>
+             <span>FB</span>
+-            <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+-                    <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.9a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+-                </svg>
+-                <span>IG</span>
+-            </a>
+-            <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+-                    <path d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.3-1C17.2 2.5 12 2.5 12 2.5h0s-5.2 0-8.3.3c-.4.1-1.4.1-2.3 1C.7 4.5.5 6.2.5 6.2S.2 8.1.2 10v2c0 1.9.3 3.8.3 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.6 1 1.9.2 8 .3 8 .3s5.2 0 8.3-.3c.4-.1 1.4-.1 2.3-1 .7-.7.9-2.4.9-2.4s.3-1.9.3-3.8v-2c0-1.9-.3-3.8-.3-3.8zM9.5 14.5v-5l5 2.5-5 2.5z"/>
+-                </svg>
+-                <span>YT</span>
+-            </a>
++        </a>
 +
-+                <div class="bg-yellow-400 p-6 sm:p-10">
-+                    <div class="mb-6 flex items-center justify-between gap-4">
-+                        <a href="/" class="flex items-center gap-3 text-black font-bold">
-+                            <x-application-logo class="w-10 h-10 fill-current text-black" />
-+                            <span>Panel ETB</span>
-+                        </a>
-+                    </div>
++        <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
++            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
++                <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.9a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
++            </svg>
++            <span>IG</span>
++        </a>
++
++        <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
++            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
++                <path d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.3-1C17.2 2.5 12 2.5 12 2.5h0s-5.2 0-8.3.3c-.4.1-1.4.1-2.3 1C.7 4.5.5 6.2.5 6.2S.2 8.1.2 10v2c0 1.9.3 3.8.3 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.6 1 1.9.2 8 .3 8 .3s5.2 0 8.3-.3c.4-.1 1.4-.1 2.3-1 .7-.7.9-2.4.9-2.4s.3-1.9.3-3.8v-2c0-1.9-.3-3.8-.3-3.8zM9.5 14.5v-5l5 2.5-5 2.5z"/>
++            </svg>
++            <span>YT</span>
++        </a>
++
+         <a href="https://www.tiktok.com/@eattheball_lodz" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+             <i data-lucide="music-2" class="w-4 h-4"></i><span>TT</span>
+         </a>
 
--            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
--                {{ $slot }}
-+                    {{ $slot }}
-+                </div>
+         <div class="w-px h-5 bg-zinc-400"></div>
+
+         <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(0.1)">A+</button>
+         <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(-0.1)">A-</button>
+
+         <div class="w-px h-5 bg-zinc-400"></div>
+
+         @auth
+-            <a href="{{ route('dashboard') }}" class="hover:text-yellow-400">Konto</a>
++            <a href="{{ route('profile.edit') }}" class="hover:text-yellow-400">Konto</a>
+             <form method="POST" action="{{ route('logout') }}">
+                 @csrf
+                 <button class="hover:text-yellow-400 text-sm">Wyloguj</button>
+             </form>
+         @else
+             <a href="{{ route('login') }}" class="hover:text-yellow-400">Zaloguj</a>
+         @endauth
+     </div>
+ </div>
+
+ <nav class="bg-zinc-100 text-zinc-900 shadow-md border-b border-zinc-300" x-data="{ open: null }">
+     <div class="max-w-7xl mx-auto px-6 py-4">
+         <div class="flex items-center justify-between gap-4 flex-wrap">
+             <a href="{{ route('home') }}" class="text-3xl font-extrabold text-zinc-800 ajax-link">ETB</a>
+
+             <form class="flex items-center gap-2 relative" role="search" onsubmit="event.preventDefault(); etbSearch()">
+                 <input id="etb-search" list="etb-search-suggestions" type="search" placeholder="Szukaj na stronie..." class="bg-white border border-zinc-300 rounded px-3 py-2 text-sm w-64">
+                 <datalist id="etb-search-suggestions"></datalist>
+                 <button type="submit" class="border border-zinc-500 text-black px-3 py-1.5 rounded font-semibold inline-flex items-center gap-2 hover:bg-yellow-400">
+                     <i data-lucide="search" class="w-4 h-4"></i> Szukaj
+                 </button>
+-                </form>
++            </form>
+         </div>
+
+         <div class="mt-4 flex flex-wrap gap-6 text-lg items-center">
+             <div class="relative" @mouseenter="open='news'" @mouseleave="open=null">
+                 <a href="{{ route('news') }}" class="ajax-link hover:text-yellow-400">Aktualności</a>
+                 <div x-show="open==='news'" x-transition class="dropdown-panel">
+                     <a class="ajax-link" href="{{ route('news.articles') }}">Artykuły</a>
+                     <a class="ajax-link" href="{{ route('news.videos') }}">Wideo</a>
+                     <a class="ajax-link" href="{{ route('news.galleries') }}">Galerie</a>
+                 </div>
+             </div>
+
+             <div class="relative" @mouseenter="open='club'" @mouseleave="open=null">
+                 <a href="{{ route('club') }}" class="ajax-link hover:text-yellow-400">Klub</a>
+                 <div x-show="open==='club'" x-transition class="dropdown-panel">
+                     <a class="ajax-link" href="{{ route('club.history') }}">Historia</a>
+                     <a class="ajax-link" href="{{ route('club.board') }}">Władze klubu</a>
+                     <a class="ajax-link" href="{{ route('club.venue') }}">Obiekt</a>
+                     <a class="ajax-link" href="{{ route('club.business') }}">Oferta biznesowa</a>
+                     <a class="ajax-link" href="{{ route('club.investors') }}">Inwestorzy</a>
+                     <a class="ajax-link" href="{{ route('club.success') }}">Sukcesy</a>
+                     <a class="ajax-link" href="{{ route('club.sponsors') }}">Sponsorzy</a>
+                     <a class="ajax-link" href="{{ route('contact') }}">Kontakt</a>
+                 </div>
+             </div>
+diff --git a/resources/views/profile/edit.blade.php b/resources/views/profile/edit.blade.php
+index e0e1d387e2cae39db07cfa2cba86e080e325e22e..c167aff439007da668abea1ef80b39f8a8f6f6a9 100644
+--- a/resources/views/profile/edit.blade.php
++++ b/resources/views/profile/edit.blade.php
+@@ -1,29 +1,109 @@
+ <x-app-layout>
++    @php
++        use App\Models\User;
++
++        $role = $user->role;
++        $isAdmin = $role === User::ROLE_ADMIN;
++        $isEmployee = $role === User::ROLE_EMPLOYEE;
++        $isAthlete = $role === User::ROLE_ATHLETE;
++        $isFan = $role === User::ROLE_FAN;
++    @endphp
++
+     <x-slot name="header">
+         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+-            {{ __('Profile') }}
++            {{ __('Konto') }}
+         </h2>
+     </x-slot>
+
+-    <div class="py-12">
+-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+-                <div class="max-w-xl">
+-                    @include('profile.partials.update-profile-information-form')
+-                </div>
+-            </div>
++    <div class="py-12 bg-black min-h-screen">
++        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
++            <div class="grid lg:grid-cols-4 gap-6">
++                <aside class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-fit">
++                    <p class="text-sm uppercase tracking-widest text-zinc-400">Konto</p>
++                    <p class="text-lg font-semibold mt-2">{{ $user->name }}</p>
++                    <p class="text-sm text-zinc-400">Rola: {{ strtoupper($role) }}</p>
+
+-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+-                <div class="max-w-xl">
+-                    @include('profile.partials.update-password-form')
+-                </div>
+-            </div>
++                    <nav class="mt-6 space-y-2 text-sm">
++                        <a href="#profil" class="block px-3 py-2 rounded bg-zinc-800 text-zinc-100">Informacje o koncie</a>
++                        <a href="#bezpieczenstwo" class="block px-3 py-2 rounded hover:bg-zinc-800">Hasło i bezpieczeństwo</a>
++                        <a href="#akcje" class="block px-3 py-2 rounded hover:bg-zinc-800">Interakcje roli</a>
++                        <a href="#ustawienia" class="block px-3 py-2 rounded hover:bg-zinc-800">Ustawienia konta</a>
++                    </nav>
++                </aside>
++
++                <div class="lg:col-span-3 space-y-6">
++                    <section id="profil" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
++                        <h3 class="text-xl font-semibold mb-1">Informacje o koncie</h3>
++                        <p class="text-sm text-zinc-400 mb-6">Dane profilu i adres e-mail.</p>
++                        <div class="max-w-2xl">
++                            @include('profile.partials.update-profile-information-form')
++                        </div>
++                    </section>
++
++                    <section id="bezpieczenstwo" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
++                        <h3 class="text-xl font-semibold mb-1">Hasło i bezpieczeństwo</h3>
++                        <p class="text-sm text-zinc-400 mb-6">Zmiana hasła konta użytkownika.</p>
++                        <div class="max-w-2xl">
++                            @include('profile.partials.update-password-form')
++                        </div>
++                    </section>
++
++                    <section id="akcje" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
++                        <h3 class="text-xl font-semibold mb-4">Interakcje dostępne dla Twojej roli</h3>
++
++                        @if ($isAdmin || $isEmployee)
++                            <div class="grid md:grid-cols-2 gap-4 mb-6">
++                                <a href="{{ route('admin.matches.create') }}" class="rounded-lg border border-yellow-400 bg-yellow-400/10 p-4 hover:bg-yellow-400/20 transition">
++                                    <p class="font-semibold">➕ Dodawanie meczów</p>
++                                    <p class="text-sm text-zinc-300 mt-1">Panel dodawania meczów spójny z interfejsem serwisu.</p>
++                                </a>
++                                <div class="rounded-lg border border-zinc-700 p-4">
++                                    <p class="font-semibold">📰 Dodawanie artykułów</p>
++                                    <p class="text-sm text-zinc-400 mt-1">Miejsce pod moduł publikacji newsów (wdrożenie etapami).</p>
++                                </div>
++                                <div class="rounded-lg border border-zinc-700 p-4">
++                                    <p class="font-semibold">📅 Zarządzanie terminarzem</p>
++                                    <p class="text-sm text-zinc-400 mt-1">Sekcja przewidziana pod rozbudowę harmonogramu meczów.</p>
++                                </div>
++                                <div class="rounded-lg border border-zinc-700 p-4">
++                                    <p class="font-semibold">🛒 Przyszłe elementy sklepu</p>
++                                    <p class="text-sm text-zinc-400 mt-1">Placeholder pod przyszłe operacje modułu sklepu.</p>
++                                </div>
++                            </div>
++                        @endif
++
++                        @if ($isAdmin)
++                            <div class="rounded-lg border border-zinc-700 p-4">
++                                <p class="font-semibold">👥 Zarządzanie rolami użytkowników</p>
++                                <p class="text-sm text-zinc-400 mt-1">Administrator może nadawać role graczom i użytkownikom (endpoint aktywny: <code>PATCH /admin/users/{'{user}'}/role</code>).</p>
++                            </div>
++                        @endif
++
++                        @if ($isAthlete || $isFan)
++                            <div class="rounded-lg border border-zinc-700 p-4 mb-4">
++                                <p class="font-semibold">🙋 Konto osobiste</p>
++                                <p class="text-sm text-zinc-400 mt-1">Dostępne akcje: zmiana imienia, nazwiska/nazwy, e-maila i hasła.</p>
++                            </div>
++                        @endif
++
++                        @if (! $isAdmin && ! $isEmployee && ! $isAthlete && ! $isFan)
++                            <p class="text-zinc-400">Brak dodatkowych akcji dla tej roli.</p>
++                        @endif
++                    </section>
++
++                    <section id="ustawienia" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
++                        <h3 class="text-xl font-semibold mb-1">Podstawowe ustawienia konta</h3>
++                        <p class="text-sm text-zinc-400">Sekcja celowo pozostawiona jako placeholder — gotowa pod kolejne ustawienia.</p>
++                    </section>
+
+-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+-                <div class="max-w-xl">
+-                    @include('profile.partials.delete-user-form')
++                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
++                        <h3 class="text-xl font-semibold mb-4">Usunięcie konta</h3>
++                        <div class="max-w-2xl">
++                            @include('profile.partials.delete-user-form')
++                        </div>
++                    </section>
+                 </div>
              </div>
          </div>
-     </body>
- </html>
-diff --git a/routes/auth.php b/routes/auth.php
-index 3926ecf72a8b0ceb1d796215be602d6b6accf846..bea0cb8f464445a64564ece0232941c8cbb97bbd 100644
---- a/routes/auth.php
-+++ b/routes/auth.php
-@@ -1,44 +1,50 @@
+     </div>
+ </x-app-layout>
+diff --git a/routes/web.php b/routes/web.php
+index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..0d7a8de49cbc423a03148b5b8ba4a93107a40212 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -1,29 +1,30 @@
  <?php
 
- use App\Http\Controllers\Auth\AuthenticatedSessionController;
- use App\Http\Controllers\Auth\ConfirmablePasswordController;
- use App\Http\Controllers\Auth\EmailVerificationNotificationController;
- use App\Http\Controllers\Auth\EmailVerificationPromptController;
- use App\Http\Controllers\Auth\NewPasswordController;
- use App\Http\Controllers\Auth\PasswordController;
- use App\Http\Controllers\Auth\PasswordResetLinkController;
- use App\Http\Controllers\Auth\RegisteredUserController;
- use App\Http\Controllers\Auth\VerifyEmailController;
+ use App\Http\Controllers\Admin\UserRoleController;
+ use App\Http\Controllers\ProfileController;
++use App\Models\AppSetting;
+ use App\Models\Game;
+ use App\Models\User;
+ use Illuminate\Http\Request;
  use Illuminate\Support\Facades\Route;
 
- Route::middleware('guest')->group(function () {
-     Route::get('register', [RegisteredUserController::class, 'create'])
-         ->name('register');
+ Route::get('/', function () {
+     $nextMatch = Game::where('match_date', '>=', now())
+         ->orderBy('match_date')
+         ->first();
 
-     Route::post('register', [RegisteredUserController::class, 'store']);
+     $upcomingGames = Game::where('match_date', '>=', now())
+         ->orderBy('match_date')
+         ->take(3)
+         ->get();
 
-+    Route::get('register/verify', [RegisteredUserController::class, 'showVerificationForm'])
-+        ->name('register.verify.notice');
+     $latestArticles = collect([
+         [
+             'title' => 'ETB wygrywa po dogrywce',
+             'category' => 'Artykuł',
+             'date' => '22.04.2026',
+             'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
+         ],
+         [
+             'title' => 'Kulisy meczu z ŁKS',
+             'category' => 'Wideo',
+@@ -160,71 +161,88 @@
+ Route::view('/club/business', 'pages.club-business')->name('club.business');
+ Route::view('/club/investors', 'pages.club-investors')->name('club.investors');
+ Route::view('/club/success', 'pages.club-success')->name('club.success');
+ Route::view('/club/sponsors', 'pages.club-sponsors')->name('club.sponsors');
+
+ /* Rozgrywki */
+ Route::view('/schedule/lzkosz', 'pages.schedule-mzkosz')->name('schedule.lzkosz');
+ Route::redirect('/schedule/third-league', 'https://www.lzkosz.pl/liga/215.html')->name('schedule.third-league');
+ Route::view('/schedule/table', 'pages.schedule-table')->name('schedule.table');
+ Route::view('/schedule/3x3', 'pages.schedule-3x3')->name('schedule.3x3');
+ Route::view('/schedule/3x3/tournaments', 'pages.schedule-3x3-tournaments')->name('schedule.3x3.tournaments');
+ Route::view('/schedule/3x3/team', 'pages.schedule-3x3-team')->name('schedule.3x3.team');
+
+ /* Drużyna */
+ Route::view('/team/players', 'pages.team-players')->name('team.players');
+ Route::view('/team/staff', 'pages.team-staff')->name('team.staff');
+ Route::view('/team-3x3/players', 'pages.team-3x3-players')->name('team3x3.players');
+
+ /* CTA */
+ Route::view('/tickets', 'pages.tickets')->name('tickets');
+ Route::view('/shop', 'pages.shop')->name('shop');
+ Route::view('/academy', 'pages.academy')->name('academy');
+
+ Route::middleware(['auth', 'role:admin,employee'])->group(function () {
+     Route::get('/admin/matches/create', function () {
+-        return view('admin.create-match');
++        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
 +
-+    Route::post('register/verify', [RegisteredUserController::class, 'verifyCode'])
-+        ->name('register.verify');
++        return view('admin.create-match', compact('defaultHomeLogo'));
+     })->name('admin.matches.create');
+
+     Route::post('/admin/matches', function (Request $request) {
+-        $data = $request->all();
+-
+-        if ($request->hasFile('image')) {
+-            $data['image'] = $request->file('image')->store('matches', 'public');
++        $validated = $request->validate([
++            'opponent' => ['required', 'string', 'max:255'],
++            'match_date' => ['required', 'date'],
++            'location' => ['required', 'string', 'max:255'],
++            'exact_address' => ['nullable', 'string', 'max:500'],
++            'is_home' => ['nullable', 'boolean'],
++            'image' => ['nullable', 'image', 'max:5120'],
++            'away_logo' => ['nullable', 'image', 'max:5120'],
++            'default_home_logo' => ['nullable', 'image', 'max:5120'],
++        ]);
 +
-     Route::get('login', [AuthenticatedSessionController::class, 'create'])
-         ->name('login');
++        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
++
++        if ($request->hasFile('default_home_logo')) {
++            $defaultHomeLogo = $request->file('default_home_logo')->store('logos', 'public');
++            AppSetting::setValue('default_home_logo', $defaultHomeLogo);
+         }
 
-     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+-        if ($request->hasFile('home_logo')) {
+-            $data['home_logo'] = $request->file('home_logo')->store('logos', 'public');
++        if ($request->hasFile('image')) {
++            $validated['image'] = $request->file('image')->store('matches', 'public');
+         }
 
-     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
-         ->name('password.request');
+         if ($request->hasFile('away_logo')) {
+-            $data['away_logo'] = $request->file('away_logo')->store('logos', 'public');
++            $validated['away_logo'] = $request->file('away_logo')->store('logos', 'public');
+         }
 
-     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-         ->name('password.email');
+-        Game::create($data);
++        $validated['home_logo'] = $defaultHomeLogo;
++        $validated['is_home'] = $request->boolean('is_home');
++
++        Game::create($validated);
 
-     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
-         ->name('password.reset');
+-        return redirect('/')->with('status', 'Mecz został zapisany.');
++        return redirect()->route('admin.matches.create')->with('status', 'Mecz został zapisany.');
+     })->name('admin.matches.store');
+ });
 
-     Route::post('reset-password', [NewPasswordController::class, 'store'])
-         ->name('password.store');
+ Route::middleware(['auth', 'role:admin'])->group(function () {
+     Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
  });
 
  Route::middleware('auth')->group(function () {
-     Route::get('verify-email', EmailVerificationPromptController::class)
-         ->name('verification.notice');
+     Route::get('/athlete/data', function () {
+         $user = request()->user();
+         abort_if($user->role !== User::ROLE_ATHLETE, 403);
 
-     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-         ->middleware(['signed', 'throttle:6,1'])
-         ->name('verification.verify');
-diff --git a/tests/Feature/Auth/RegistrationTest.php b/tests/Feature/Auth/RegistrationTest.php
-index 352ca787908c6eaa1c33d702f76d283f4a7e5187..60b08d101fcb170cb16b06822f3a973264613e25 100644
---- a/tests/Feature/Auth/RegistrationTest.php
-+++ b/tests/Feature/Auth/RegistrationTest.php
-@@ -1,19 +1,55 @@
- <?php
+         return response()->json($user->athleteProfile);
+     })->name('athlete.data');
 
-+use App\Models\PendingRegistration;
-+use App\Models\User;
-+use Illuminate\Support\Facades\Hash;
-+use Illuminate\Support\Facades\Mail;
-+
- test('registration screen can be rendered', function () {
-     $response = $this->get('/register');
+     Route::get('/fan/data', function () {
+         $user = request()->user();
+         abort_if($user->role !== User::ROLE_FAN, 403);
 
-     $response->assertStatus(200);
- });
+         return response()->json($user->fanProfile);
+     })->name('fan.data');
 
--test('new users can register', function () {
-+test('registration sends activation code before account creation', function () {
-+    Mail::fake();
-+
-     $response = $this->post('/register', [
-         'name' => 'Test User',
-         'email' => 'test@example.com',
-         'password' => 'password',
-         'password_confirmation' => 'password',
-+        'accepted_terms' => '1',
-+        'accepted_privacy' => '1',
-+    ]);
-+
-+    $response->assertRedirect(route('register.verify.notice', ['email' => 'test@example.com']));
-+
-+    $this->assertGuest();
-+    expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
-+    expect(PendingRegistration::where('email', 'test@example.com')->exists())->toBeTrue();
-+
-+    Mail::assertSentCount(1);
-+});
-+
-+test('new users can complete registration with activation code', function () {
-+    $pending = PendingRegistration::create([
-+        'name' => 'Test User',
-+        'email' => 'test@example.com',
-+        'password' => Hash::make('password'),
-+        'accepted_terms' => true,
-+        'accepted_privacy' => true,
-+        'verification_code' => Hash::make('123456'),
-+        'code_expires_at' => now()->addMinutes(15),
-+    ]);
-+
-+    $response = $this->post('/register/verify', [
-+        'email' => $pending->email,
-+        'code' => '123456',
-     ]);
-
-     $this->assertAuthenticated();
-     $response->assertRedirect(route('dashboard', absolute: false));
-+    expect(User::where('email', 'test@example.com')->exists())->toBeTrue();
-+    expect(PendingRegistration::where('email', 'test@example.com')->exists())->toBeFalse();
- });
+     Route::get('/employee/data', function () {
+         $user = request()->user();
+         abort_if($user->role !== User::ROLE_EMPLOYEE, 403);
 
