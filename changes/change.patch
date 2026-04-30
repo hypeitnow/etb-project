@@ -1,222 +1,172 @@
+diff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php
+index 12d61549a2d3cdff1790cbfaeb0b6ed81eb8d7f7..4ff0057aca4cb1d681c12fb75ed54e9b425b00c0 100644
+--- a/app/Http/Controllers/ProfileController.php
++++ b/app/Http/Controllers/ProfileController.php
+@@ -1,58 +1,67 @@
+ <?php
+
+ namespace App\Http\Controllers;
+
+ use App\Http\Requests\ProfileUpdateRequest;
++use App\Models\Match as MatchModel;
++use App\Models\News;
++use App\Models\Player;
+ use App\Models\User;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Auth;
+ use Illuminate\Support\Facades\Redirect;
+ use Illuminate\View\View;
+
+ class ProfileController extends Controller
+ {
+     /**
+      * Display the user's profile form.
+      */
+     public function edit(Request $request): View
+     {
+         $user = $request->user();
++        $matches = MatchModel::latest()->take(5)->get();
++        $news = News::latest()->take(5)->get();
++        $players = Player::latest()->take(5)->get();
+
+         return view('profile.edit', [
+             'user' => $user,
+             'isAdmin' => $user->role === User::ROLE_ADMIN,
+             'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
+             'isAthlete' => $user->role === User::ROLE_ATHLETE,
+             'users' => $user->role === User::ROLE_ADMIN
+                 ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role'])
+                 : collect(),
+             'athleteProfile' => $user->role === User::ROLE_ATHLETE
+                 ? $user->athleteProfile()->first()
+                 : null,
+             'availableRoles' => User::roles(),
++            'matches' => $matches,
++            'news' => $news,
++            'players' => $players,
+         ]);
+     }
+
+     /**
+      * Update the user's profile information.
+      */
+     public function update(ProfileUpdateRequest $request): RedirectResponse
+     {
+         $request->user()->fill($request->validated());
+
+         if ($request->user()->isDirty('email')) {
+             $request->user()->email_verified_at = null;
+         }
+
+         $request->user()->save();
+
+         return Redirect::route('profile.edit')->with('status', 'profile-updated');
+     }
+
+     /**
+      * Delete the user's account.
+      */
+     public function destroy(Request $request): RedirectResponse
+     {
+         $request->validateWithBag('userDeletion', [
 diff --git a/resources/views/profile/edit.blade.php b/resources/views/profile/edit.blade.php
-index 9458f3341ab30618fd24a85510f6ffb6f6b75073..67dcfee26b5a98d2dbda3af623b7014ff24a0847 100644
+index 62091686e0f6ad03b4218b8c781c4abd4e963aea..03761ea111d3e6f394dc3b01b8beb6777427795d 100644
 --- a/resources/views/profile/edit.blade.php
 +++ b/resources/views/profile/edit.blade.php
-@@ -1,111 +1,127 @@
- <x-app-layout>
-     <x-slot name="header">
-         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-             {{ __('Profile') }}
-         </h2>
-     </x-slot>
+@@ -86,50 +86,95 @@
+                                     </tbody>
+                                 </table>
+                             </div>
+                         </div>
+                     @endif
 
-     <div class="py-12 bg-black min-h-screen">
--        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
--            <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
--                <h3 class="text-xl font-semibold mb-1">Common Profile</h3>
--                <p class="text-sm text-zinc-400 mb-6">Update your name, email, and password.</p>
-+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+            <div class="grid gap-6 lg:grid-cols-12">
-+                <aside class="lg:col-span-4">
-+                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg h-full">
-+                        <h3 class="text-xl font-semibold mb-1">Common Profile</h3>
-+                        <p class="text-sm text-zinc-400">Manage your account details and security settings.</p>
-+                    </section>
-+                </aside>
+                     <!-- EMPLOYEE -->
+                     @if ($isEmployee)
+                         <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                             <h3 class="text-lg font-semibold mb-4">Panel pracownika</h3>
 
--                <div class="max-w-2xl mb-6">
--                    @include('profile.partials.update-profile-information-form')
--                </div>
-+                <main class="lg:col-span-8 space-y-6">
-+                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-1">Profile Information</h3>
-+                        <p class="text-sm text-zinc-400 mb-6">Update your name and email address.</p>
+                             <div class="grid md:grid-cols-3 gap-4">
+                                 <a href="{{ route('players.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                     ➕ Dodaj zawodnika
+                                 </a>
+                                 <a href="{{ route('news.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                     📰 Dodaj news
+                                 </a>
+                                 <a href="{{ route('matches.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                     ⚽ Dodaj mecz
+                                 </a>
+                             </div>
+                         </div>
+                     @endif
 
--                <div class="max-w-2xl">
--                    @include('profile.partials.update-password-form')
--                </div>
--            </section>
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.update-profile-information-form')
-+                        </div>
-+                    </section>
-
--            @if ($isAdmin)
--                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
--                    <h3 class="text-xl font-semibold mb-4">User Management</h3>
-+                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-1">Password</h3>
-+                        <p class="text-sm text-zinc-400 mb-6">Update your account password.</p>
-
--                    @if (session('status') === 'role-updated')
--                        <p class="text-sm text-green-400 mb-4">User role updated successfully.</p>
--                    @endif
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.update-password-form')
-+                        </div>
-+                    </section>
 +
-+                    @if ($isAdmin)
-+                        <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                            <h3 class="text-xl font-semibold mb-4">User Management</h3>
++                    @if ($isAdmin || $isEmployee)
++                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
++                            <h3 class="text-lg font-semibold mb-4">Latest Matches</h3>
 +
-+                            @if (session('status') === 'role-updated')
-+                                <p class="text-sm text-green-400 mb-4">User role updated successfully.</p>
-+                            @endif
-
--                    <div class="overflow-x-auto">
--                        <table class="min-w-full divide-y divide-zinc-700 text-sm">
--                            <thead>
--                                <tr>
--                                    <th class="py-2 text-left">Name</th>
--                                    <th class="py-2 text-left">Email</th>
--                                    <th class="py-2 text-left">Role</th>
--                                    <th class="py-2 text-left">Action</th>
--                                </tr>
--                            </thead>
--                            <tbody class="divide-y divide-zinc-800">
--                                @foreach ($users as $managedUser)
--                                    <tr>
--                                        <td class="py-3 pr-4">{{ $managedUser->name }}</td>
--                                        <td class="py-3 pr-4">{{ $managedUser->email }}</td>
--                                        <td class="py-3 pr-4 uppercase">{{ $managedUser->role }}</td>
--                                        <td class="py-3 pr-4">
--                                            <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}" class="flex items-center gap-2">
--                                                @csrf
--                                                @method('PATCH')
--                                                <select name="role" class="rounded-md border-zinc-700 bg-zinc-800 text-zinc-100">
--                                                    @foreach ($availableRoles as $role)
--                                                        <option value="{{ $role }}" @selected($managedUser->role === $role)>
--                                                            {{ strtoupper($role) }}
--                                                        </option>
--                                                    @endforeach
--                                                </select>
--                                                <button type="submit" class="px-3 py-1 rounded bg-yellow-500 text-black font-semibold">
--                                                    Save
--                                                </button>
--                                            </form>
--                                        </td>
--                                    </tr>
--                                @endforeach
--                            </tbody>
--                        </table>
--                    </div>
--                </section>
--            @endif
-+                            <div class="overflow-x-auto">
-+                                <table class="min-w-full divide-y divide-zinc-700 text-sm">
-+                                    <thead>
-+                                        <tr>
-+                                            <th class="py-2 text-left">Name</th>
-+                                            <th class="py-2 text-left">Email</th>
-+                                            <th class="py-2 text-left">Role</th>
-+                                            <th class="py-2 text-left">Action</th>
-+                                        </tr>
-+                                    </thead>
-+                                    <tbody class="divide-y divide-zinc-800">
-+                                        @foreach ($users as $managedUser)
-+                                            <tr>
-+                                                <td class="py-3 pr-4">{{ $managedUser->name }}</td>
-+                                                <td class="py-3 pr-4">{{ $managedUser->email }}</td>
-+                                                <td class="py-3 pr-4 uppercase">{{ $managedUser->role }}</td>
-+                                                <td class="py-3 pr-4">
-+                                                    <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}" class="flex items-center gap-2">
-+                                                        @csrf
-+                                                        @method('PATCH')
-+                                                        <select name="role" class="rounded-md border-zinc-700 bg-zinc-800 text-zinc-100">
-+                                                            @foreach ($availableRoles as $role)
-+                                                                <option value="{{ $role }}" @selected($managedUser->role === $role)>
-+                                                                    {{ strtoupper($role) }}
-+                                                                </option>
-+                                                            @endforeach
-+                                                        </select>
-+                                                        <button type="submit" class="px-3 py-1 rounded bg-yellow-500 text-black font-semibold">
-+                                                            Save
-+                                                        </button>
-+                                                    </form>
-+                                                </td>
-+                                            </tr>
-+                                        @endforeach
-+                                    </tbody>
-+                                </table>
++                            <div class="space-y-2 text-sm">
++                                @forelse ($matches as $match)
++                                    <div>
++                                        {{ $match->home_team }} vs {{ $match->away_team }}
++                                    </div>
++                                @empty
++                                    <div>Brak meczów.</div>
++                                @endforelse
 +                            </div>
-+                        </section>
-+                    @endif
-
--            @if ($isEmployee)
--                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
--                    <h3 class="text-xl font-semibold mb-4">Quick Access Panel</h3>
--                    <div class="grid md:grid-cols-3 gap-4 text-sm">
--                        <a href="{{ route('players.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create player</a>
--                        <a href="{{ route('news.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create news</a>
--                        <a href="{{ route('matches.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create match</a>
--                    </div>
--                </section>
--            @endif
-+                    @if ($isEmployee)
-+                        <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                            <h3 class="text-xl font-semibold mb-4">Quick Access Panel</h3>
-+                            <div class="grid md:grid-cols-3 gap-4 text-sm">
-+                                <a href="{{ route('players.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create player</a>
-+                                <a href="{{ route('news.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create news</a>
-+                                <a href="{{ route('matches.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create match</a>
-+                            </div>
-+                        </section>
-+                    @endif
-
--            @if ($isAthlete)
--                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
--                    <h3 class="text-xl font-semibold mb-4">Athlete Panel</h3>
-+                    @if ($isAthlete)
-+                        <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                            <h3 class="text-xl font-semibold mb-4">Athlete Panel</h3>
-
--                    <div class="mb-6">
--                        <p class="text-sm text-zinc-400">Player data</p>
--                        @if ($athleteProfile)
--                            <pre class="mt-2 text-xs bg-zinc-950 border border-zinc-800 rounded p-3 overflow-x-auto">{{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
--                        @else
--                            <p class="text-sm text-zinc-300 mt-1">No athlete profile data found yet.</p>
--                        @endif
--                    </div>
-+                            <div class="mb-6">
-+                                <p class="text-sm text-zinc-400">Player data</p>
-+                                @if ($athleteProfile)
-+                                    <pre class="mt-2 text-xs bg-zinc-950 border border-zinc-800 rounded p-3 overflow-x-auto">{{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-+                                @else
-+                                    <p class="text-sm text-zinc-300 mt-1">No athlete profile data found yet.</p>
-+                                @endif
-+                            </div>
-
--                    <div class="grid md:grid-cols-3 gap-4 text-sm">
--                        <div class="rounded-lg border border-zinc-700 p-4">Training schedule (placeholder)</div>
--                        <div class="rounded-lg border border-zinc-700 p-4">Availability (placeholder)</div>
--                        <div class="rounded-lg border border-zinc-700 p-4">Stats (future)</div>
--                    </div>
--                </section>
--            @endif
-+                            <div class="grid md:grid-cols-3 gap-4 text-sm">
-+                                <div class="rounded-lg border border-zinc-700 p-4">Training schedule (placeholder)</div>
-+                                <div class="rounded-lg border border-zinc-700 p-4">Availability (placeholder)</div>
-+                                <div class="rounded-lg border border-zinc-700 p-4">Stats (future)</div>
-+                            </div>
-+                        </section>
-+                    @endif
-
--            <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
--                <h3 class="text-xl font-semibold mb-4">Delete account</h3>
--                <div class="max-w-2xl">
--                    @include('profile.partials.delete-user-form')
--                </div>
--            </section>
-+                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-4">Delete account</h3>
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.delete-user-form')
 +                        </div>
-+                    </section>
-+                </main>
-+            </div>
-         </div>
-     </div>
- </x-app-layout>
++
++                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
++                            <h3 class="text-lg font-semibold mb-4">Latest News</h3>
++
++                            <div class="space-y-2 text-sm">
++                                @forelse ($news as $article)
++                                    <div>
++                                        {{ $article->title }}
++                                    </div>
++                                @empty
++                                    <div>Brak newsów.</div>
++                                @endforelse
++                            </div>
++                        </div>
++
++                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
++                            <h3 class="text-lg font-semibold mb-4">Latest Players</h3>
++
++                            <div class="space-y-2 text-sm">
++                                @forelse ($players as $player)
++                                    <div>
++                                        {{ $player->first_name }} {{ $player->last_name }}
++                                    </div>
++                                @empty
++                                    <div>Brak zawodników.</div>
++                                @endforelse
++                            </div>
++                        </div>
++                    @endif
++
+                     <!-- ATHLETE -->
+                     @if ($isAthlete)
+                         <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                             <h3 class="text-lg font-semibold mb-4">Panel zawodnika</h3>
+
+                             <div class="mb-4">
+                                 <p class="text-sm text-gray-600">Dane zawodnika:</p>
+
+                                 @if ($athleteProfile)
+                                     <pre class="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+ {{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}
+                                 </pre>
+                                 @else
+                                     <p class="text-sm mt-2">Brak danych zawodnika</p>
+                                 @endif
+                             </div>
+
+                             <div class="grid md:grid-cols-3 gap-4 text-sm">
+                                 <div class="border p-4 rounded">Treningi (w przyszłości)</div>
+                                 <div class="border p-4 rounded">Dostępność</div>
+                                 <div class="border p-4 rounded">Statystyki</div>
+                             </div>
+                         </div>
+                     @endif
+
