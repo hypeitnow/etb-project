@@ -1,97 +1,92 @@
-diff --git a/app/Http/Controllers/NewsController.php b/app/Http/Controllers/NewsController.php
+diff --git a/app/Http/Controllers/MatchController.php b/app/Http/Controllers/MatchController.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..e46d2ee0930795c280db0df27efa74401b0445c9
+index 0000000000000000000000000000000000000000..447984c9963c1e0c40a0087e79a3e48577cdad77
 --- /dev/null
-+++ b/app/Http/Controllers/NewsController.php
-@@ -0,0 +1,70 @@
++++ b/app/Http/Controllers/MatchController.php
+@@ -0,0 +1,65 @@
 +<?php
 +
 +namespace App\Http\Controllers;
 +
-+use App\Http\Requests\StoreNewsRequest;
-+use App\Http\Requests\UpdateNewsRequest;
-+use App\Models\News;
++use App\Http\Requests\StoreMatchRequest;
++use App\Http\Requests\UpdateMatchRequest;
++use App\Models\Match;
 +use Illuminate\Http\RedirectResponse;
 +use Illuminate\View\View;
 +
-+class NewsController extends Controller
++class MatchController extends Controller
 +{
 +    public function index(): View
 +    {
-+        $this->authorize('viewAny', News::class);
++        $this->authorize('viewAny', Match::class);
 +
-+        $newsItems = News::query()->with('author')->latest()->get();
++        $matches = Match::query()->orderBy('match_date')->get();
 +
-+        return view('news.index', compact('newsItems'));
++        return view('matches.index', compact('matches'));
 +    }
 +
-+    public function show(News $news): View
++    public function show(Match $match): View
 +    {
-+        $this->authorize('view', $news);
++        $this->authorize('view', $match);
 +
-+        $news->load('author');
-+
-+        return view('news.show', compact('news'));
++        return view('matches.show', compact('match'));
 +    }
 +
 +    public function create(): View
 +    {
-+        $this->authorize('create', News::class);
++        $this->authorize('create', Match::class);
 +
-+        return view('news.create');
++        return view('matches.create');
 +    }
 +
-+    public function store(StoreNewsRequest $request): RedirectResponse
++    public function store(StoreMatchRequest $request): RedirectResponse
 +    {
-+        $news = News::query()->create([
-+            ...$request->validated(),
-+            'author_id' => $request->user()->id,
-+        ]);
++        $match = Match::query()->create($request->validated());
 +
-+        return redirect()->route('news.show', $news);
++        return redirect()->route('matches.show', $match);
 +    }
 +
-+    public function edit(News $news): View
++    public function edit(Match $match): View
 +    {
-+        $this->authorize('update', $news);
++        $this->authorize('update', $match);
 +
-+        return view('news.edit', compact('news'));
++        return view('matches.edit', compact('match'));
 +    }
 +
-+    public function update(UpdateNewsRequest $request, News $news): RedirectResponse
++    public function update(UpdateMatchRequest $request, Match $match): RedirectResponse
 +    {
-+        $news->update($request->validated());
++        $match->update($request->validated());
 +
-+        return redirect()->route('news.show', $news);
++        return redirect()->route('matches.show', $match);
 +    }
 +
-+    public function destroy(News $news): RedirectResponse
++    public function destroy(Match $match): RedirectResponse
 +    {
-+        $this->authorize('delete', $news);
++        $this->authorize('delete', $match);
 +
-+        $news->delete();
++        $match->delete();
 +
-+        return redirect()->route('news.index');
++        return redirect()->route('matches.index');
 +    }
 +}
-diff --git a/app/Http/Requests/StoreNewsRequest.php b/app/Http/Requests/StoreNewsRequest.php
+diff --git a/app/Http/Requests/StoreMatchRequest.php b/app/Http/Requests/StoreMatchRequest.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..38e69b1c3857d8ff1b1e23e8795c661a357db3e8
+index 0000000000000000000000000000000000000000..59a5d0771205e0ddd68aa1f3101453b5791348bf
 --- /dev/null
-+++ b/app/Http/Requests/StoreNewsRequest.php
-@@ -0,0 +1,25 @@
++++ b/app/Http/Requests/StoreMatchRequest.php
+@@ -0,0 +1,27 @@
 +<?php
 +
 +namespace App\Http\Requests;
 +
-+use App\Models\News;
++use App\Models\Match;
 +use Illuminate\Foundation\Http\FormRequest;
 +
-+class StoreNewsRequest extends FormRequest
++class StoreMatchRequest extends FormRequest
 +{
 +    public function authorize(): bool
 +    {
-+        return $this->user()?->can('create', News::class) ?? false;
++        return $this->user()?->can('create', Match::class) ?? false;
 +    }
 +
 +    /**
@@ -100,33 +95,33 @@ index 0000000000000000000000000000000000000000..38e69b1c3857d8ff1b1e23e8795c661a
 +    public function rules(): array
 +    {
 +        return [
-+            'title' => ['required', 'string', 'max:255'],
-+            'content' => ['required', 'string', 'min:10'],
++            'opponent' => ['required', 'string', 'max:255'],
++            'match_date' => ['required', 'date'],
++            'location' => ['required', 'string', 'max:255'],
++            'result' => ['nullable', 'string', 'max:50'],
 +        ];
 +    }
 +}
-diff --git a/app/Http/Requests/UpdateNewsRequest.php b/app/Http/Requests/UpdateNewsRequest.php
+diff --git a/app/Http/Requests/UpdateMatchRequest.php b/app/Http/Requests/UpdateMatchRequest.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3fa4a2f80d19edc71ed9d1e60ab751787fce3bb
+index 0000000000000000000000000000000000000000..adb197fe9171872415a9c37fd769bb4f28790b13
 --- /dev/null
-+++ b/app/Http/Requests/UpdateNewsRequest.php
++++ b/app/Http/Requests/UpdateMatchRequest.php
 @@ -0,0 +1,29 @@
 +<?php
 +
 +namespace App\Http\Requests;
 +
-+use App\Models\News;
++use App\Models\Match;
 +use Illuminate\Foundation\Http\FormRequest;
 +
-+class UpdateNewsRequest extends FormRequest
++class UpdateMatchRequest extends FormRequest
 +{
 +    public function authorize(): bool
 +    {
-+        $news = $this->route('news');
++        $match = $this->route('match');
 +
-+        return $news instanceof News
-+            ? ($this->user()?->can('update', $news) ?? false)
-+            : false;
++        return $this->user()?->can('update', $match instanceof Match ? $match : Match::class) ?? false;
 +    }
 +
 +    /**
@@ -135,26 +130,27 @@ index 0000000000000000000000000000000000000000..e3fa4a2f80d19edc71ed9d1e60ab7517
 +    public function rules(): array
 +    {
 +        return [
-+            'title' => ['required', 'string', 'max:255'],
-+            'content' => ['required', 'string', 'min:10'],
++            'opponent' => ['required', 'string', 'max:255'],
++            'match_date' => ['required', 'date'],
++            'location' => ['required', 'string', 'max:255'],
++            'result' => ['nullable', 'string', 'max:50'],
 +        ];
 +    }
 +}
-diff --git a/app/Models/News.php b/app/Models/News.php
+diff --git a/app/Models/Match.php b/app/Models/Match.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..b9b15f2a817adf9e1b0b6eccdfce03b382716c4c
+index 0000000000000000000000000000000000000000..6631b7f3955d4cc845327f80cf66bd88b63924d7
 --- /dev/null
-+++ b/app/Models/News.php
-@@ -0,0 +1,26 @@
++++ b/app/Models/Match.php
+@@ -0,0 +1,31 @@
 +<?php
 +
 +namespace App\Models;
 +
 +use Illuminate\Database\Eloquent\Factories\HasFactory;
 +use Illuminate\Database\Eloquent\Model;
-+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 +
-+class News extends Model
++class Match extends Model
 +{
 +    use HasFactory;
 +
@@ -162,108 +158,43 @@ index 0000000000000000000000000000000000000000..b9b15f2a817adf9e1b0b6eccdfce03b3
 +     * @var list<string>
 +     */
 +    protected $fillable = [
-+        'title',
-+        'content',
-+        'author_id',
++        'opponent',
++        'match_date',
++        'location',
++        'result',
 +    ];
 +
-+    public function author(): BelongsTo
++    /**
++     * @return array<string, string>
++     */
++    protected function casts(): array
 +    {
-+        return $this->belongsTo(User::class, 'author_id');
++        return [
++            'match_date' => 'datetime',
++        ];
 +    }
 +}
-diff --git a/app/Models/User.php b/app/Models/User.php
-index c184dfe3132f8ccecdb63e539db665188b3bb9df..54e6fa83089e01e6b2809b3cf04fc0d51762e22d 100644
---- a/app/Models/User.php
-+++ b/app/Models/User.php
-@@ -1,32 +1,33 @@
- <?php
-
- namespace App\Models;
-
- // use Illuminate\Contracts\Auth\MustVerifyEmail;
- use Database\Factories\UserFactory;
- use Illuminate\Database\Eloquent\Factories\HasFactory;
-+use Illuminate\Database\Eloquent\Relations\HasMany;
- use Illuminate\Database\Eloquent\Relations\HasOne;
- use Illuminate\Foundation\Auth\User as Authenticatable;
- use Illuminate\Notifications\Notifiable;
-
- class User extends Authenticatable
- {
-     /** @use HasFactory<UserFactory> */
-     use HasFactory, Notifiable;
-
-     public const ROLE_ADMIN = 'admin';
-     public const ROLE_ATHLETE = 'athlete';
-     public const ROLE_FAN = 'fan';
-     public const ROLE_EMPLOYEE = 'employee';
-
-     /**
-      * The attributes that are mass assignable.
-      *
-      * @var list<string>
-      */
-     protected $fillable = [
-         'name',
-         'email',
-         'password',
-         'role',
-     ];
-@@ -72,27 +73,32 @@ public function isAdmin(): bool
-         return $this->role === self::ROLE_ADMIN;
-     }
-
-     /**
-      * @param list<string> $roles
-      */
-     public function hasAnyRole(array $roles): bool
-     {
-         return in_array($this->role, $roles, true);
-     }
-
-     public function athleteProfile(): HasOne
-     {
-         return $this->hasOne(AthleteProfile::class);
-     }
-
-     public function fanProfile(): HasOne
-     {
-         return $this->hasOne(FanProfile::class);
-     }
-
-     public function employeeProfile(): HasOne
-     {
-         return $this->hasOne(EmployeeProfile::class);
-     }
-+
-+    public function news(): HasMany
-+    {
-+        return $this->hasMany(News::class, 'author_id');
-+    }
- }
-
-diff --git a/app/Policies/NewsPolicy.php b/app/Policies/NewsPolicy.php
+diff --git a/app/Policies/MatchPolicy.php b/app/Policies/MatchPolicy.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..733c36fc66f48cb247497267af7f3555d8a8362a
+index 0000000000000000000000000000000000000000..6728c42627ea877e811a6b50dbbeb55d6b22d6fb
 --- /dev/null
-+++ b/app/Policies/NewsPolicy.php
++++ b/app/Policies/MatchPolicy.php
 @@ -0,0 +1,34 @@
 +<?php
 +
 +namespace App\Policies;
 +
-+use App\Models\News;
++use App\Models\Match;
 +use App\Models\User;
 +
-+class NewsPolicy
++class MatchPolicy
 +{
 +    public function viewAny(?User $user): bool
 +    {
 +        return true;
 +    }
 +
-+    public function view(?User $user, News $news): bool
++    public function view(?User $user, Match $match): bool
 +    {
 +        return true;
 +    }
@@ -273,28 +204,30 @@ index 0000000000000000000000000000000000000000..733c36fc66f48cb247497267af7f3555
 +        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
 +    }
 +
-+    public function update(User $user, News $news): bool
++    public function update(User $user, Match $match): bool
 +    {
 +        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
 +    }
 +
-+    public function delete(User $user, News $news): bool
++    public function delete(User $user, Match $match): bool
 +    {
 +        return $user->role === User::ROLE_ADMIN;
 +    }
 +}
 diff --git a/app/Providers/AuthServiceProvider.php b/app/Providers/AuthServiceProvider.php
-index 0829f736a129969b33f81fb8372c873efdec4389..b1cb64203def5cc8e94afa9c90ccf65a2195ff39 100644
+index b1cb64203def5cc8e94afa9c90ccf65a2195ff39..493fd5bcb2dfb9434de96c1545faa57d4d09f5c0 100644
 --- a/app/Providers/AuthServiceProvider.php
 +++ b/app/Providers/AuthServiceProvider.php
-@@ -1,22 +1,25 @@
+@@ -1,25 +1,28 @@
  <?php
 
  namespace App\Providers;
 
-+use App\Models\News;
++use App\Models\Match;
+ use App\Models\News;
  use App\Models\Player;
-+use App\Policies\NewsPolicy;
++use App\Policies\MatchPolicy;
+ use App\Policies\NewsPolicy;
  use App\Policies\PlayerPolicy;
  use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -305,7 +238,8 @@ index 0829f736a129969b33f81fb8372c873efdec4389..b1cb64203def5cc8e94afa9c90ccf65a
       */
      protected $policies = [
          Player::class => PlayerPolicy::class,
-+        News::class => NewsPolicy::class,
+         News::class => NewsPolicy::class,
++        Match::class => MatchPolicy::class,
      ];
 
      public function boot(): void
@@ -313,12 +247,12 @@ index 0829f736a129969b33f81fb8372c873efdec4389..b1cb64203def5cc8e94afa9c90ccf65a
          $this->registerPolicies();
      }
  }
-diff --git a/database/migrations/2026_04_30_120000_create_news_table.php b/database/migrations/2026_04_30_120000_create_news_table.php
+diff --git a/database/migrations/2026_04_30_130000_create_matches_table.php b/database/migrations/2026_04_30_130000_create_matches_table.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..5decee89e5531a74c0943f9b5db68cfc2d7484ab
+index 0000000000000000000000000000000000000000..bf465d3d59144469e2ce1084199da28c2a6f43ae
 --- /dev/null
-+++ b/database/migrations/2026_04_30_120000_create_news_table.php
-@@ -0,0 +1,24 @@
++++ b/database/migrations/2026_04_30_130000_create_matches_table.php
+@@ -0,0 +1,25 @@
 +<?php
 +
 +use Illuminate\Database\Migrations\Migration;
@@ -329,232 +263,201 @@ index 0000000000000000000000000000000000000000..5decee89e5531a74c0943f9b5db68cfc
 +{
 +    public function up(): void
 +    {
-+        Schema::create('news', function (Blueprint $table): void {
++        Schema::create('matches', function (Blueprint $table) {
 +            $table->id();
-+            $table->string('title');
-+            $table->text('content');
-+            $table->foreignId('author_id')->constrained('users')->restrictOnDelete();
++            $table->string('opponent');
++            $table->dateTime('match_date');
++            $table->string('location');
++            $table->string('result', 50)->nullable();
 +            $table->timestamps();
 +        });
 +    }
 +
 +    public function down(): void
 +    {
-+        Schema::dropIfExists('news');
++        Schema::dropIfExists('matches');
 +    }
 +};
-diff --git a/resources/views/home.blade.php b/resources/views/home.blade.php
+diff --git a/resources/views/matches/create.blade.php b/resources/views/matches/create.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..9497efc8dd21f414b743e81eb8d78e7a50481006
+index 0000000000000000000000000000000000000000..d72b91916d623a79333864d3ca8f3b2e1202f2dd
 --- /dev/null
-+++ b/resources/views/home.blade.php
-@@ -0,0 +1,26 @@
-+@extends('layouts.app')
++++ b/resources/views/matches/create.blade.php
+@@ -0,0 +1,18 @@
++@extends('layouts.main')
++
++@section('title', 'Dodaj mecz')
 +
 +@section('content')
-+<div class="py-6">
-+    <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
-+        <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            <h1 class="text-2xl font-semibold">Welcome to ETB</h1>
-+            <p class="mt-2 text-gray-700">Stay up to date with the latest club announcements and updates.</p>
-+        </section>
++    <div class="max-w-3xl mx-auto py-10 px-6">
++        <h1 class="text-3xl font-bold mb-6">Dodaj mecz</h1>
 +
-+        <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            <h2 class="text-xl font-medium mb-3">Latest news</h2>
-+            <div class="space-y-3">
-+                @forelse($latestNews as $item)
-+                    <article>
-+                        <h3 class="font-medium"><a class="underline" href="{{ route('news.show', $item) }}">{{ $item->title }}</a></h3>
-+                        <p class="text-sm text-gray-600">{{ \Illuminate\Support\Str::limit($item->content, 120) }}</p>
-+                    </article>
-+                @empty
-+                    <p>No news yet.</p>
-+                @endforelse
-+            </div>
-+        </section>
++        <form method="POST" action="{{ route('matches.store') }}" class="space-y-4">
++            @csrf
++            <input name="opponent" type="text" placeholder="Przeciwnik" class="w-full border rounded p-2" value="{{ old('opponent') }}" required>
++            <input name="match_date" type="datetime-local" class="w-full border rounded p-2" value="{{ old('match_date') }}" required>
++            <input name="location" type="text" placeholder="Miejsce" class="w-full border rounded p-2" value="{{ old('location') }}" required>
++            <input name="result" type="text" placeholder="Wynik (opcjonalnie)" class="w-full border rounded p-2" value="{{ old('result') }}">
++            <button type="submit" class="px-4 py-2 bg-black text-white rounded">Zapisz</button>
++        </form>
 +    </div>
-+</div>
 +@endsection
-diff --git a/resources/views/news/create.blade.php b/resources/views/news/create.blade.php
+diff --git a/resources/views/matches/edit.blade.php b/resources/views/matches/edit.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..7bf0cd23fcb68fa3cca070d1f7749f28bc0b0a88
+index 0000000000000000000000000000000000000000..6d68eb0d1969d719ae0ef8d6408996cd9c3196b9
 --- /dev/null
-+++ b/resources/views/news/create.blade.php
-@@ -0,0 +1,4 @@
-+@extends('layouts.app')
++++ b/resources/views/matches/edit.blade.php
+@@ -0,0 +1,19 @@
++@extends('layouts.main')
++
++@section('title', 'Edytuj mecz')
++
 +@section('content')
-+<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">Create news</h1><form action="{{ route('news.store') }}" method="POST" class="space-y-4">@csrf<div><label for="title">Title</label><input id="title" name="title" type="text" value="{{ old('title') }}" class="w-full border rounded p-2">@error('title')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><div><label for="content">Content</label><textarea id="content" name="content" rows="8" class="w-full border rounded p-2">{{ old('content') }}</textarea>@error('content')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><button type="submit" class="underline">Save</button></form></div></div></div>
++    <div class="max-w-3xl mx-auto py-10 px-6">
++        <h1 class="text-3xl font-bold mb-6">Edytuj mecz</h1>
++
++        <form method="POST" action="{{ route('matches.update', $match) }}" class="space-y-4">
++            @csrf
++            @method('PUT')
++            <input name="opponent" type="text" placeholder="Przeciwnik" class="w-full border rounded p-2" value="{{ old('opponent', $match->opponent) }}" required>
++            <input name="match_date" type="datetime-local" class="w-full border rounded p-2" value="{{ old('match_date', $match->match_date->format('Y-m-d\\TH:i')) }}" required>
++            <input name="location" type="text" placeholder="Miejsce" class="w-full border rounded p-2" value="{{ old('location', $match->location) }}" required>
++            <input name="result" type="text" placeholder="Wynik (opcjonalnie)" class="w-full border rounded p-2" value="{{ old('result', $match->result) }}">
++            <button type="submit" class="px-4 py-2 bg-black text-white rounded">Aktualizuj</button>
++        </form>
++    </div>
 +@endsection
-diff --git a/resources/views/news/edit.blade.php b/resources/views/news/edit.blade.php
+diff --git a/resources/views/matches/index.blade.php b/resources/views/matches/index.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..5613193d6788fc226c2e31c12c7d00a2726ff803
+index 0000000000000000000000000000000000000000..559ea78587d9511098f7732e79a9bf1517c5570f
 --- /dev/null
-+++ b/resources/views/news/edit.blade.php
-@@ -0,0 +1,4 @@
-+@extends('layouts.app')
++++ b/resources/views/matches/index.blade.php
+@@ -0,0 +1,22 @@
++@extends('layouts.main')
++
++@section('title', 'Mecze')
++
 +@section('content')
-+<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">Edit news</h1><form action="{{ route('news.update', $news) }}" method="POST" class="space-y-4">@csrf @method('PUT')<div><label for="title">Title</label><input id="title" name="title" type="text" value="{{ old('title', $news->title) }}" class="w-full border rounded p-2">@error('title')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><div><label for="content">Content</label><textarea id="content" name="content" rows="8" class="w-full border rounded p-2">{{ old('content', $news->content) }}</textarea>@error('content')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><button type="submit" class="underline">Update</button></form></div></div></div>
++    <div class="max-w-5xl mx-auto py-10 px-6">
++        <h1 class="text-3xl font-bold mb-6">Terminarz i wyniki</h1>
++
++        <ul class="space-y-3">
++            @forelse($matches as $match)
++                <li class="p-4 border rounded bg-white">
++                    <a class="font-semibold hover:underline" href="{{ route('matches.show', $match) }}">
++                        {{ $match->opponent }}
++                    </a>
++                    <p class="text-sm text-gray-600">{{ $match->match_date->format('Y-m-d H:i') }}</p>
++                </li>
++            @empty
++                <li>Brak zaplanowanych meczów.</li>
++            @endforelse
++        </ul>
++    </div>
 +@endsection
-diff --git a/resources/views/news/index.blade.php b/resources/views/news/index.blade.php
+diff --git a/resources/views/matches/show.blade.php b/resources/views/matches/show.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..640176aafa3233225d056c71ad8fe1252731eb11
+index 0000000000000000000000000000000000000000..e02c5afebe396eb3fe2b98478e3415257d464922
 --- /dev/null
-+++ b/resources/views/news/index.blade.php
-@@ -0,0 +1,7 @@
-+@extends('layouts.app')
++++ b/resources/views/matches/show.blade.php
+@@ -0,0 +1,12 @@
++@extends('layouts.main')
++
++@section('title', 'Szczegóły meczu')
++
 +@section('content')
-+<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-4">
-+<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">News</h1>@can('create', \App\Models\News::class)<a href="{{ route('news.create') }}" class="underline">Create news</a>@endcan</div>
-+@forelse($newsItems as $item)<article class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h2 class="text-xl font-medium"><a class="underline" href="{{ route('news.show', $item) }}">{{ $item->title }}</a></h2><p class="mt-2 text-sm text-gray-600">{{ \Illuminate\Support\Str::limit($item->content, 140) }}</p></article>@empty<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">No news available.</div>@endforelse
-+</div></div>
++    <div class="max-w-3xl mx-auto py-10 px-6">
++        <h1 class="text-3xl font-bold mb-4">{{ $match->opponent }}</h1>
++        <p><strong>Data:</strong> {{ $match->match_date->format('Y-m-d H:i') }}</p>
++        <p><strong>Miejsce:</strong> {{ $match->location }}</p>
++        <p><strong>Wynik:</strong> {{ $match->result ?? 'Do rozegrania' }}</p>
++    </div>
 +@endsection
-diff --git a/resources/views/news/show.blade.php b/resources/views/news/show.blade.php
-new file mode 100644
-index 0000000000000000000000000000000000000000..071991aa7230474df82b05996fe08bea39daf7a2
---- /dev/null
-+++ b/resources/views/news/show.blade.php
-@@ -0,0 +1,4 @@
-+@extends('layouts.app')
-+@section('content')
-+<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><article class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 space-y-4"><h1 class="text-2xl font-semibold">{{ $news->title }}</h1><p class="text-sm text-gray-600">By {{ $news->author->name ?? 'Unknown author' }} · {{ $news->created_at?->format('Y-m-d H:i') }}</p><div class="whitespace-pre-line">{{ $news->content }}</div>@can('update', $news)<a href="{{ route('news.edit', $news) }}" class="underline">Edit</a>@endcan @can('delete', $news)<form action="{{ route('news.destroy', $news) }}" method="POST">@csrf @method('DELETE')<button type="submit" class="underline">Delete</button></form>@endcan</article></div></div>
-+@endsection
+diff --git a/resources/views/partials/navbar.blade.php b/resources/views/partials/navbar.blade.php
+index 06efcb8aaaec5edb391a686f891365da333c2cb3..25c9b6fc17760a37e0560a7456d7efcac76dbacc 100644
+--- a/resources/views/partials/navbar.blade.php
++++ b/resources/views/partials/navbar.blade.php
+@@ -40,56 +40,51 @@
+                 @csrf
+                 <button class="hover:text-yellow-400 text-sm">Wyloguj</button>
+             </form>
+         @else
+             <a href="{{ route('login') }}" class="hover:text-yellow-400">Zaloguj</a>
+         @endauth
+     </div>
+ </div>
+
+ <nav class="bg-zinc-100 text-zinc-900 shadow-md border-b border-zinc-300" x-data="{ open: null }">
+     <div class="max-w-7xl mx-auto px-6 py-4">
+         <div class="flex items-center justify-between gap-4 flex-wrap">
+             <a href="{{ route('home') }}" class="text-3xl font-extrabold text-zinc-800 ajax-link">ETB</a>
+
+             <form class="flex items-center gap-2 relative" role="search" onsubmit="event.preventDefault(); etbSearch()">
+                 <input id="etb-search" list="etb-search-suggestions" type="search" placeholder="Szukaj na stronie..." class="bg-white border border-zinc-300 rounded px-3 py-2 text-sm w-64">
+                 <datalist id="etb-search-suggestions"></datalist>
+                 <button type="submit" class="border border-zinc-500 text-black px-3 py-1.5 rounded font-semibold inline-flex items-center gap-2 hover:bg-yellow-400">
+                     <i data-lucide="search" class="w-4 h-4"></i> Szukaj
+                 </button>
+             </form>
+         </div>
+
+         <div class="mt-4 flex flex-wrap gap-6 text-lg items-center">
+             <div class="relative" @mouseenter="open='news'" @mouseleave="open=null">
+-                <a href="{{ route('news') }}" class="ajax-link hover:text-yellow-400">Aktualności</a>
+-                <div x-show="open==='news'" x-transition class="dropdown-panel">
+-                    <a class="ajax-link" href="{{ route('news.articles') }}">Artykuły</a>
+-                    <a class="ajax-link" href="{{ route('news.videos') }}">Wideo</a>
+-                    <a class="ajax-link" href="{{ route('news.galleries') }}">Galerie</a>
+-                </div>
++                <a href="{{ route('news.index') }}" class="ajax-link hover:text-yellow-400">Aktualności</a>
+             </div>
+
+             <div class="relative" @mouseenter="open='club'" @mouseleave="open=null">
+                 <a href="{{ route('club') }}" class="ajax-link hover:text-yellow-400">Klub</a>
+                 <div x-show="open==='club'" x-transition class="dropdown-panel">
+                     <a class="ajax-link" href="{{ route('club.history') }}">Historia</a>
+                     <a class="ajax-link" href="{{ route('club.board') }}">Władze klubu</a>
+                     <a class="ajax-link" href="{{ route('club.venue') }}">Obiekt</a>
+                     <a class="ajax-link" href="{{ route('club.business') }}">Oferta biznesowa</a>
+                     <a class="ajax-link" href="{{ route('club.investors') }}">Inwestorzy</a>
+                     <a class="ajax-link" href="{{ route('club.success') }}">Sukcesy</a>
+                     <a class="ajax-link" href="{{ route('club.sponsors') }}">Sponsorzy</a>
+                     <a class="ajax-link" href="{{ route('contact') }}">Kontakt</a>
+                 </div>
+             </div>
+
+             <div class="relative" @mouseenter="open='schedule'" @mouseleave="open=null">
+                 <a href="{{ route('schedule') }}" class="ajax-link hover:text-yellow-400">Rozgrywki</a>
+                 <div x-show="open==='schedule'" x-transition class="dropdown-panel">
+                     <a class="ajax-link" href="{{ route('schedule.third-league') }}">III liga mężczyzn ŁZKosz</a>
+                     <a class="ajax-link" href="{{ route('schedule.lzkosz') }}">Terminarz ŁZKosz</a>
+                     <a class="ajax-link" href="{{ route('schedule.table') }}">Tabela</a>
+                     <a class="ajax-link" href="{{ route('schedule.3x3') }}">Terminarz 3x3</a>
+                     <a class="ajax-link" href="{{ route('schedule.3x3.tournaments') }}">Turnieje 3x3</a>
+                     <a class="ajax-link" href="{{ route('schedule.3x3.team') }}">Zespół</a>
 diff --git a/routes/web.php b/routes/web.php
-index f10ddfac12e2a2938c2302bfc7e2c930541d347b..f202ed5d76b5d4cc217318253d23a332bfde03d5 100644
+index f202ed5d76b5d4cc217318253d23a332bfde03d5..798d86ad223acad5dbdcbcbb3153a9d5b866d849 100644
 --- a/routes/web.php
 +++ b/routes/web.php
-@@ -1,178 +1,79 @@
+@@ -1,88 +1,86 @@
  <?php
 
  use App\Http\Controllers\Admin\UserRoleController;
  use App\Http\Controllers\ProfileController;
-+use App\Http\Controllers\NewsController;
++use App\Http\Controllers\MatchController;
+ use App\Http\Controllers\NewsController;
  use App\Http\Controllers\PlayerController;
  use App\Models\AppSetting;
  use App\Models\Game;
-+use App\Models\News;
+ use App\Models\News;
  use App\Models\User;
  use Illuminate\Http\Request;
  use Illuminate\Support\Facades\Route;
 
  Route::get('/', function () {
--    $nextMatch = Game::where('match_date', '>=', now())
--        ->orderBy('match_date')
--        ->first();
--
--    $upcomingGames = Game::where('match_date', '>=', now())
--        ->orderBy('match_date')
--        ->take(3)
--        ->get();
--
--    $latestArticles = collect([
--        [
--            'title' => 'ETB wygrywa po dogrywce',
--            'category' => 'Artykuł',
--            'date' => '22.04.2026',
--            'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
--        ],
--        [
--            'title' => 'Kulisy meczu z ŁKS',
--            'category' => 'Wideo',
--            'date' => '21.04.2026',
--            'excerpt' => 'Zobacz materiały zza kulis i reakcje zespołu po spotkaniu.',
--        ],
--        [
--            'title' => 'Galeria zdjęć: derby Łodzi',
--            'category' => 'Galeria',
--            'date' => '20.04.2026',
--            'excerpt' => 'Najlepsze kadry z gorącego spotkania i oprawy kibiców.',
--        ],
--        [
--            'title' => 'Zapowiedź kolejki EŁZKosz',
--            'category' => 'Artykuł',
--            'date' => '19.04.2026',
--            'excerpt' => 'Sprawdź analizę rywala i plan ETB na najbliższe spotkanie.',
--        ],
--        [
--            'title' => 'Skrót meczu ETB - Start',
--            'category' => 'Wideo',
--            'date' => '18.04.2026',
--            'excerpt' => 'Najciekawsze akcje i podsumowanie spotkania.',
--        ],
--        [
--            'title' => 'Młodzież ETB na turnieju',
--            'category' => 'Artykuł',
--            'date' => '17.04.2026',
--            'excerpt' => 'Relacja z występu młodych zawodników.',
--        ],
--        [
--            'title' => 'Galeria: trening otwarty',
--            'category' => 'Galeria',
--            'date' => '16.04.2026',
--            'excerpt' => 'Zdjęcia z otwartego treningu dla kibiców.',
--        ],
--        [
--            'title' => 'Wywiad z trenerem',
--            'category' => 'Wideo',
--            'date' => '15.04.2026',
--            'excerpt' => 'Plany zespołu na końcówkę sezonu.',
--        ],
--        [
--            'title' => 'Transfer do ETB',
--            'category' => 'Artykuł',
--            'date' => '14.04.2026',
--            'excerpt' => 'Nowy zawodnik dołącza do składu.',
--        ],
--        [
--            'title' => 'Galeria: ETB vs AZS',
--            'category' => 'Galeria',
--            'date' => '13.04.2026',
--            'excerpt' => 'Galeria meczowa z ostatniego pojedynku.',
--        ],
--        [
--            'title' => 'Konferencja pomeczowa',
--            'category' => 'Wideo',
--            'date' => '12.04.2026',
--            'excerpt' => 'Komentarze zawodników i sztabu.',
--        ],
--        [
--            'title' => 'Współpraca z partnerem',
--            'category' => 'Artykuł',
--            'date' => '11.04.2026',
--            'excerpt' => 'Nowe partnerstwo dla rozwoju klubu.',
--        ],
--        [
--            'title' => 'Galeria: dzień meczowy',
--            'category' => 'Galeria',
--            'date' => '10.04.2026',
--            'excerpt' => 'Kibice, emocje i atmosfera hali.',
--        ],
--        [
--            'title' => 'Top akcje tygodnia',
--            'category' => 'Wideo',
--            'date' => '09.04.2026',
--            'excerpt' => 'Najlepsze zagrania ostatnich spotkań.',
--        ],
--        [
--            'title' => 'Raport medyczny',
--            'category' => 'Artykuł',
--            'date' => '08.04.2026',
--            'excerpt' => 'Aktualizacja statusu zdrowotnego zawodników.',
--        ],
--        [
--            'title' => 'Galeria: ETB Family Day',
--            'category' => 'Galeria',
--            'date' => '07.04.2026',
--            'excerpt' => 'Zdjęcia z klubowego spotkania z fanami.',
--        ],
--    ]);
--
--    $next3x3Tournament = [
--        'name' => '3x3 Quest Łódź',
--        'date' => '30.04.2026 16:00',
--        'place' => 'Atlas Arena, Łódź',
--    ];
--
--    return view('pages.home', compact('nextMatch', 'upcomingGames', 'latestArticles', 'next3x3Tournament'));
-+    $latestNews = News::query()->with('author')->latest()->take(5)->get();
-+
-+    return view('home', compact('latestNews'));
+     $latestNews = News::query()->with('author')->latest()->take(5)->get();
+
+     return view('home', compact('latestNews'));
  })->name('home');
 
  Route::get('/dashboard', function () {
@@ -575,33 +478,40 @@ index f10ddfac12e2a2938c2302bfc7e2c930541d347b..f202ed5d76b5d4cc217318253d23a332
      Route::resource('players', PlayerController::class)->except(['index', 'show']);
  });
 
-+
-+Route::get('/news', [NewsController::class, 'index'])->name('news.index');
-+Route::get('/news/{news}', [NewsController::class, 'show'])->whereNumber('news')->name('news.show');
-+
-+Route::middleware(['auth'])->group(function () {
-+    Route::get('/news/create', [NewsController::class, 'create'])->name('news.create');
-+    Route::post('/news', [NewsController::class, 'store'])->name('news.store');
-+    Route::get('/news/{news}/edit', [NewsController::class, 'edit'])->whereNumber('news')->name('news.edit');
-+    Route::put('/news/{news}', [NewsController::class, 'update'])->whereNumber('news')->name('news.update');
-+    Route::delete('/news/{news}', [NewsController::class, 'destroy'])->whereNumber('news')->name('news.destroy');
+
+-Route::get('/news', [NewsController::class, 'index'])->name('news.index');
+-Route::get('/news/{news}', [NewsController::class, 'show'])->whereNumber('news')->name('news.show');
++Route::resource('news', NewsController::class)->only(['index', 'show']);
+
+ Route::middleware(['auth'])->group(function () {
+-    Route::get('/news/create', [NewsController::class, 'create'])->name('news.create');
+-    Route::post('/news', [NewsController::class, 'store'])->name('news.store');
+-    Route::get('/news/{news}/edit', [NewsController::class, 'edit'])->whereNumber('news')->name('news.edit');
+-    Route::put('/news/{news}', [NewsController::class, 'update'])->whereNumber('news')->name('news.update');
+-    Route::delete('/news/{news}', [NewsController::class, 'destroy'])->whereNumber('news')->name('news.destroy');
++    Route::resource('news', NewsController::class)->except(['index', 'show']);
 +});
 +
++Route::resource('matches', MatchController::class)->only(['index', 'show']);
++
++Route::middleware(['auth'])->group(function () {
++    Route::resource('matches', MatchController::class)->except(['index', 'show']);
+ });
+
  /*
  |--------------------------------------------------------------------------
  | Strony główne menu
  |--------------------------------------------------------------------------
  */
--Route::view('/news', 'pages.news')->name('news');
  Route::view('/club', 'pages.club')->name('club');
  Route::view('/schedule', 'pages.schedule')->name('schedule');
  Route::view('/team', 'pages.team')->name('team');
  Route::view('/contact', 'pages.contact')->name('contact');
 
- /* Aktualności */
- Route::view('/news/articles', 'pages.news-articles')->name('news.articles');
- Route::view('/news/videos', 'pages.news-videos')->name('news.videos');
- Route::view('/news/galleries', 'pages.news-galleries')->name('news.galleries');
+-/* Aktualności */
+-Route::view('/news/articles', 'pages.news-articles')->name('news.articles');
+-Route::view('/news/videos', 'pages.news-videos')->name('news.videos');
+-Route::view('/news/galleries', 'pages.news-galleries')->name('news.galleries');
 
  /* Klub */
  Route::view('/club/history', 'pages.club-history')->name('club.history');
@@ -613,8 +523,17 @@ index f10ddfac12e2a2938c2302bfc7e2c930541d347b..f202ed5d76b5d4cc217318253d23a332
  Route::view('/club/sponsors', 'pages.club-sponsors')->name('club.sponsors');
 
  /* Rozgrywki */
- Route::view('/schedule/lzkosz', 'pages.schedule-lzkosz')->name('schedule.lzkosz');
+ Route::view('/schedule/lzkosz', 'pages.schedule-mzkosz')->name('schedule.lzkosz');
  Route::redirect('/schedule/third-league', 'https://www.lzkosz.pl/liga/215.html')->name('schedule.third-league');
  Route::view('/schedule/table', 'pages.schedule-table')->name('schedule.table');
  Route::view('/schedule/3x3', 'pages.schedule-3x3')->name('schedule.3x3');
  Route::view('/schedule/3x3/tournaments', 'pages.schedule-3x3-tournaments')->name('schedule.3x3.tournaments');
+ Route::view('/schedule/3x3/team', 'pages.schedule-3x3-team')->name('schedule.3x3.team');
+
+ /* Drużyna */
+ Route::view('/team/players', 'pages.team-players')->name('team.players');
+ Route::view('/team/staff', 'pages.team-staff')->name('team.staff');
+ Route::view('/team-3x3/players', 'pages.team-3x3-players')->name('team3x3.players');
+
+ /* CTA */
+ Route::view('/tickets', 'pages.tickets')->name('tickets');
