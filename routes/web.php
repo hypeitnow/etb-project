@@ -180,7 +180,7 @@ Route::view('/tickets', 'pages.tickets')->name('tickets');
 Route::view('/shop', 'pages.shop')->name('shop');
 Route::view('/academy', 'pages.academy')->name('academy');
 
-Route::middleware(['auth', 'role:admin,employee'])->group(function () {
+Route::middleware(['auth', 'role:admin,employee', 'can:manage-matches'])->group(function () {
     Route::get('/admin/matches/create', function () {
         return view('admin.create-match');
     })->name('admin.matches.create');
@@ -210,12 +210,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:athlete'])->group(function () {
     Route::get('/athlete/data', function () {
-        $user = request()->user();
-        abort_if($user->role !== User::ROLE_ATHLETE, 403);
-
-        return response()->json($user->athleteProfile);
+        return response()->json(request()->user()->athleteProfile);
     })->name('athlete.data');
 
     Route::get('/fan/data', function () {
