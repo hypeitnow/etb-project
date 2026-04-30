@@ -1,204 +1,490 @@
-diff --git a/app/Http/Middleware/CheckRole.php b/app/Http/Middleware/CheckRole.php
+diff --git a/app/Http/Controllers/PlayerController.php b/app/Http/Controllers/PlayerController.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..307a4599c76550395136778630b24fdab44f3a4e
+index 0000000000000000000000000000000000000000..22556e818947bb921af74624370e161552b2f33d
 --- /dev/null
-+++ b/app/Http/Middleware/CheckRole.php
-@@ -0,0 +1,24 @@
++++ b/app/Http/Controllers/PlayerController.php
+@@ -0,0 +1,65 @@
 +<?php
 +
-+namespace App\Http\Middleware;
++namespace App\Http\Controllers;
 +
-+use Closure;
-+use Illuminate\Http\Request;
-+use Symfony\Component\HttpFoundation\Response;
++use App\Http\Requests\StorePlayerRequest;
++use App\Http\Requests\UpdatePlayerRequest;
++use App\Models\Player;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\View\View;
 +
-+class CheckRole
++class PlayerController extends Controller
 +{
-+    /**
-+     * Handle an incoming request.
-+     */
-+    public function handle(Request $request, Closure $next, string ...$roles): Response
++    public function index(): View
 +    {
-+        $user = $request->user();
++        $this->authorize('viewAny', Player::class);
 +
-+        if (! $user || ! $user->hasAnyRole($roles)) {
-+            abort(Response::HTTP_FORBIDDEN);
-+        }
++        $players = Player::query()->orderBy('last_name')->orderBy('first_name')->get();
 +
-+        return $next($request);
++        return view('players.index', compact('players'));
++    }
++
++    public function create(): View
++    {
++        $this->authorize('create', Player::class);
++
++        return view('players.create');
++    }
++
++    public function store(StorePlayerRequest $request): RedirectResponse
++    {
++        Player::query()->create($request->validated());
++
++        return redirect()->route('players.index');
++    }
++
++    public function show(Player $player): View
++    {
++        $this->authorize('view', $player);
++
++        return view('players.show', compact('player'));
++    }
++
++    public function edit(Player $player): View
++    {
++        $this->authorize('update', $player);
++
++        return view('players.edit', compact('player'));
++    }
++
++    public function update(UpdatePlayerRequest $request, Player $player): RedirectResponse
++    {
++        $player->update($request->validated());
++
++        return redirect()->route('players.index');
++    }
++
++    public function destroy(Player $player): RedirectResponse
++    {
++        $this->authorize('delete', $player);
++
++        $player->delete();
++
++        return redirect()->route('players.index');
 +    }
 +}
-diff --git a/app/Http/Middleware/RoleMiddleware.php b/app/Http/Middleware/RoleMiddleware.php
-index dd158f53bc39a6315996435fd71ef9073f5e3b46..d0a18ded6c354752ec4645ccf9e3a42f92970e5d 100644
---- a/app/Http/Middleware/RoleMiddleware.php
-+++ b/app/Http/Middleware/RoleMiddleware.php
-@@ -1,24 +1,8 @@
- <?php
-
- namespace App\Http\Middleware;
-
--use Closure;
--use Illuminate\Http\Request;
--use Symfony\Component\HttpFoundation\Response;
--
--class RoleMiddleware
-+class RoleMiddleware extends CheckRole
- {
--    /**
--     * Handle an incoming request.
--     */
--    public function handle(Request $request, Closure $next, string ...$roles): Response
--    {
--        $user = $request->user();
--
--        if (! $user || ! $user->hasAnyRole($roles)) {
--            abort(Response::HTTP_FORBIDDEN, 'Brak uprawnień do tego zasobu.');
--        }
--
--        return $next($request);
--    }
-+    // Backward-compatible alias for older references.
- }
-diff --git a/app/Providers/AppServiceProvider.php b/app/Providers/AppServiceProvider.php
-index bcaa2da1662aabe71e92493130cad31a8cce1ee0..808da845f3daefc447442373f2dc7ecb2994c346 100644
---- a/app/Providers/AppServiceProvider.php
-+++ b/app/Providers/AppServiceProvider.php
-@@ -1,24 +1,36 @@
- <?php
-
- namespace App\Providers;
-
--use Illuminate\Support\ServiceProvider;
- use App\Models\User;
- use Illuminate\Support\Facades\Gate;
-+use Illuminate\Support\ServiceProvider;
-
- class AppServiceProvider extends ServiceProvider
- {
-     public function register(): void
-     {
-         //
-     }
-
-     public function boot(): void
-     {
-         Gate::define('assign-roles', fn (User $user): bool => $user->isAdmin());
-
-         Gate::define('access-admin-panel', fn (User $user): bool =>
--        $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
-+            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
-+        );
+diff --git a/app/Http/Requests/StorePlayerRequest.php b/app/Http/Requests/StorePlayerRequest.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..6b3e35eb312b992cb633862c2d854ee3acc09d6f
+--- /dev/null
++++ b/app/Http/Requests/StorePlayerRequest.php
+@@ -0,0 +1,30 @@
++<?php
 +
-+        Gate::define('manage-players', fn (User $user): bool =>
-+            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
-+        );
++namespace App\Http\Requests;
 +
-+        Gate::define('manage-news', fn (User $user): bool =>
-+            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
-+        );
++use App\Models\Player;
++use Illuminate\Foundation\Http\FormRequest;
 +
-+        Gate::define('manage-matches', fn (User $user): bool =>
-+            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
-         );
-     }
- }
-diff --git a/bootstrap/app.php b/bootstrap/app.php
-index f3b05ab19db0138fedd8745286d518e4b81362d8..150fbd6efdbbd94375b18acb397c1b6c55f81f7e 100644
---- a/bootstrap/app.php
-+++ b/bootstrap/app.php
-@@ -1,21 +1,21 @@
++class StorePlayerRequest extends FormRequest
++{
++    public function authorize(): bool
++    {
++        return $this->user()?->can('create', Player::class) ?? false;
++    }
++
++    /**
++     * @return array<string, mixed>
++     */
++    public function rules(): array
++    {
++        return [
++            'first_name' => ['required', 'string', 'max:255'],
++            'last_name' => ['required', 'string', 'max:255'],
++            'number' => ['required', 'integer', 'min:0', 'max:99'],
++            'position' => ['required', 'string'],
++            'date_of_birth' => ['required', 'date', 'before:today'],
++            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
++            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
++        ];
++    }
++}
+diff --git a/app/Http/Requests/UpdatePlayerRequest.php b/app/Http/Requests/UpdatePlayerRequest.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..3a794580877b027ad8199a5535cd102f73e23a45
+--- /dev/null
++++ b/app/Http/Requests/UpdatePlayerRequest.php
+@@ -0,0 +1,34 @@
++<?php
++
++namespace App\Http\Requests;
++
++use App\Models\Player;
++use Illuminate\Foundation\Http\FormRequest;
++
++class UpdatePlayerRequest extends FormRequest
++{
++    public function authorize(): bool
++    {
++        $player = $this->route('player');
++
++        return $player instanceof Player
++            ? ($this->user()?->can('update', $player) ?? false)
++            : false;
++    }
++
++    /**
++     * @return array<string, mixed>
++     */
++    public function rules(): array
++    {
++        return [
++            'first_name' => ['required', 'string', 'max:255'],
++            'last_name' => ['required', 'string', 'max:255'],
++            'number' => ['required', 'integer', 'min:0', 'max:99'],
++            'position' => ['required', 'string'],
++            'date_of_birth' => ['required', 'date', 'before:today'],
++            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
++            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
++        ];
++    }
++}
+diff --git a/app/Models/Player.php b/app/Models/Player.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..11146108aadea660dae8206c0dfd892922214f21
+--- /dev/null
++++ b/app/Models/Player.php
+@@ -0,0 +1,49 @@
++<?php
++
++namespace App\Models;
++
++use Carbon\CarbonInterface;
++use Illuminate\Database\Eloquent\Factories\HasFactory;
++use Illuminate\Database\Eloquent\Model;
++
++class Player extends Model
++{
++    use HasFactory;
++
++    /**
++     * @var list<string>
++     */
++    protected $fillable = [
++        'first_name',
++        'last_name',
++        'number',
++        'position',
++        'date_of_birth',
++        'height',
++        'weight',
++    ];
++
++    /**
++     * @return array<string, string>
++     */
++    protected function casts(): array
++    {
++        return [
++            'date_of_birth' => 'date',
++            'number' => 'integer',
++            'height' => 'integer',
++            'weight' => 'integer',
++        ];
++    }
++
++    public function getAgeAttribute(): ?int
++    {
++        $dateOfBirth = $this->date_of_birth;
++
++        if (! $dateOfBirth instanceof CarbonInterface) {
++            return null;
++        }
++
++        return $dateOfBirth->age;
++    }
++}
+diff --git a/app/Policies/PlayerPolicy.php b/app/Policies/PlayerPolicy.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..cedd99b6211a94ec67d2bacba84b2037af114e77
+--- /dev/null
++++ b/app/Policies/PlayerPolicy.php
+@@ -0,0 +1,46 @@
++<?php
++
++namespace App\Policies;
++
++use App\Models\Player;
++use App\Models\User;
++
++class PlayerPolicy
++{
++    public function viewAny(?User $user): bool
++    {
++        if ($user === null) {
++            return true;
++        }
++
++        return $user->hasAnyRole([
++            User::ROLE_ADMIN,
++            User::ROLE_EMPLOYEE,
++            User::ROLE_FAN,
++        ]);
++    }
++
++    public function view(?User $user, Player $player): bool
++    {
++        if ($user === null) {
++            return true;
++        }
++
++        return $this->viewAny($user);
++    }
++
++    public function create(User $user): bool
++    {
++        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
++    }
++
++    public function update(User $user, Player $player): bool
++    {
++        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
++    }
++
++    public function delete(User $user, Player $player): bool
++    {
++        return $user->role === User::ROLE_ADMIN;
++    }
++}
+diff --git a/app/Providers/AuthServiceProvider.php b/app/Providers/AuthServiceProvider.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..0829f736a129969b33f81fb8372c873efdec4389
+--- /dev/null
++++ b/app/Providers/AuthServiceProvider.php
+@@ -0,0 +1,22 @@
++<?php
++
++namespace App\Providers;
++
++use App\Models\Player;
++use App\Policies\PlayerPolicy;
++use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
++
++class AuthServiceProvider extends ServiceProvider
++{
++    /**
++     * @var array<class-string, class-string>
++     */
++    protected $policies = [
++        Player::class => PlayerPolicy::class,
++    ];
++
++    public function boot(): void
++    {
++        $this->registerPolicies();
++    }
++}
+diff --git a/bootstrap/providers.php b/bootstrap/providers.php
+index fc94ae6011d6ce1d1175d0f642412c2a27913f6c..9f047e1441d90d7593c2ee5791081ff46efcdae1 100644
+--- a/bootstrap/providers.php
++++ b/bootstrap/providers.php
+@@ -1,7 +1,9 @@
  <?php
 
- use Illuminate\Foundation\Application;
- use Illuminate\Foundation\Configuration\Exceptions;
- use Illuminate\Foundation\Configuration\Middleware;
+ use App\Providers\AppServiceProvider;
++use App\Providers\AuthServiceProvider;
 
- return Application::configure(basePath: dirname(__DIR__))
-     ->withRouting(
-         web: __DIR__.'/../routes/web.php',
-         commands: __DIR__.'/../routes/console.php',
-         health: '/up',
-     )
-     ->withMiddleware(function (Middleware $middleware): void {
-         $middleware->alias([
--            'role' => \App\Http\Middleware\RoleMiddleware::class,
-+            'role' => \App\Http\Middleware\CheckRole::class,
-         ]);
-     })
-     ->withExceptions(function (Exceptions $exceptions): void {
-         //
-     })->create();
-
-diff --git a/database/seeders/DatabaseSeeder.php b/database/seeders/DatabaseSeeder.php
-index 7320750529aec6a1dc4b52d28848fd7676fbd564..529c56181f8b1114a7ecee8a3eab294267a8f929 100644
---- a/database/seeders/DatabaseSeeder.php
-+++ b/database/seeders/DatabaseSeeder.php
-@@ -1,38 +1,51 @@
- <?php
-
- namespace Database\Seeders;
-
- use App\Models\User;
- use Illuminate\Database\Console\Seeds\WithoutModelEvents;
- use Illuminate\Database\Seeder;
- use Illuminate\Support\Facades\Hash;
-
- class DatabaseSeeder extends Seeder
- {
-     use WithoutModelEvents;
-
-     /**
-      * Seed the application's database.
-      */
-     public function run(): void
-     {
--        $adminAccounts = [
-+        $seedUsers = [
-             [
--                'name' => 'ETB Admin',
--                'email' => 'adminETB@admin.com',
--                'password' => 'aminetb!2025',
-+                'name' => 'System Admin',
-+                'email' => 'admin@example.com',
-+                'password' => 'AdminPass!2026',
-+                'role' => User::ROLE_ADMIN,
-+            ],
-+            [
-+                'name' => 'Club Employee',
-+                'email' => 'employee@example.com',
-+                'password' => 'EmployeePass!2026',
-+                'role' => User::ROLE_EMPLOYEE,
-+            ],
-+            [
-+                'name' => 'Team Fan',
-+                'email' => 'fan@example.com',
-+                'password' => 'FanPass!2026',
-+                'role' => User::ROLE_FAN,
-             ],
-         ];
-
--        foreach ($adminAccounts as $admin) {
-+        foreach ($seedUsers as $seedUser) {
-             User::updateOrCreate(
--                ['email' => $admin['email']],
-+                ['email' => $seedUser['email']],
-                 [
--                    'name' => $admin['name'],
--                    'password' => Hash::make($admin['password']),
--                    'role' => User::ROLE_ADMIN,
-+                    'name' => $seedUser['name'],
-+                    'password' => Hash::make($seedUser['password']),
-+                    'role' => $seedUser['role'],
-                 ]
-             );
-         }
-     }
- }
+ return [
+     AppServiceProvider::class,
++    AuthServiceProvider::class,
+ ];
+diff --git a/database/migrations/2026_04_30_000000_create_players_table.php b/database/migrations/2026_04_30_000000_create_players_table.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..cccfdd2ac26b323a9636c5a51bb735bb1033b3af
+--- /dev/null
++++ b/database/migrations/2026_04_30_000000_create_players_table.php
+@@ -0,0 +1,32 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        if (Schema::hasTable('players')) {
++            return;
++        }
++
++        Schema::create('players', function (Blueprint $table): void {
++            $table->id();
++            $table->string('first_name');
++            $table->string('last_name');
++            $table->unsignedTinyInteger('number');
++            $table->string('position');
++            $table->date('date_of_birth');
++            $table->unsignedSmallInteger('height')->nullable();
++            $table->unsignedSmallInteger('weight')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('players');
++    }
++};
+diff --git a/resources/views/players/create.blade.php b/resources/views/players/create.blade.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+--- /dev/null
++++ b/resources/views/players/create.blade.php
+@@ -0,0 +1,11 @@
++@extends('layouts.app')
++
++@section('content')
++<div class="py-6">
++    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
++        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            Players module view.
++        </div>
++    </div>
++</div>
++@endsection
+diff --git a/resources/views/players/edit.blade.php b/resources/views/players/edit.blade.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+--- /dev/null
++++ b/resources/views/players/edit.blade.php
+@@ -0,0 +1,11 @@
++@extends('layouts.app')
++
++@section('content')
++<div class="py-6">
++    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
++        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            Players module view.
++        </div>
++    </div>
++</div>
++@endsection
+diff --git a/resources/views/players/index.blade.php b/resources/views/players/index.blade.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+--- /dev/null
++++ b/resources/views/players/index.blade.php
+@@ -0,0 +1,11 @@
++@extends('layouts.app')
++
++@section('content')
++<div class="py-6">
++    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
++        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            Players module view.
++        </div>
++    </div>
++</div>
++@endsection
+diff --git a/resources/views/players/show.blade.php b/resources/views/players/show.blade.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+--- /dev/null
++++ b/resources/views/players/show.blade.php
+@@ -0,0 +1,11 @@
++@extends('layouts.app')
++
++@section('content')
++<div class="py-6">
++    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
++        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            Players module view.
++        </div>
++    </div>
++</div>
++@endsection
 diff --git a/routes/web.php b/routes/web.php
-index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..2aec68b87be9b0d551c51ea59bc7c1b4150c8fa5 100644
+index 516bfcf798349464382bdc8523af202a4796bcab..f10ddfac12e2a2938c2302bfc7e2c930541d347b 100644
 --- a/routes/web.php
 +++ b/routes/web.php
-@@ -158,77 +158,74 @@
+@@ -1,29 +1,30 @@
+ <?php
+
+ use App\Http\Controllers\Admin\UserRoleController;
+ use App\Http\Controllers\ProfileController;
++use App\Http\Controllers\PlayerController;
+ use App\Models\AppSetting;
+ use App\Models\Game;
+ use App\Models\User;
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Route;
+
+ Route::get('/', function () {
+     $nextMatch = Game::where('match_date', '>=', now())
+         ->orderBy('match_date')
+         ->first();
+
+     $upcomingGames = Game::where('match_date', '>=', now())
+         ->orderBy('match_date')
+         ->take(3)
+         ->get();
+
+     $latestArticles = collect([
+         [
+             'title' => 'ETB wygrywa po dogrywce',
+             'category' => 'Artykuł',
+             'date' => '22.04.2026',
+             'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
+         ],
+         [
+             'title' => 'Kulisy meczu z ŁKS',
+@@ -116,50 +117,56 @@
+             'excerpt' => 'Zdjęcia z klubowego spotkania z fanami.',
+         ],
+     ]);
+
+     $next3x3Tournament = [
+         'name' => '3x3 Quest Łódź',
+         'date' => '30.04.2026 16:00',
+         'place' => 'Atlas Arena, Łódź',
+     ];
+
+     return view('pages.home', compact('nextMatch', 'upcomingGames', 'latestArticles', 'next3x3Tournament'));
+ })->name('home');
+
+ Route::get('/dashboard', function () {
+     return view('dashboard');
+ })->middleware(['auth', 'verified'])->name('dashboard');
+
+ Route::middleware('auth')->group(function () {
+     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+ });
+
+ require __DIR__.'/auth.php';
+
++Route::resource('players', PlayerController::class)->only(['index', 'show']);
++
++Route::middleware(['auth'])->group(function () {
++    Route::resource('players', PlayerController::class)->except(['index', 'show']);
++});
++
+ /*
+ |--------------------------------------------------------------------------
+ | Strony główne menu
+ |--------------------------------------------------------------------------
+ */
+ Route::view('/news', 'pages.news')->name('news');
+ Route::view('/club', 'pages.club')->name('club');
+ Route::view('/schedule', 'pages.schedule')->name('schedule');
+ Route::view('/team', 'pages.team')->name('team');
+ Route::view('/contact', 'pages.contact')->name('contact');
+
+ /* Aktualności */
+ Route::view('/news/articles', 'pages.news-articles')->name('news.articles');
+ Route::view('/news/videos', 'pages.news-videos')->name('news.videos');
+ Route::view('/news/galleries', 'pages.news-galleries')->name('news.galleries');
+
+ /* Klub */
+ Route::view('/club/history', 'pages.club-history')->name('club.history');
  Route::view('/club/board', 'pages.club-board')->name('club.board');
  Route::view('/club/venue', 'pages.club-venue')->name('club.venue');
  Route::view('/club/business', 'pages.club-business')->name('club.business');
@@ -206,76 +492,3 @@ index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..2aec68b87be9b0d551c51ea59bc7c1b4
  Route::view('/club/success', 'pages.club-success')->name('club.success');
  Route::view('/club/sponsors', 'pages.club-sponsors')->name('club.sponsors');
 
- /* Rozgrywki */
- Route::view('/schedule/lzkosz', 'pages.schedule-mzkosz')->name('schedule.lzkosz');
- Route::redirect('/schedule/third-league', 'https://www.lzkosz.pl/liga/215.html')->name('schedule.third-league');
- Route::view('/schedule/table', 'pages.schedule-table')->name('schedule.table');
- Route::view('/schedule/3x3', 'pages.schedule-3x3')->name('schedule.3x3');
- Route::view('/schedule/3x3/tournaments', 'pages.schedule-3x3-tournaments')->name('schedule.3x3.tournaments');
- Route::view('/schedule/3x3/team', 'pages.schedule-3x3-team')->name('schedule.3x3.team');
-
- /* Drużyna */
- Route::view('/team/players', 'pages.team-players')->name('team.players');
- Route::view('/team/staff', 'pages.team-staff')->name('team.staff');
- Route::view('/team-3x3/players', 'pages.team-3x3-players')->name('team3x3.players');
-
- /* CTA */
- Route::view('/tickets', 'pages.tickets')->name('tickets');
- Route::view('/shop', 'pages.shop')->name('shop');
- Route::view('/academy', 'pages.academy')->name('academy');
-
--Route::middleware(['auth', 'role:admin,employee'])->group(function () {
-+Route::middleware(['auth', 'role:admin,employee', 'can:manage-matches'])->group(function () {
-     Route::get('/admin/matches/create', function () {
-         return view('admin.create-match');
-     })->name('admin.matches.create');
-
-     Route::post('/admin/matches', function (Request $request) {
-         $data = $request->all();
-
-         if ($request->hasFile('image')) {
-             $data['image'] = $request->file('image')->store('matches', 'public');
-         }
-
-         if ($request->hasFile('home_logo')) {
-             $data['home_logo'] = $request->file('home_logo')->store('logos', 'public');
-         }
-
-         if ($request->hasFile('away_logo')) {
-             $data['away_logo'] = $request->file('away_logo')->store('logos', 'public');
-         }
-
-         Game::create($data);
-
-         return redirect('/')->with('status', 'Mecz został zapisany.');
-     })->name('admin.matches.store');
- });
-
- Route::middleware(['auth', 'role:admin'])->group(function () {
-     Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
- });
-
--Route::middleware('auth')->group(function () {
-+Route::middleware(['auth', 'role:athlete'])->group(function () {
-     Route::get('/athlete/data', function () {
--        $user = request()->user();
--        abort_if($user->role !== User::ROLE_ATHLETE, 403);
--
--        return response()->json($user->athleteProfile);
-+        return response()->json(request()->user()->athleteProfile);
-     })->name('athlete.data');
-
-     Route::get('/fan/data', function () {
-         $user = request()->user();
-         abort_if($user->role !== User::ROLE_FAN, 403);
-
-         return response()->json($user->fanProfile);
-     })->name('fan.data');
-
-     Route::get('/employee/data', function () {
-         $user = request()->user();
-         abort_if($user->role !== User::ROLE_EMPLOYEE, 403);
-
-         return response()->json($user->employeeProfile);
-     })->name('employee.data');
- });
