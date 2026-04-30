@@ -16,21 +16,34 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminAccounts = [
+        $seedUsers = [
             [
-                'name' => 'ETB Admin',
-                'email' => 'adminETB@admin.com',
-                'password' => 'aminetb!2025',
+                'name' => 'System Admin',
+                'email' => 'admin@example.com',
+                'password' => 'AdminPass!2026',
+                'role' => User::ROLE_ADMIN,
+            ],
+            [
+                'name' => 'Club Employee',
+                'email' => 'employee@example.com',
+                'password' => 'EmployeePass!2026',
+                'role' => User::ROLE_EMPLOYEE,
+            ],
+            [
+                'name' => 'Team Fan',
+                'email' => 'fan@example.com',
+                'password' => 'FanPass!2026',
+                'role' => User::ROLE_FAN,
             ],
         ];
 
-        foreach ($adminAccounts as $admin) {
+        foreach ($seedUsers as $seedUser) {
             User::updateOrCreate(
-                ['email' => $admin['email']],
+                ['email' => $seedUser['email']],
                 [
-                    'name' => $admin['name'],
-                    'password' => Hash::make($admin['password']),
-                    'role' => User::ROLE_ADMIN,
+                    'name' => $seedUser['name'],
+                    'password' => Hash::make($seedUser['password']),
+                    'role' => $seedUser['role'],
                 ]
             );
         }

@@ -1,539 +1,206 @@
-diff --git a/app/Models/AppSetting.php b/app/Models/AppSetting.php
+diff --git a/app/Http/Middleware/CheckRole.php b/app/Http/Middleware/CheckRole.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..a6bd51f43e7ffb8d8432b4ad48d5707737f7b8c4
+index 0000000000000000000000000000000000000000..307a4599c76550395136778630b24fdab44f3a4e
 --- /dev/null
-+++ b/app/Models/AppSetting.php
-@@ -0,0 +1,20 @@
++++ b/app/Http/Middleware/CheckRole.php
+@@ -0,0 +1,24 @@
 +<?php
 +
-+namespace App\Models;
++namespace App\Http\Middleware;
 +
-+use Illuminate\Database\Eloquent\Model;
++use Closure;
++use Illuminate\Http\Request;
++use Symfony\Component\HttpFoundation\Response;
 +
-+class AppSetting extends Model
++class CheckRole
 +{
-+    protected $fillable = ['key', 'value'];
-+
-+    public static function getValue(string $key, ?string $default = null): ?string
++    /**
++     * Handle an incoming request.
++     */
++    public function handle(Request $request, Closure $next, string ...$roles): Response
 +    {
-+        return static::query()->where('key', $key)->value('value') ?? $default;
-+    }
++        $user = $request->user();
 +
-+    public static function setValue(string $key, string $value): void
-+    {
-+        static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
++        if (! $user || ! $user->hasAnyRole($roles)) {
++            abort(Response::HTTP_FORBIDDEN);
++        }
++
++        return $next($request);
 +    }
 +}
-diff --git a/app/Models/Game.php b/app/Models/Game.php
-index 5f676afb388689085a3d637a85d9e1ff4cd75c91..c3006e37fcc1442206868354d5e97eac52f25193 100644
---- a/app/Models/Game.php
-+++ b/app/Models/Game.php
-@@ -1,19 +1,20 @@
+diff --git a/app/Http/Middleware/RoleMiddleware.php b/app/Http/Middleware/RoleMiddleware.php
+index dd158f53bc39a6315996435fd71ef9073f5e3b46..d0a18ded6c354752ec4645ccf9e3a42f92970e5d 100644
+--- a/app/Http/Middleware/RoleMiddleware.php
++++ b/app/Http/Middleware/RoleMiddleware.php
+@@ -1,24 +1,8 @@
  <?php
 
- namespace App\Models;
+ namespace App\Http\Middleware;
 
- use Illuminate\Database\Eloquent\Model;
-
- class Game extends Model
+-use Closure;
+-use Illuminate\Http\Request;
+-use Symfony\Component\HttpFoundation\Response;
+-
+-class RoleMiddleware
++class RoleMiddleware extends CheckRole
  {
-     protected $fillable = [
-         'opponent',
-         'match_date',
-         'location',
-+        'exact_address',
-         'is_home',
-         'image',
-         'home_logo',
-         'away_logo',
-         'stream_link',
-     ];
+-    /**
+-     * Handle an incoming request.
+-     */
+-    public function handle(Request $request, Closure $next, string ...$roles): Response
+-    {
+-        $user = $request->user();
+-
+-        if (! $user || ! $user->hasAnyRole($roles)) {
+-            abort(Response::HTTP_FORBIDDEN, 'Brak uprawnień do tego zasobu.');
+-        }
+-
+-        return $next($request);
+-    }
++    // Backward-compatible alias for older references.
  }
-diff --git a/database/migrations/2026_04_23_140000_create_app_settings_table.php b/database/migrations/2026_04_23_140000_create_app_settings_table.php
-new file mode 100644
-index 0000000000000000000000000000000000000000..70530217c918efa026f4536fc2592377a901c2c5
---- /dev/null
-+++ b/database/migrations/2026_04_23_140000_create_app_settings_table.php
-@@ -0,0 +1,23 @@
-+<?php
-+
-+use Illuminate\Database\Migrations\Migration;
-+use Illuminate\Database\Schema\Blueprint;
-+use Illuminate\Support\Facades\Schema;
-+
-+return new class extends Migration
-+{
-+    public function up(): void
-+    {
-+        Schema::create('app_settings', function (Blueprint $table) {
-+            $table->id();
-+            $table->string('key')->unique();
-+            $table->text('value')->nullable();
-+            $table->timestamps();
-+        });
-+    }
-+
-+    public function down(): void
-+    {
-+        Schema::dropIfExists('app_settings');
-+    }
-+};
-diff --git a/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php b/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php
-new file mode 100644
-index 0000000000000000000000000000000000000000..450fee2001d4d453a1b8e83b5c85faa8f0daddd2
---- /dev/null
-+++ b/database/migrations/2026_04_23_140100_add_exact_address_to_games_table.php
-@@ -0,0 +1,22 @@
-+<?php
-+
-+use Illuminate\Database\Migrations\Migration;
-+use Illuminate\Database\Schema\Blueprint;
-+use Illuminate\Support\Facades\Schema;
-+
-+return new class extends Migration
-+{
-+    public function up(): void
-+    {
-+        Schema::table('games', function (Blueprint $table) {
-+            $table->string('exact_address', 500)->nullable()->after('location');
-+        });
-+    }
-+
-+    public function down(): void
-+    {
-+        Schema::table('games', function (Blueprint $table) {
-+            $table->dropColumn('exact_address');
-+        });
-+    }
-+};
-diff --git a/resources/views/admin/create-match.blade.php b/resources/views/admin/create-match.blade.php
-index 62ea9007f510836e82b77ac61a16c2ddbbc01557..f1e101de2f778a8bd5b97b13fe642903d47db4a3 100644
---- a/resources/views/admin/create-match.blade.php
-+++ b/resources/views/admin/create-match.blade.php
-@@ -1,18 +1,90 @@
--<form method="POST" action="/admin/matches" class="p-10 space-y-4">
--    @csrf
-+@extends('layouts.app')
+diff --git a/app/Providers/AppServiceProvider.php b/app/Providers/AppServiceProvider.php
+index bcaa2da1662aabe71e92493130cad31a8cce1ee0..808da845f3daefc447442373f2dc7ecb2994c346 100644
+--- a/app/Providers/AppServiceProvider.php
++++ b/app/Providers/AppServiceProvider.php
+@@ -1,24 +1,36 @@
+ <?php
 
--    <input type="text" name="opponent" placeholder="Przeciwnik" class="border p-2 w-full">
-+@section('content')
-+<section class="max-w-5xl mx-auto px-6 py-12">
-+    <div class="flex items-center justify-between mb-6">
-+        <div>
-+            <h1 class="text-3xl font-bold text-yellow-400">Panel dodawania meczu</h1>
-+            <p class="text-zinc-400 mt-2">Spójny widok administracyjny dla ról admin i pracownik.</p>
-+        </div>
-+        <a href="{{ route('profile.edit') }}#akcje" class="text-sm px-4 py-2 rounded border border-zinc-600 hover:bg-zinc-800">← Wróć do konta</a>
-+    </div>
+ namespace App\Providers;
 
--    <input type="datetime-local" name="match_date" class="border p-2 w-full">
-+    @if (session('status'))
-+        <div class="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 px-4 py-3">
-+            {{ session('status') }}
-+        </div>
-+    @endif
+-use Illuminate\Support\ServiceProvider;
+ use App\Models\User;
+ use Illuminate\Support\Facades\Gate;
++use Illuminate\Support\ServiceProvider;
 
--    <input type="text" name="location" placeholder="Miejsce" class="border p-2 w-full">
-+    @if ($errors->any())
-+        <div class="mb-6 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 px-4 py-3">
-+            <p class="font-semibold mb-2">Popraw błędy formularza:</p>
-+            <ul class="list-disc list-inside text-sm space-y-1">
-+                @foreach ($errors->all() as $error)
-+                    <li>{{ $error }}</li>
-+                @endforeach
-+            </ul>
-+        </div>
-+    @endif
+ class AppServiceProvider extends ServiceProvider
+ {
+     public function register(): void
+     {
+         //
+     }
 
--    <label class="flex items-center gap-2">
--        <input type="checkbox" name="is_home" checked>
--        Mecz u siebie
--    </label>
-+    <form method="POST" action="{{ route('admin.matches.store') }}" enctype="multipart/form-data" class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 md:p-8 space-y-6">
-+        @csrf
+     public function boot(): void
+     {
+         Gate::define('assign-roles', fn (User $user): bool => $user->isAdmin());
 
--    <button class="bg-yellow-400 px-4 py-2 font-bold">
--        Dodaj mecz
--    </button>
--</form>
-+        <div class="grid md:grid-cols-2 gap-4">
-+            <div>
-+                <label for="opponent" class="block text-sm text-zinc-300 mb-2">Przeciwnik</label>
-+                <input id="opponent" type="text" name="opponent" value="{{ old('opponent') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
-+            </div>
-+            <div>
-+                <label for="match_date" class="block text-sm text-zinc-300 mb-2">Data i godzina meczu</label>
-+                <input id="match_date" type="datetime-local" name="match_date" value="{{ old('match_date') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
-+            </div>
-+        </div>
+         Gate::define('access-admin-panel', fn (User $user): bool =>
+-        $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
++            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
++        );
 +
-+        <div class="grid md:grid-cols-2 gap-4">
-+            <div>
-+                <label for="location" class="block text-sm text-zinc-300 mb-2">Miejsce (nazwa skrócona)</label>
-+                <input id="location" type="text" name="location" value="{{ old('location') }}" required class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
-+            </div>
-+            <div>
-+                <label for="exact_address" class="block text-sm text-zinc-300 mb-2">Dokładny adres (widoczny w szczegółach)</label>
-+                <input id="exact_address" type="text" name="exact_address" value="{{ old('exact_address') }}" class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2">
-+            </div>
-+        </div>
++        Gate::define('manage-players', fn (User $user): bool =>
++            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
++        );
 +
-+        <label class="inline-flex items-center gap-2">
-+            <input type="checkbox" name="is_home" value="1" {{ old('is_home', '1') ? 'checked' : '' }}>
-+            <span>Mecz u siebie</span>
-+        </label>
++        Gate::define('manage-news', fn (User $user): bool =>
++            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
++        );
 +
-+        <div class="grid md:grid-cols-2 gap-4">
-+            <div class="rounded-lg border border-zinc-700 p-4">
-+                <h2 class="font-semibold mb-2">Logo ETB (domyślne)</h2>
-+                <p class="text-xs text-zinc-400 mb-3">To logo zapisuje się globalnie i jest podpinane automatycznie do kolejnych meczów. Możesz je nadpisać w każdej chwili.</p>
-+                @if ($defaultHomeLogo)
-+                    <img src="{{ asset('storage/' . $defaultHomeLogo) }}" alt="Domyślne logo ETB" class="h-20 w-20 object-contain bg-zinc-950 border border-zinc-700 rounded mb-3">
-+                @else
-+                    <div class="h-20 w-20 flex items-center justify-center text-xs text-zinc-500 bg-zinc-950 border border-dashed border-zinc-700 rounded mb-3">Brak logo</div>
-+                @endif
-+                <input type="file" name="default_home_logo" accept="image/*" class="w-full text-sm text-zinc-300">
-+            </div>
-+
-+            <div class="rounded-lg border border-zinc-700 p-4">
-+                <h2 class="font-semibold mb-2">Logo przeciwnika</h2>
-+                <p class="text-xs text-zinc-400 mb-3">Pole startowo puste — dodaj logo dla konkretnego meczu.</p>
-+                <div class="h-20 w-20 flex items-center justify-center text-xs text-zinc-500 bg-zinc-950 border border-dashed border-zinc-700 rounded mb-3">Dodaj logo</div>
-+                <input type="file" name="away_logo" accept="image/*" class="w-full text-sm text-zinc-300">
-+            </div>
-+        </div>
-+
-+        <div>
-+            <label for="image" class="block text-sm text-zinc-300 mb-2">Grafika meczu (opcjonalna)</label>
-+            <input id="image" type="file" name="image" accept="image/*" class="w-full text-sm text-zinc-300">
-+        </div>
-+
-+        <button class="bg-yellow-400 text-black px-5 py-2 rounded font-bold hover:bg-yellow-300 transition">
-+            Dodaj mecz
-+        </button>
-+    </form>
-+</section>
-+@endsection
-diff --git a/resources/views/dashboard.blade.php b/resources/views/dashboard.blade.php
-index 56e6ec2e350a62c8e248826b76b11e2277940c0e..e46141d2c9e0cf785f9bdf3a29bfbb71e020b690 100644
---- a/resources/views/dashboard.blade.php
-+++ b/resources/views/dashboard.blade.php
-@@ -1,40 +1,16 @@
- <x-app-layout>
-     <x-slot name="header">
-         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-             Panel użytkownika
-         </h2>
-     </x-slot>
++        Gate::define('manage-matches', fn (User $user): bool =>
++            $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE])
+         );
+     }
+ }
+diff --git a/bootstrap/app.php b/bootstrap/app.php
+index f3b05ab19db0138fedd8745286d518e4b81362d8..150fbd6efdbbd94375b18acb397c1b6c55f81f7e 100644
+--- a/bootstrap/app.php
++++ b/bootstrap/app.php
+@@ -1,21 +1,21 @@
+ <?php
 
-     <div class="py-12 bg-black min-h-screen">
--        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
--
--            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
--
--                <p class="mb-6 text-gray-700">
--                    Jesteś zalogowany.
--                </p>
--
--                @if(auth()->user()->is_admin)
--
--                    <div class="grid md:grid-cols-2 gap-6">
--
--                        <a href="/admin/matches/create"
--                           class="bg-yellow-400 text-black p-6 rounded-xl font-bold text-lg hover:bg-yellow-300 transition shadow">
--                            ➕ Dodaj nowy mecz
--                        </a>
--
--                    </div>
--
--                @else
--
--                    <p class="text-red-500 font-semibold">
--                        Brak uprawnień administratora.
--                    </p>
--
--                @endif
--
-+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-+            <div class="bg-zinc-900 border border-zinc-800 overflow-hidden shadow-sm sm:rounded-lg p-6 text-zinc-200">
-+                <p class="mb-4">Dashboard został uproszczony — główne zarządzanie kontem znajduje się teraz w zakładce <strong>Konto</strong>.</p>
-+                <a href="{{ route('profile.edit') }}" class="inline-flex bg-yellow-400 text-black font-semibold px-4 py-2 rounded hover:bg-yellow-300 transition">Przejdź do konta</a>
-             </div>
--
-         </div>
-     </div>
- </x-app-layout>
-diff --git a/resources/views/partials/navbar.blade.php b/resources/views/partials/navbar.blade.php
-index dbfa4f60ab1b2a7035a3cf6db30b2314c388baa3..06efcb8aaaec5edb391a686f891365da333c2cb3 100644
---- a/resources/views/partials/navbar.blade.php
-+++ b/resources/views/partials/navbar.blade.php
-@@ -1,80 +1,85 @@
- <div class="bg-zinc-200 text-zinc-900 text-sm py-2 px-6 flex justify-between items-center border-b border-zinc-300 shadow-sm">
-     <div class="font-semibold text-zinc-800">ETB - OFICJALNA STRONA</div>
+ use Illuminate\Foundation\Application;
+ use Illuminate\Foundation\Configuration\Exceptions;
+ use Illuminate\Foundation\Configuration\Middleware;
 
--    <div class="flex items-center space-x-4"><a href="https://www.facebook.com/p/Eat-The-Ball-61572240317030/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
-+    <div class="flex items-center space-x-4">
-+        <a href="https://www.facebook.com/p/Eat-The-Ball-61572240317030/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
-             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                 <path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2.3V12h2.3V9.8c0-2.3 1.4-3.6 3.5-3.6 1 0 2 .2 2 .2v2.2h-1.1c-1.1 0-1.5.7-1.5 1.4V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12"/>
-             </svg>
-             <span>FB</span>
--            <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
--                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
--                    <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.9a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
--                </svg>
--                <span>IG</span>
--            </a>
--            <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
--                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
--                    <path d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.3-1C17.2 2.5 12 2.5 12 2.5h0s-5.2 0-8.3.3c-.4.1-1.4.1-2.3 1C.7 4.5.5 6.2.5 6.2S.2 8.1.2 10v2c0 1.9.3 3.8.3 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.6 1 1.9.2 8 .3 8 .3s5.2 0 8.3-.3c.4-.1 1.4-.1 2.3-1 .7-.7.9-2.4.9-2.4s.3-1.9.3-3.8v-2c0-1.9-.3-3.8-.3-3.8zM9.5 14.5v-5l5 2.5-5 2.5z"/>
--                </svg>
--                <span>YT</span>
--            </a>
-+        </a>
-+
-+        <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
-+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-+                <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.9a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
-+            </svg>
-+            <span>IG</span>
-+        </a>
-+
-+        <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
-+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-+                <path d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.3-1C17.2 2.5 12 2.5 12 2.5h0s-5.2 0-8.3.3c-.4.1-1.4.1-2.3 1C.7 4.5.5 6.2.5 6.2S.2 8.1.2 10v2c0 1.9.3 3.8.3 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.6 1 1.9.2 8 .3 8 .3s5.2 0 8.3-.3c.4-.1 1.4-.1 2.3-1 .7-.7.9-2.4.9-2.4s.3-1.9.3-3.8v-2c0-1.9-.3-3.8-.3-3.8zM9.5 14.5v-5l5 2.5-5 2.5z"/>
-+            </svg>
-+            <span>YT</span>
-+        </a>
-+
-         <a href="https://www.tiktok.com/@eattheball_lodz" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
-             <i data-lucide="music-2" class="w-4 h-4"></i><span>TT</span>
-         </a>
+ return Application::configure(basePath: dirname(__DIR__))
+     ->withRouting(
+         web: __DIR__.'/../routes/web.php',
+         commands: __DIR__.'/../routes/console.php',
+         health: '/up',
+     )
+     ->withMiddleware(function (Middleware $middleware): void {
+         $middleware->alias([
+-            'role' => \App\Http\Middleware\RoleMiddleware::class,
++            'role' => \App\Http\Middleware\CheckRole::class,
+         ]);
+     })
+     ->withExceptions(function (Exceptions $exceptions): void {
+         //
+     })->create();
 
-         <div class="w-px h-5 bg-zinc-400"></div>
+diff --git a/database/seeders/DatabaseSeeder.php b/database/seeders/DatabaseSeeder.php
+index 7320750529aec6a1dc4b52d28848fd7676fbd564..529c56181f8b1114a7ecee8a3eab294267a8f929 100644
+--- a/database/seeders/DatabaseSeeder.php
++++ b/database/seeders/DatabaseSeeder.php
+@@ -1,38 +1,51 @@
+ <?php
 
-         <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(0.1)">A+</button>
-         <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(-0.1)">A-</button>
+ namespace Database\Seeders;
 
-         <div class="w-px h-5 bg-zinc-400"></div>
+ use App\Models\User;
+ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+ use Illuminate\Database\Seeder;
+ use Illuminate\Support\Facades\Hash;
 
-         @auth
--            <a href="{{ route('dashboard') }}" class="hover:text-yellow-400">Konto</a>
-+            <a href="{{ route('profile.edit') }}" class="hover:text-yellow-400">Konto</a>
-             <form method="POST" action="{{ route('logout') }}">
-                 @csrf
-                 <button class="hover:text-yellow-400 text-sm">Wyloguj</button>
-             </form>
-         @else
-             <a href="{{ route('login') }}" class="hover:text-yellow-400">Zaloguj</a>
-         @endauth
-     </div>
- </div>
+ class DatabaseSeeder extends Seeder
+ {
+     use WithoutModelEvents;
 
- <nav class="bg-zinc-100 text-zinc-900 shadow-md border-b border-zinc-300" x-data="{ open: null }">
-     <div class="max-w-7xl mx-auto px-6 py-4">
-         <div class="flex items-center justify-between gap-4 flex-wrap">
-             <a href="{{ route('home') }}" class="text-3xl font-extrabold text-zinc-800 ajax-link">ETB</a>
+     /**
+      * Seed the application's database.
+      */
+     public function run(): void
+     {
+-        $adminAccounts = [
++        $seedUsers = [
+             [
+-                'name' => 'ETB Admin',
+-                'email' => 'adminETB@admin.com',
+-                'password' => 'aminetb!2025',
++                'name' => 'System Admin',
++                'email' => 'admin@example.com',
++                'password' => 'AdminPass!2026',
++                'role' => User::ROLE_ADMIN,
++            ],
++            [
++                'name' => 'Club Employee',
++                'email' => 'employee@example.com',
++                'password' => 'EmployeePass!2026',
++                'role' => User::ROLE_EMPLOYEE,
++            ],
++            [
++                'name' => 'Team Fan',
++                'email' => 'fan@example.com',
++                'password' => 'FanPass!2026',
++                'role' => User::ROLE_FAN,
+             ],
+         ];
 
-             <form class="flex items-center gap-2 relative" role="search" onsubmit="event.preventDefault(); etbSearch()">
-                 <input id="etb-search" list="etb-search-suggestions" type="search" placeholder="Szukaj na stronie..." class="bg-white border border-zinc-300 rounded px-3 py-2 text-sm w-64">
-                 <datalist id="etb-search-suggestions"></datalist>
-                 <button type="submit" class="border border-zinc-500 text-black px-3 py-1.5 rounded font-semibold inline-flex items-center gap-2 hover:bg-yellow-400">
-                     <i data-lucide="search" class="w-4 h-4"></i> Szukaj
-                 </button>
--                </form>
-+            </form>
-         </div>
-
-         <div class="mt-4 flex flex-wrap gap-6 text-lg items-center">
-             <div class="relative" @mouseenter="open='news'" @mouseleave="open=null">
-                 <a href="{{ route('news') }}" class="ajax-link hover:text-yellow-400">Aktualności</a>
-                 <div x-show="open==='news'" x-transition class="dropdown-panel">
-                     <a class="ajax-link" href="{{ route('news.articles') }}">Artykuły</a>
-                     <a class="ajax-link" href="{{ route('news.videos') }}">Wideo</a>
-                     <a class="ajax-link" href="{{ route('news.galleries') }}">Galerie</a>
-                 </div>
-             </div>
-
-             <div class="relative" @mouseenter="open='club'" @mouseleave="open=null">
-                 <a href="{{ route('club') }}" class="ajax-link hover:text-yellow-400">Klub</a>
-                 <div x-show="open==='club'" x-transition class="dropdown-panel">
-                     <a class="ajax-link" href="{{ route('club.history') }}">Historia</a>
-                     <a class="ajax-link" href="{{ route('club.board') }}">Władze klubu</a>
-                     <a class="ajax-link" href="{{ route('club.venue') }}">Obiekt</a>
-                     <a class="ajax-link" href="{{ route('club.business') }}">Oferta biznesowa</a>
-                     <a class="ajax-link" href="{{ route('club.investors') }}">Inwestorzy</a>
-                     <a class="ajax-link" href="{{ route('club.success') }}">Sukcesy</a>
-                     <a class="ajax-link" href="{{ route('club.sponsors') }}">Sponsorzy</a>
-                     <a class="ajax-link" href="{{ route('contact') }}">Kontakt</a>
-                 </div>
-             </div>
-diff --git a/resources/views/profile/edit.blade.php b/resources/views/profile/edit.blade.php
-index e0e1d387e2cae39db07cfa2cba86e080e325e22e..c167aff439007da668abea1ef80b39f8a8f6f6a9 100644
---- a/resources/views/profile/edit.blade.php
-+++ b/resources/views/profile/edit.blade.php
-@@ -1,29 +1,109 @@
- <x-app-layout>
-+    @php
-+        use App\Models\User;
-+
-+        $role = $user->role;
-+        $isAdmin = $role === User::ROLE_ADMIN;
-+        $isEmployee = $role === User::ROLE_EMPLOYEE;
-+        $isAthlete = $role === User::ROLE_ATHLETE;
-+        $isFan = $role === User::ROLE_FAN;
-+    @endphp
-+
-     <x-slot name="header">
-         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
--            {{ __('Profile') }}
-+            {{ __('Konto') }}
-         </h2>
-     </x-slot>
-
--    <div class="py-12">
--        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
--            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
--                <div class="max-w-xl">
--                    @include('profile.partials.update-profile-information-form')
--                </div>
--            </div>
-+    <div class="py-12 bg-black min-h-screen">
-+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+            <div class="grid lg:grid-cols-4 gap-6">
-+                <aside class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-fit">
-+                    <p class="text-sm uppercase tracking-widest text-zinc-400">Konto</p>
-+                    <p class="text-lg font-semibold mt-2">{{ $user->name }}</p>
-+                    <p class="text-sm text-zinc-400">Rola: {{ strtoupper($role) }}</p>
-
--            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
--                <div class="max-w-xl">
--                    @include('profile.partials.update-password-form')
--                </div>
--            </div>
-+                    <nav class="mt-6 space-y-2 text-sm">
-+                        <a href="#profil" class="block px-3 py-2 rounded bg-zinc-800 text-zinc-100">Informacje o koncie</a>
-+                        <a href="#bezpieczenstwo" class="block px-3 py-2 rounded hover:bg-zinc-800">Hasło i bezpieczeństwo</a>
-+                        <a href="#akcje" class="block px-3 py-2 rounded hover:bg-zinc-800">Interakcje roli</a>
-+                        <a href="#ustawienia" class="block px-3 py-2 rounded hover:bg-zinc-800">Ustawienia konta</a>
-+                    </nav>
-+                </aside>
-+
-+                <div class="lg:col-span-3 space-y-6">
-+                    <section id="profil" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-1">Informacje o koncie</h3>
-+                        <p class="text-sm text-zinc-400 mb-6">Dane profilu i adres e-mail.</p>
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.update-profile-information-form')
-+                        </div>
-+                    </section>
-+
-+                    <section id="bezpieczenstwo" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-1">Hasło i bezpieczeństwo</h3>
-+                        <p class="text-sm text-zinc-400 mb-6">Zmiana hasła konta użytkownika.</p>
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.update-password-form')
-+                        </div>
-+                    </section>
-+
-+                    <section id="akcje" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-4">Interakcje dostępne dla Twojej roli</h3>
-+
-+                        @if ($isAdmin || $isEmployee)
-+                            <div class="grid md:grid-cols-2 gap-4 mb-6">
-+                                <a href="{{ route('admin.matches.create') }}" class="rounded-lg border border-yellow-400 bg-yellow-400/10 p-4 hover:bg-yellow-400/20 transition">
-+                                    <p class="font-semibold">➕ Dodawanie meczów</p>
-+                                    <p class="text-sm text-zinc-300 mt-1">Panel dodawania meczów spójny z interfejsem serwisu.</p>
-+                                </a>
-+                                <div class="rounded-lg border border-zinc-700 p-4">
-+                                    <p class="font-semibold">📰 Dodawanie artykułów</p>
-+                                    <p class="text-sm text-zinc-400 mt-1">Miejsce pod moduł publikacji newsów (wdrożenie etapami).</p>
-+                                </div>
-+                                <div class="rounded-lg border border-zinc-700 p-4">
-+                                    <p class="font-semibold">📅 Zarządzanie terminarzem</p>
-+                                    <p class="text-sm text-zinc-400 mt-1">Sekcja przewidziana pod rozbudowę harmonogramu meczów.</p>
-+                                </div>
-+                                <div class="rounded-lg border border-zinc-700 p-4">
-+                                    <p class="font-semibold">🛒 Przyszłe elementy sklepu</p>
-+                                    <p class="text-sm text-zinc-400 mt-1">Placeholder pod przyszłe operacje modułu sklepu.</p>
-+                                </div>
-+                            </div>
-+                        @endif
-+
-+                        @if ($isAdmin)
-+                            <div class="rounded-lg border border-zinc-700 p-4">
-+                                <p class="font-semibold">👥 Zarządzanie rolami użytkowników</p>
-+                                <p class="text-sm text-zinc-400 mt-1">Administrator może nadawać role graczom i użytkownikom (endpoint aktywny: <code>PATCH /admin/users/{'{user}'}/role</code>).</p>
-+                            </div>
-+                        @endif
-+
-+                        @if ($isAthlete || $isFan)
-+                            <div class="rounded-lg border border-zinc-700 p-4 mb-4">
-+                                <p class="font-semibold">🙋 Konto osobiste</p>
-+                                <p class="text-sm text-zinc-400 mt-1">Dostępne akcje: zmiana imienia, nazwiska/nazwy, e-maila i hasła.</p>
-+                            </div>
-+                        @endif
-+
-+                        @if (! $isAdmin && ! $isEmployee && ! $isAthlete && ! $isFan)
-+                            <p class="text-zinc-400">Brak dodatkowych akcji dla tej roli.</p>
-+                        @endif
-+                    </section>
-+
-+                    <section id="ustawienia" class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-1">Podstawowe ustawienia konta</h3>
-+                        <p class="text-sm text-zinc-400">Sekcja celowo pozostawiona jako placeholder — gotowa pod kolejne ustawienia.</p>
-+                    </section>
-
--            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
--                <div class="max-w-xl">
--                    @include('profile.partials.delete-user-form')
-+                    <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-+                        <h3 class="text-xl font-semibold mb-4">Usunięcie konta</h3>
-+                        <div class="max-w-2xl">
-+                            @include('profile.partials.delete-user-form')
-+                        </div>
-+                    </section>
-                 </div>
-             </div>
-         </div>
-     </div>
- </x-app-layout>
+-        foreach ($adminAccounts as $admin) {
++        foreach ($seedUsers as $seedUser) {
+             User::updateOrCreate(
+-                ['email' => $admin['email']],
++                ['email' => $seedUser['email']],
+                 [
+-                    'name' => $admin['name'],
+-                    'password' => Hash::make($admin['password']),
+-                    'role' => User::ROLE_ADMIN,
++                    'name' => $seedUser['name'],
++                    'password' => Hash::make($seedUser['password']),
++                    'role' => $seedUser['role'],
+                 ]
+             );
+         }
+     }
+ }
 diff --git a/routes/web.php b/routes/web.php
-index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..0d7a8de49cbc423a03148b5b8ba4a93107a40212 100644
+index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..2aec68b87be9b0d551c51ea59bc7c1b4150c8fa5 100644
 --- a/routes/web.php
 +++ b/routes/web.php
-@@ -1,29 +1,30 @@
- <?php
-
- use App\Http\Controllers\Admin\UserRoleController;
- use App\Http\Controllers\ProfileController;
-+use App\Models\AppSetting;
- use App\Models\Game;
- use App\Models\User;
- use Illuminate\Http\Request;
- use Illuminate\Support\Facades\Route;
-
- Route::get('/', function () {
-     $nextMatch = Game::where('match_date', '>=', now())
-         ->orderBy('match_date')
-         ->first();
-
-     $upcomingGames = Game::where('match_date', '>=', now())
-         ->orderBy('match_date')
-         ->take(3)
-         ->get();
-
-     $latestArticles = collect([
-         [
-             'title' => 'ETB wygrywa po dogrywce',
-             'category' => 'Artykuł',
-             'date' => '22.04.2026',
-             'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
-         ],
-         [
-             'title' => 'Kulisy meczu z ŁKS',
-             'category' => 'Wideo',
-@@ -160,71 +161,88 @@
+@@ -158,77 +158,74 @@
+ Route::view('/club/board', 'pages.club-board')->name('club.board');
+ Route::view('/club/venue', 'pages.club-venue')->name('club.venue');
  Route::view('/club/business', 'pages.club-business')->name('club.business');
  Route::view('/club/investors', 'pages.club-investors')->name('club.investors');
  Route::view('/club/success', 'pages.club-success')->name('club.success');
@@ -557,56 +224,30 @@ index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..0d7a8de49cbc423a03148b5b8ba4a931
  Route::view('/shop', 'pages.shop')->name('shop');
  Route::view('/academy', 'pages.academy')->name('academy');
 
- Route::middleware(['auth', 'role:admin,employee'])->group(function () {
+-Route::middleware(['auth', 'role:admin,employee'])->group(function () {
++Route::middleware(['auth', 'role:admin,employee', 'can:manage-matches'])->group(function () {
      Route::get('/admin/matches/create', function () {
--        return view('admin.create-match');
-+        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
-+
-+        return view('admin.create-match', compact('defaultHomeLogo'));
+         return view('admin.create-match');
      })->name('admin.matches.create');
 
      Route::post('/admin/matches', function (Request $request) {
--        $data = $request->all();
--
--        if ($request->hasFile('image')) {
--            $data['image'] = $request->file('image')->store('matches', 'public');
-+        $validated = $request->validate([
-+            'opponent' => ['required', 'string', 'max:255'],
-+            'match_date' => ['required', 'date'],
-+            'location' => ['required', 'string', 'max:255'],
-+            'exact_address' => ['nullable', 'string', 'max:500'],
-+            'is_home' => ['nullable', 'boolean'],
-+            'image' => ['nullable', 'image', 'max:5120'],
-+            'away_logo' => ['nullable', 'image', 'max:5120'],
-+            'default_home_logo' => ['nullable', 'image', 'max:5120'],
-+        ]);
-+
-+        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
-+
-+        if ($request->hasFile('default_home_logo')) {
-+            $defaultHomeLogo = $request->file('default_home_logo')->store('logos', 'public');
-+            AppSetting::setValue('default_home_logo', $defaultHomeLogo);
+         $data = $request->all();
+
+         if ($request->hasFile('image')) {
+             $data['image'] = $request->file('image')->store('matches', 'public');
          }
 
--        if ($request->hasFile('home_logo')) {
--            $data['home_logo'] = $request->file('home_logo')->store('logos', 'public');
-+        if ($request->hasFile('image')) {
-+            $validated['image'] = $request->file('image')->store('matches', 'public');
+         if ($request->hasFile('home_logo')) {
+             $data['home_logo'] = $request->file('home_logo')->store('logos', 'public');
          }
 
          if ($request->hasFile('away_logo')) {
--            $data['away_logo'] = $request->file('away_logo')->store('logos', 'public');
-+            $validated['away_logo'] = $request->file('away_logo')->store('logos', 'public');
+             $data['away_logo'] = $request->file('away_logo')->store('logos', 'public');
          }
 
--        Game::create($data);
-+        $validated['home_logo'] = $defaultHomeLogo;
-+        $validated['is_home'] = $request->boolean('is_home');
-+
-+        Game::create($validated);
+         Game::create($data);
 
--        return redirect('/')->with('status', 'Mecz został zapisany.');
-+        return redirect()->route('admin.matches.create')->with('status', 'Mecz został zapisany.');
+         return redirect('/')->with('status', 'Mecz został zapisany.');
      })->name('admin.matches.store');
  });
 
@@ -614,12 +255,14 @@ index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..0d7a8de49cbc423a03148b5b8ba4a931
      Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
  });
 
- Route::middleware('auth')->group(function () {
+-Route::middleware('auth')->group(function () {
++Route::middleware(['auth', 'role:athlete'])->group(function () {
      Route::get('/athlete/data', function () {
-         $user = request()->user();
-         abort_if($user->role !== User::ROLE_ATHLETE, 403);
-
-         return response()->json($user->athleteProfile);
+-        $user = request()->user();
+-        abort_if($user->role !== User::ROLE_ATHLETE, 403);
+-
+-        return response()->json($user->athleteProfile);
++        return response()->json(request()->user()->athleteProfile);
      })->name('athlete.data');
 
      Route::get('/fan/data', function () {
@@ -633,3 +276,6 @@ index 5bf7446f4ff6029b9f40fea9fd34d3666fd58877..0d7a8de49cbc423a03148b5b8ba4a931
          $user = request()->user();
          abort_if($user->role !== User::ROLE_EMPLOYEE, 403);
 
+         return response()->json($user->employeeProfile);
+     })->name('employee.data');
+ });
