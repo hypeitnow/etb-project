@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\Match;
+use App\Models\MatchModel;
 use App\Models\News;
 use App\Models\Player;
 use App\Policies\MatchPolicy;
@@ -12,13 +12,10 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 
 class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * @var array<class-string, class-string>
-     */
     protected $policies = [
         Player::class => PlayerPolicy::class,
         News::class => NewsPolicy::class,
-        Match::class => MatchPolicy::class,
+        MatchModel::class => MatchPolicy::class,
     ];
 
     public function boot(): void
