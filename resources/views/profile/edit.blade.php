@@ -1,111 +1,150 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+@extends('layouts.app')
 
-    <div class="py-12 bg-black min-h-screen">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-                <h3 class="text-xl font-semibold mb-1">Common Profile</h3>
-                <p class="text-sm text-zinc-400 mb-6">Update your name, email, and password.</p>
+@section('content')
 
-                <div class="max-w-2xl mb-6">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
+    <div class="py-12 bg-gray-100 min-h-screen text-gray-900">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="grid gap-6 lg:grid-cols-12">
 
-                <div class="max-w-2xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </section>
+                <!-- SIDEBAR -->
+                <aside class="lg:col-span-4">
+                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">Twoje konto</h3>
 
-            @if ($isAdmin)
-                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4">User Management</h3>
+                        <p><strong>Imię:</strong> {{ $user->name }}</p>
+                        <p><strong>Email:</strong> {{ $user->email }}</p>
+                        <p><strong>Rola:</strong> {{ strtoupper($user->role) }}</p>
+                    </div>
+                </aside>
 
-                    @if (session('status') === 'role-updated')
-                        <p class="text-sm text-green-400 mb-4">User role updated successfully.</p>
+                <!-- MAIN -->
+                <main class="lg:col-span-8 space-y-6">
+
+                    <!-- PROFILE INFO -->
+                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">Dane profilu</h3>
+
+                        <div class="max-w-2xl">
+                            @include('profile.partials.update-profile-information-form')
+                        </div>
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">Zmiana hasła</h3>
+
+                        <div class="max-w-2xl">
+                            @include('profile.partials.update-password-form')
+                        </div>
+                    </div>
+
+                    <!-- ADMIN -->
+                    @if ($isAdmin)
+                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Zarządzanie użytkownikami</h3>
+
+                            @if (session('status') === 'role-updated')
+                                <p class="text-green-600 mb-4">Rola została zaktualizowana</p>
+                            @endif
+
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm border">
+                                    <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="p-2 text-left">Imię</th>
+                                        <th class="p-2 text-left">Email</th>
+                                        <th class="p-2 text-left">Rola</th>
+                                        <th class="p-2 text-left">Akcja</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach ($users as $managedUser)
+                                        <tr class="border-t">
+                                            <td class="p-2">{{ $managedUser->name }}</td>
+                                            <td class="p-2">{{ $managedUser->email }}</td>
+                                            <td class="p-2">{{ strtoupper($managedUser->role) }}</td>
+                                            <td class="p-2">
+                                                <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+
+                                                    <select name="role" class="border rounded px-2 py-1">
+                                                        @foreach ($availableRoles as $role)
+                                                            <option value="{{ $role }}" @selected($managedUser->role === $role)>
+                                                                {{ strtoupper($role) }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+
+                                                    <button type="submit" class="ml-2 px-3 py-1 bg-yellow-500 text-black rounded">
+                                                        Zapisz
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     @endif
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-zinc-700 text-sm">
-                            <thead>
-                                <tr>
-                                    <th class="py-2 text-left">Name</th>
-                                    <th class="py-2 text-left">Email</th>
-                                    <th class="py-2 text-left">Role</th>
-                                    <th class="py-2 text-left">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-zinc-800">
-                                @foreach ($users as $managedUser)
-                                    <tr>
-                                        <td class="py-3 pr-4">{{ $managedUser->name }}</td>
-                                        <td class="py-3 pr-4">{{ $managedUser->email }}</td>
-                                        <td class="py-3 pr-4 uppercase">{{ $managedUser->role }}</td>
-                                        <td class="py-3 pr-4">
-                                            <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}" class="flex items-center gap-2">
-                                                @csrf
-                                                @method('PATCH')
-                                                <select name="role" class="rounded-md border-zinc-700 bg-zinc-800 text-zinc-100">
-                                                    @foreach ($availableRoles as $role)
-                                                        <option value="{{ $role }}" @selected($managedUser->role === $role)>
-                                                            {{ strtoupper($role) }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="px-3 py-1 rounded bg-yellow-500 text-black font-semibold">
-                                                    Save
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            @endif
+                    <!-- EMPLOYEE -->
+                    @if ($isEmployee)
+                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Panel pracownika</h3>
 
-            @if ($isEmployee)
-                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4">Quick Access Panel</h3>
-                    <div class="grid md:grid-cols-3 gap-4 text-sm">
-                        <a href="{{ route('players.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create player</a>
-                        <a href="{{ route('news.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create news</a>
-                        <a href="{{ route('matches.create') }}" class="rounded-lg border border-zinc-700 p-4 hover:bg-zinc-800">Create match</a>
-                    </div>
-                </section>
-            @endif
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <a href="{{ route('players.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                    ➕ Dodaj zawodnika
+                                </a>
+                                <a href="{{ route('news.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                    📰 Dodaj news
+                                </a>
+                                <a href="{{ route('matches.create') }}" class="p-4 border rounded hover:bg-gray-100">
+                                    ⚽ Dodaj mecz
+                                </a>
+                            </div>
+                        </div>
+                    @endif
 
-            @if ($isAthlete)
-                <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4">Athlete Panel</h3>
+                    <!-- ATHLETE -->
+                    @if ($isAthlete)
+                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Panel zawodnika</h3>
 
-                    <div class="mb-6">
-                        <p class="text-sm text-zinc-400">Player data</p>
-                        @if ($athleteProfile)
-                            <pre class="mt-2 text-xs bg-zinc-950 border border-zinc-800 rounded p-3 overflow-x-auto">{{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-                        @else
-                            <p class="text-sm text-zinc-300 mt-1">No athlete profile data found yet.</p>
-                        @endif
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-600">Dane zawodnika:</p>
+
+                                @if ($athleteProfile)
+                                    <pre class="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+{{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}
+                                </pre>
+                                @else
+                                    <p class="text-sm mt-2">Brak danych zawodnika</p>
+                                @endif
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-4 text-sm">
+                                <div class="border p-4 rounded">Treningi (w przyszłości)</div>
+                                <div class="border p-4 rounded">Dostępność</div>
+                                <div class="border p-4 rounded">Statystyki</div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- DELETE -->
+                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">Usuń konto</h3>
+
+                        <div class="max-w-2xl">
+                            @include('profile.partials.delete-user-form')
+                        </div>
                     </div>
 
-                    <div class="grid md:grid-cols-3 gap-4 text-sm">
-                        <div class="rounded-lg border border-zinc-700 p-4">Training schedule (placeholder)</div>
-                        <div class="rounded-lg border border-zinc-700 p-4">Availability (placeholder)</div>
-                        <div class="rounded-lg border border-zinc-700 p-4">Stats (future)</div>
-                    </div>
-                </section>
-            @endif
-
-            <section class="p-4 sm:p-8 bg-zinc-900 border border-zinc-800 shadow sm:rounded-lg">
-                <h3 class="text-xl font-semibold mb-4">Delete account</h3>
-                <div class="max-w-2xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </section>
+                </main>
+            </div>
         </div>
     </div>
-</x-app-layout>
+
+@endsection
