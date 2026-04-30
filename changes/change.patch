@@ -1,92 +1,97 @@
-diff --git a/app/Http/Controllers/PlayerController.php b/app/Http/Controllers/PlayerController.php
+diff --git a/app/Http/Controllers/NewsController.php b/app/Http/Controllers/NewsController.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..22556e818947bb921af74624370e161552b2f33d
+index 0000000000000000000000000000000000000000..e46d2ee0930795c280db0df27efa74401b0445c9
 --- /dev/null
-+++ b/app/Http/Controllers/PlayerController.php
-@@ -0,0 +1,65 @@
++++ b/app/Http/Controllers/NewsController.php
+@@ -0,0 +1,70 @@
 +<?php
 +
 +namespace App\Http\Controllers;
 +
-+use App\Http\Requests\StorePlayerRequest;
-+use App\Http\Requests\UpdatePlayerRequest;
-+use App\Models\Player;
++use App\Http\Requests\StoreNewsRequest;
++use App\Http\Requests\UpdateNewsRequest;
++use App\Models\News;
 +use Illuminate\Http\RedirectResponse;
 +use Illuminate\View\View;
 +
-+class PlayerController extends Controller
++class NewsController extends Controller
 +{
 +    public function index(): View
 +    {
-+        $this->authorize('viewAny', Player::class);
++        $this->authorize('viewAny', News::class);
 +
-+        $players = Player::query()->orderBy('last_name')->orderBy('first_name')->get();
++        $newsItems = News::query()->with('author')->latest()->get();
 +
-+        return view('players.index', compact('players'));
++        return view('news.index', compact('newsItems'));
++    }
++
++    public function show(News $news): View
++    {
++        $this->authorize('view', $news);
++
++        $news->load('author');
++
++        return view('news.show', compact('news'));
 +    }
 +
 +    public function create(): View
 +    {
-+        $this->authorize('create', Player::class);
++        $this->authorize('create', News::class);
 +
-+        return view('players.create');
++        return view('news.create');
 +    }
 +
-+    public function store(StorePlayerRequest $request): RedirectResponse
++    public function store(StoreNewsRequest $request): RedirectResponse
 +    {
-+        Player::query()->create($request->validated());
++        $news = News::query()->create([
++            ...$request->validated(),
++            'author_id' => $request->user()->id,
++        ]);
 +
-+        return redirect()->route('players.index');
++        return redirect()->route('news.show', $news);
 +    }
 +
-+    public function show(Player $player): View
++    public function edit(News $news): View
 +    {
-+        $this->authorize('view', $player);
++        $this->authorize('update', $news);
 +
-+        return view('players.show', compact('player'));
++        return view('news.edit', compact('news'));
 +    }
 +
-+    public function edit(Player $player): View
++    public function update(UpdateNewsRequest $request, News $news): RedirectResponse
 +    {
-+        $this->authorize('update', $player);
++        $news->update($request->validated());
 +
-+        return view('players.edit', compact('player'));
++        return redirect()->route('news.show', $news);
 +    }
 +
-+    public function update(UpdatePlayerRequest $request, Player $player): RedirectResponse
++    public function destroy(News $news): RedirectResponse
 +    {
-+        $player->update($request->validated());
++        $this->authorize('delete', $news);
 +
-+        return redirect()->route('players.index');
-+    }
++        $news->delete();
 +
-+    public function destroy(Player $player): RedirectResponse
-+    {
-+        $this->authorize('delete', $player);
-+
-+        $player->delete();
-+
-+        return redirect()->route('players.index');
++        return redirect()->route('news.index');
 +    }
 +}
-diff --git a/app/Http/Requests/StorePlayerRequest.php b/app/Http/Requests/StorePlayerRequest.php
+diff --git a/app/Http/Requests/StoreNewsRequest.php b/app/Http/Requests/StoreNewsRequest.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..6b3e35eb312b992cb633862c2d854ee3acc09d6f
+index 0000000000000000000000000000000000000000..38e69b1c3857d8ff1b1e23e8795c661a357db3e8
 --- /dev/null
-+++ b/app/Http/Requests/StorePlayerRequest.php
-@@ -0,0 +1,30 @@
++++ b/app/Http/Requests/StoreNewsRequest.php
+@@ -0,0 +1,25 @@
 +<?php
 +
 +namespace App\Http\Requests;
 +
-+use App\Models\Player;
++use App\Models\News;
 +use Illuminate\Foundation\Http\FormRequest;
 +
-+class StorePlayerRequest extends FormRequest
++class StoreNewsRequest extends FormRequest
 +{
 +    public function authorize(): bool
 +    {
-+        return $this->user()?->can('create', Player::class) ?? false;
++        return $this->user()?->can('create', News::class) ?? false;
 +    }
 +
 +    /**
@@ -95,37 +100,32 @@ index 0000000000000000000000000000000000000000..6b3e35eb312b992cb633862c2d854ee3
 +    public function rules(): array
 +    {
 +        return [
-+            'first_name' => ['required', 'string', 'max:255'],
-+            'last_name' => ['required', 'string', 'max:255'],
-+            'number' => ['required', 'integer', 'min:0', 'max:99'],
-+            'position' => ['required', 'string'],
-+            'date_of_birth' => ['required', 'date', 'before:today'],
-+            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
-+            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
++            'title' => ['required', 'string', 'max:255'],
++            'content' => ['required', 'string', 'min:10'],
 +        ];
 +    }
 +}
-diff --git a/app/Http/Requests/UpdatePlayerRequest.php b/app/Http/Requests/UpdatePlayerRequest.php
+diff --git a/app/Http/Requests/UpdateNewsRequest.php b/app/Http/Requests/UpdateNewsRequest.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..3a794580877b027ad8199a5535cd102f73e23a45
+index 0000000000000000000000000000000000000000..e3fa4a2f80d19edc71ed9d1e60ab751787fce3bb
 --- /dev/null
-+++ b/app/Http/Requests/UpdatePlayerRequest.php
-@@ -0,0 +1,34 @@
++++ b/app/Http/Requests/UpdateNewsRequest.php
+@@ -0,0 +1,29 @@
 +<?php
 +
 +namespace App\Http\Requests;
 +
-+use App\Models\Player;
++use App\Models\News;
 +use Illuminate\Foundation\Http\FormRequest;
 +
-+class UpdatePlayerRequest extends FormRequest
++class UpdateNewsRequest extends FormRequest
 +{
 +    public function authorize(): bool
 +    {
-+        $player = $this->route('player');
++        $news = $this->route('news');
 +
-+        return $player instanceof Player
-+            ? ($this->user()?->can('update', $player) ?? false)
++        return $news instanceof News
++            ? ($this->user()?->can('update', $news) ?? false)
 +            : false;
 +    }
 +
@@ -135,31 +135,26 @@ index 0000000000000000000000000000000000000000..3a794580877b027ad8199a5535cd102f
 +    public function rules(): array
 +    {
 +        return [
-+            'first_name' => ['required', 'string', 'max:255'],
-+            'last_name' => ['required', 'string', 'max:255'],
-+            'number' => ['required', 'integer', 'min:0', 'max:99'],
-+            'position' => ['required', 'string'],
-+            'date_of_birth' => ['required', 'date', 'before:today'],
-+            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
-+            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
++            'title' => ['required', 'string', 'max:255'],
++            'content' => ['required', 'string', 'min:10'],
 +        ];
 +    }
 +}
-diff --git a/app/Models/Player.php b/app/Models/Player.php
+diff --git a/app/Models/News.php b/app/Models/News.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..11146108aadea660dae8206c0dfd892922214f21
+index 0000000000000000000000000000000000000000..b9b15f2a817adf9e1b0b6eccdfce03b382716c4c
 --- /dev/null
-+++ b/app/Models/Player.php
-@@ -0,0 +1,49 @@
++++ b/app/Models/News.php
+@@ -0,0 +1,26 @@
 +<?php
 +
 +namespace App\Models;
 +
-+use Carbon\CarbonInterface;
 +use Illuminate\Database\Eloquent\Factories\HasFactory;
 +use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
 +
-+class Player extends Model
++class News extends Model
 +{
 +    use HasFactory;
 +
@@ -167,74 +162,110 @@ index 0000000000000000000000000000000000000000..11146108aadea660dae8206c0dfd8929
 +     * @var list<string>
 +     */
 +    protected $fillable = [
-+        'first_name',
-+        'last_name',
-+        'number',
-+        'position',
-+        'date_of_birth',
-+        'height',
-+        'weight',
++        'title',
++        'content',
++        'author_id',
 +    ];
 +
-+    /**
-+     * @return array<string, string>
-+     */
-+    protected function casts(): array
++    public function author(): BelongsTo
 +    {
-+        return [
-+            'date_of_birth' => 'date',
-+            'number' => 'integer',
-+            'height' => 'integer',
-+            'weight' => 'integer',
-+        ];
-+    }
-+
-+    public function getAgeAttribute(): ?int
-+    {
-+        $dateOfBirth = $this->date_of_birth;
-+
-+        if (! $dateOfBirth instanceof CarbonInterface) {
-+            return null;
-+        }
-+
-+        return $dateOfBirth->age;
++        return $this->belongsTo(User::class, 'author_id');
 +    }
 +}
-diff --git a/app/Policies/PlayerPolicy.php b/app/Policies/PlayerPolicy.php
+diff --git a/app/Models/User.php b/app/Models/User.php
+index c184dfe3132f8ccecdb63e539db665188b3bb9df..54e6fa83089e01e6b2809b3cf04fc0d51762e22d 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -1,32 +1,33 @@
+ <?php
+
+ namespace App\Models;
+
+ // use Illuminate\Contracts\Auth\MustVerifyEmail;
+ use Database\Factories\UserFactory;
+ use Illuminate\Database\Eloquent\Factories\HasFactory;
++use Illuminate\Database\Eloquent\Relations\HasMany;
+ use Illuminate\Database\Eloquent\Relations\HasOne;
+ use Illuminate\Foundation\Auth\User as Authenticatable;
+ use Illuminate\Notifications\Notifiable;
+
+ class User extends Authenticatable
+ {
+     /** @use HasFactory<UserFactory> */
+     use HasFactory, Notifiable;
+
+     public const ROLE_ADMIN = 'admin';
+     public const ROLE_ATHLETE = 'athlete';
+     public const ROLE_FAN = 'fan';
+     public const ROLE_EMPLOYEE = 'employee';
+
+     /**
+      * The attributes that are mass assignable.
+      *
+      * @var list<string>
+      */
+     protected $fillable = [
+         'name',
+         'email',
+         'password',
+         'role',
+     ];
+@@ -72,27 +73,32 @@ public function isAdmin(): bool
+         return $this->role === self::ROLE_ADMIN;
+     }
+
+     /**
+      * @param list<string> $roles
+      */
+     public function hasAnyRole(array $roles): bool
+     {
+         return in_array($this->role, $roles, true);
+     }
+
+     public function athleteProfile(): HasOne
+     {
+         return $this->hasOne(AthleteProfile::class);
+     }
+
+     public function fanProfile(): HasOne
+     {
+         return $this->hasOne(FanProfile::class);
+     }
+
+     public function employeeProfile(): HasOne
+     {
+         return $this->hasOne(EmployeeProfile::class);
+     }
++
++    public function news(): HasMany
++    {
++        return $this->hasMany(News::class, 'author_id');
++    }
+ }
+
+diff --git a/app/Policies/NewsPolicy.php b/app/Policies/NewsPolicy.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..cedd99b6211a94ec67d2bacba84b2037af114e77
+index 0000000000000000000000000000000000000000..733c36fc66f48cb247497267af7f3555d8a8362a
 --- /dev/null
-+++ b/app/Policies/PlayerPolicy.php
-@@ -0,0 +1,46 @@
++++ b/app/Policies/NewsPolicy.php
+@@ -0,0 +1,34 @@
 +<?php
 +
 +namespace App\Policies;
 +
-+use App\Models\Player;
++use App\Models\News;
 +use App\Models\User;
 +
-+class PlayerPolicy
++class NewsPolicy
 +{
 +    public function viewAny(?User $user): bool
 +    {
-+        if ($user === null) {
-+            return true;
-+        }
-+
-+        return $user->hasAnyRole([
-+            User::ROLE_ADMIN,
-+            User::ROLE_EMPLOYEE,
-+            User::ROLE_FAN,
-+        ]);
++        return true;
 +    }
 +
-+    public function view(?User $user, Player $player): bool
++    public function view(?User $user, News $news): bool
 +    {
-+        if ($user === null) {
-+            return true;
-+        }
-+
-+        return $this->viewAny($user);
++        return true;
 +    }
 +
 +    public function create(User $user): bool
@@ -242,64 +273,52 @@ index 0000000000000000000000000000000000000000..cedd99b6211a94ec67d2bacba84b2037
 +        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
 +    }
 +
-+    public function update(User $user, Player $player): bool
++    public function update(User $user, News $news): bool
 +    {
 +        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
 +    }
 +
-+    public function delete(User $user, Player $player): bool
++    public function delete(User $user, News $news): bool
 +    {
 +        return $user->role === User::ROLE_ADMIN;
 +    }
 +}
 diff --git a/app/Providers/AuthServiceProvider.php b/app/Providers/AuthServiceProvider.php
-new file mode 100644
-index 0000000000000000000000000000000000000000..0829f736a129969b33f81fb8372c873efdec4389
---- /dev/null
+index 0829f736a129969b33f81fb8372c873efdec4389..b1cb64203def5cc8e94afa9c90ccf65a2195ff39 100644
+--- a/app/Providers/AuthServiceProvider.php
 +++ b/app/Providers/AuthServiceProvider.php
-@@ -0,0 +1,22 @@
-+<?php
-+
-+namespace App\Providers;
-+
-+use App\Models\Player;
-+use App\Policies\PlayerPolicy;
-+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-+
-+class AuthServiceProvider extends ServiceProvider
-+{
-+    /**
-+     * @var array<class-string, class-string>
-+     */
-+    protected $policies = [
-+        Player::class => PlayerPolicy::class,
-+    ];
-+
-+    public function boot(): void
-+    {
-+        $this->registerPolicies();
-+    }
-+}
-diff --git a/bootstrap/providers.php b/bootstrap/providers.php
-index fc94ae6011d6ce1d1175d0f642412c2a27913f6c..9f047e1441d90d7593c2ee5791081ff46efcdae1 100644
---- a/bootstrap/providers.php
-+++ b/bootstrap/providers.php
-@@ -1,7 +1,9 @@
+@@ -1,22 +1,25 @@
  <?php
 
- use App\Providers\AppServiceProvider;
-+use App\Providers\AuthServiceProvider;
+ namespace App\Providers;
 
- return [
-     AppServiceProvider::class,
-+    AuthServiceProvider::class,
- ];
-diff --git a/database/migrations/2026_04_30_000000_create_players_table.php b/database/migrations/2026_04_30_000000_create_players_table.php
++use App\Models\News;
+ use App\Models\Player;
++use App\Policies\NewsPolicy;
+ use App\Policies\PlayerPolicy;
+ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+
+ class AuthServiceProvider extends ServiceProvider
+ {
+     /**
+      * @var array<class-string, class-string>
+      */
+     protected $policies = [
+         Player::class => PlayerPolicy::class,
++        News::class => NewsPolicy::class,
+     ];
+
+     public function boot(): void
+     {
+         $this->registerPolicies();
+     }
+ }
+diff --git a/database/migrations/2026_04_30_120000_create_news_table.php b/database/migrations/2026_04_30_120000_create_news_table.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..cccfdd2ac26b323a9636c5a51bb735bb1033b3af
+index 0000000000000000000000000000000000000000..5decee89e5531a74c0943f9b5db68cfc2d7484ab
 --- /dev/null
-+++ b/database/migrations/2026_04_30_000000_create_players_table.php
-@@ -0,0 +1,32 @@
++++ b/database/migrations/2026_04_30_120000_create_news_table.php
+@@ -0,0 +1,24 @@
 +<?php
 +
 +use Illuminate\Database\Migrations\Migration;
@@ -310,143 +329,232 @@ index 0000000000000000000000000000000000000000..cccfdd2ac26b323a9636c5a51bb735bb
 +{
 +    public function up(): void
 +    {
-+        if (Schema::hasTable('players')) {
-+            return;
-+        }
-+
-+        Schema::create('players', function (Blueprint $table): void {
++        Schema::create('news', function (Blueprint $table): void {
 +            $table->id();
-+            $table->string('first_name');
-+            $table->string('last_name');
-+            $table->unsignedTinyInteger('number');
-+            $table->string('position');
-+            $table->date('date_of_birth');
-+            $table->unsignedSmallInteger('height')->nullable();
-+            $table->unsignedSmallInteger('weight')->nullable();
++            $table->string('title');
++            $table->text('content');
++            $table->foreignId('author_id')->constrained('users')->restrictOnDelete();
 +            $table->timestamps();
 +        });
 +    }
 +
 +    public function down(): void
 +    {
-+        Schema::dropIfExists('players');
++        Schema::dropIfExists('news');
 +    }
 +};
-diff --git a/resources/views/players/create.blade.php b/resources/views/players/create.blade.php
+diff --git a/resources/views/home.blade.php b/resources/views/home.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+index 0000000000000000000000000000000000000000..9497efc8dd21f414b743e81eb8d78e7a50481006
 --- /dev/null
-+++ b/resources/views/players/create.blade.php
-@@ -0,0 +1,11 @@
++++ b/resources/views/home.blade.php
+@@ -0,0 +1,26 @@
 +@extends('layouts.app')
 +
 +@section('content')
 +<div class="py-6">
-+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            Players module view.
-+        </div>
++    <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
++        <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            <h1 class="text-2xl font-semibold">Welcome to ETB</h1>
++            <p class="mt-2 text-gray-700">Stay up to date with the latest club announcements and updates.</p>
++        </section>
++
++        <section class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
++            <h2 class="text-xl font-medium mb-3">Latest news</h2>
++            <div class="space-y-3">
++                @forelse($latestNews as $item)
++                    <article>
++                        <h3 class="font-medium"><a class="underline" href="{{ route('news.show', $item) }}">{{ $item->title }}</a></h3>
++                        <p class="text-sm text-gray-600">{{ \Illuminate\Support\Str::limit($item->content, 120) }}</p>
++                    </article>
++                @empty
++                    <p>No news yet.</p>
++                @endforelse
++            </div>
++        </section>
 +    </div>
 +</div>
 +@endsection
-diff --git a/resources/views/players/edit.blade.php b/resources/views/players/edit.blade.php
+diff --git a/resources/views/news/create.blade.php b/resources/views/news/create.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+index 0000000000000000000000000000000000000000..7bf0cd23fcb68fa3cca070d1f7749f28bc0b0a88
 --- /dev/null
-+++ b/resources/views/players/edit.blade.php
-@@ -0,0 +1,11 @@
++++ b/resources/views/news/create.blade.php
+@@ -0,0 +1,4 @@
 +@extends('layouts.app')
-+
 +@section('content')
-+<div class="py-6">
-+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            Players module view.
-+        </div>
-+    </div>
-+</div>
++<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">Create news</h1><form action="{{ route('news.store') }}" method="POST" class="space-y-4">@csrf<div><label for="title">Title</label><input id="title" name="title" type="text" value="{{ old('title') }}" class="w-full border rounded p-2">@error('title')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><div><label for="content">Content</label><textarea id="content" name="content" rows="8" class="w-full border rounded p-2">{{ old('content') }}</textarea>@error('content')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><button type="submit" class="underline">Save</button></form></div></div></div>
 +@endsection
-diff --git a/resources/views/players/index.blade.php b/resources/views/players/index.blade.php
+diff --git a/resources/views/news/edit.blade.php b/resources/views/news/edit.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+index 0000000000000000000000000000000000000000..5613193d6788fc226c2e31c12c7d00a2726ff803
 --- /dev/null
-+++ b/resources/views/players/index.blade.php
-@@ -0,0 +1,11 @@
++++ b/resources/views/news/edit.blade.php
+@@ -0,0 +1,4 @@
 +@extends('layouts.app')
-+
 +@section('content')
-+<div class="py-6">
-+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            Players module view.
-+        </div>
-+    </div>
-+</div>
++<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">Edit news</h1><form action="{{ route('news.update', $news) }}" method="POST" class="space-y-4">@csrf @method('PUT')<div><label for="title">Title</label><input id="title" name="title" type="text" value="{{ old('title', $news->title) }}" class="w-full border rounded p-2">@error('title')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><div><label for="content">Content</label><textarea id="content" name="content" rows="8" class="w-full border rounded p-2">{{ old('content', $news->content) }}</textarea>@error('content')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror</div><button type="submit" class="underline">Update</button></form></div></div></div>
 +@endsection
-diff --git a/resources/views/players/show.blade.php b/resources/views/players/show.blade.php
+diff --git a/resources/views/news/index.blade.php b/resources/views/news/index.blade.php
 new file mode 100644
-index 0000000000000000000000000000000000000000..d842ad21b7a3018e387b8f6250bbc81525737ae6
+index 0000000000000000000000000000000000000000..640176aafa3233225d056c71ad8fe1252731eb11
 --- /dev/null
-+++ b/resources/views/players/show.blade.php
-@@ -0,0 +1,11 @@
++++ b/resources/views/news/index.blade.php
+@@ -0,0 +1,7 @@
 +@extends('layouts.app')
-+
 +@section('content')
-+<div class="py-6">
-+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-+            Players module view.
-+        </div>
-+    </div>
-+</div>
++<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-4">
++<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h1 class="text-2xl font-semibold mb-4">News</h1>@can('create', \App\Models\News::class)<a href="{{ route('news.create') }}" class="underline">Create news</a>@endcan</div>
++@forelse($newsItems as $item)<article class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"><h2 class="text-xl font-medium"><a class="underline" href="{{ route('news.show', $item) }}">{{ $item->title }}</a></h2><p class="mt-2 text-sm text-gray-600">{{ \Illuminate\Support\Str::limit($item->content, 140) }}</p></article>@empty<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">No news available.</div>@endforelse
++</div></div>
++@endsection
+diff --git a/resources/views/news/show.blade.php b/resources/views/news/show.blade.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..071991aa7230474df82b05996fe08bea39daf7a2
+--- /dev/null
++++ b/resources/views/news/show.blade.php
+@@ -0,0 +1,4 @@
++@extends('layouts.app')
++@section('content')
++<div class="py-6"><div class="max-w-4xl mx-auto sm:px-6 lg:px-8"><article class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 space-y-4"><h1 class="text-2xl font-semibold">{{ $news->title }}</h1><p class="text-sm text-gray-600">By {{ $news->author->name ?? 'Unknown author' }} · {{ $news->created_at?->format('Y-m-d H:i') }}</p><div class="whitespace-pre-line">{{ $news->content }}</div>@can('update', $news)<a href="{{ route('news.edit', $news) }}" class="underline">Edit</a>@endcan @can('delete', $news)<form action="{{ route('news.destroy', $news) }}" method="POST">@csrf @method('DELETE')<button type="submit" class="underline">Delete</button></form>@endcan</article></div></div>
 +@endsection
 diff --git a/routes/web.php b/routes/web.php
-index 516bfcf798349464382bdc8523af202a4796bcab..f10ddfac12e2a2938c2302bfc7e2c930541d347b 100644
+index f10ddfac12e2a2938c2302bfc7e2c930541d347b..f202ed5d76b5d4cc217318253d23a332bfde03d5 100644
 --- a/routes/web.php
 +++ b/routes/web.php
-@@ -1,29 +1,30 @@
+@@ -1,178 +1,79 @@
  <?php
 
  use App\Http\Controllers\Admin\UserRoleController;
  use App\Http\Controllers\ProfileController;
-+use App\Http\Controllers\PlayerController;
++use App\Http\Controllers\NewsController;
+ use App\Http\Controllers\PlayerController;
  use App\Models\AppSetting;
  use App\Models\Game;
++use App\Models\News;
  use App\Models\User;
  use Illuminate\Http\Request;
  use Illuminate\Support\Facades\Route;
 
  Route::get('/', function () {
-     $nextMatch = Game::where('match_date', '>=', now())
-         ->orderBy('match_date')
-         ->first();
-
-     $upcomingGames = Game::where('match_date', '>=', now())
-         ->orderBy('match_date')
-         ->take(3)
-         ->get();
-
-     $latestArticles = collect([
-         [
-             'title' => 'ETB wygrywa po dogrywce',
-             'category' => 'Artykuł',
-             'date' => '22.04.2026',
-             'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
-         ],
-         [
-             'title' => 'Kulisy meczu z ŁKS',
-@@ -116,50 +117,56 @@
-             'excerpt' => 'Zdjęcia z klubowego spotkania z fanami.',
-         ],
-     ]);
-
-     $next3x3Tournament = [
-         'name' => '3x3 Quest Łódź',
-         'date' => '30.04.2026 16:00',
-         'place' => 'Atlas Arena, Łódź',
-     ];
-
-     return view('pages.home', compact('nextMatch', 'upcomingGames', 'latestArticles', 'next3x3Tournament'));
+-    $nextMatch = Game::where('match_date', '>=', now())
+-        ->orderBy('match_date')
+-        ->first();
+-
+-    $upcomingGames = Game::where('match_date', '>=', now())
+-        ->orderBy('match_date')
+-        ->take(3)
+-        ->get();
+-
+-    $latestArticles = collect([
+-        [
+-            'title' => 'ETB wygrywa po dogrywce',
+-            'category' => 'Artykuł',
+-            'date' => '22.04.2026',
+-            'excerpt' => 'Mocny finisz w ostatnich minutach i cenne zwycięstwo na własnym parkiecie.',
+-        ],
+-        [
+-            'title' => 'Kulisy meczu z ŁKS',
+-            'category' => 'Wideo',
+-            'date' => '21.04.2026',
+-            'excerpt' => 'Zobacz materiały zza kulis i reakcje zespołu po spotkaniu.',
+-        ],
+-        [
+-            'title' => 'Galeria zdjęć: derby Łodzi',
+-            'category' => 'Galeria',
+-            'date' => '20.04.2026',
+-            'excerpt' => 'Najlepsze kadry z gorącego spotkania i oprawy kibiców.',
+-        ],
+-        [
+-            'title' => 'Zapowiedź kolejki EŁZKosz',
+-            'category' => 'Artykuł',
+-            'date' => '19.04.2026',
+-            'excerpt' => 'Sprawdź analizę rywala i plan ETB na najbliższe spotkanie.',
+-        ],
+-        [
+-            'title' => 'Skrót meczu ETB - Start',
+-            'category' => 'Wideo',
+-            'date' => '18.04.2026',
+-            'excerpt' => 'Najciekawsze akcje i podsumowanie spotkania.',
+-        ],
+-        [
+-            'title' => 'Młodzież ETB na turnieju',
+-            'category' => 'Artykuł',
+-            'date' => '17.04.2026',
+-            'excerpt' => 'Relacja z występu młodych zawodników.',
+-        ],
+-        [
+-            'title' => 'Galeria: trening otwarty',
+-            'category' => 'Galeria',
+-            'date' => '16.04.2026',
+-            'excerpt' => 'Zdjęcia z otwartego treningu dla kibiców.',
+-        ],
+-        [
+-            'title' => 'Wywiad z trenerem',
+-            'category' => 'Wideo',
+-            'date' => '15.04.2026',
+-            'excerpt' => 'Plany zespołu na końcówkę sezonu.',
+-        ],
+-        [
+-            'title' => 'Transfer do ETB',
+-            'category' => 'Artykuł',
+-            'date' => '14.04.2026',
+-            'excerpt' => 'Nowy zawodnik dołącza do składu.',
+-        ],
+-        [
+-            'title' => 'Galeria: ETB vs AZS',
+-            'category' => 'Galeria',
+-            'date' => '13.04.2026',
+-            'excerpt' => 'Galeria meczowa z ostatniego pojedynku.',
+-        ],
+-        [
+-            'title' => 'Konferencja pomeczowa',
+-            'category' => 'Wideo',
+-            'date' => '12.04.2026',
+-            'excerpt' => 'Komentarze zawodników i sztabu.',
+-        ],
+-        [
+-            'title' => 'Współpraca z partnerem',
+-            'category' => 'Artykuł',
+-            'date' => '11.04.2026',
+-            'excerpt' => 'Nowe partnerstwo dla rozwoju klubu.',
+-        ],
+-        [
+-            'title' => 'Galeria: dzień meczowy',
+-            'category' => 'Galeria',
+-            'date' => '10.04.2026',
+-            'excerpt' => 'Kibice, emocje i atmosfera hali.',
+-        ],
+-        [
+-            'title' => 'Top akcje tygodnia',
+-            'category' => 'Wideo',
+-            'date' => '09.04.2026',
+-            'excerpt' => 'Najlepsze zagrania ostatnich spotkań.',
+-        ],
+-        [
+-            'title' => 'Raport medyczny',
+-            'category' => 'Artykuł',
+-            'date' => '08.04.2026',
+-            'excerpt' => 'Aktualizacja statusu zdrowotnego zawodników.',
+-        ],
+-        [
+-            'title' => 'Galeria: ETB Family Day',
+-            'category' => 'Galeria',
+-            'date' => '07.04.2026',
+-            'excerpt' => 'Zdjęcia z klubowego spotkania z fanami.',
+-        ],
+-    ]);
+-
+-    $next3x3Tournament = [
+-        'name' => '3x3 Quest Łódź',
+-        'date' => '30.04.2026 16:00',
+-        'place' => 'Atlas Arena, Łódź',
+-    ];
+-
+-    return view('pages.home', compact('nextMatch', 'upcomingGames', 'latestArticles', 'next3x3Tournament'));
++    $latestNews = News::query()->with('author')->latest()->take(5)->get();
++
++    return view('home', compact('latestNews'));
  })->name('home');
 
  Route::get('/dashboard', function () {
@@ -461,10 +569,22 @@ index 516bfcf798349464382bdc8523af202a4796bcab..f10ddfac12e2a2938c2302bfc7e2c930
 
  require __DIR__.'/auth.php';
 
-+Route::resource('players', PlayerController::class)->only(['index', 'show']);
+ Route::resource('players', PlayerController::class)->only(['index', 'show']);
+
+ Route::middleware(['auth'])->group(function () {
+     Route::resource('players', PlayerController::class)->except(['index', 'show']);
+ });
+
++
++Route::get('/news', [NewsController::class, 'index'])->name('news.index');
++Route::get('/news/{news}', [NewsController::class, 'show'])->whereNumber('news')->name('news.show');
 +
 +Route::middleware(['auth'])->group(function () {
-+    Route::resource('players', PlayerController::class)->except(['index', 'show']);
++    Route::get('/news/create', [NewsController::class, 'create'])->name('news.create');
++    Route::post('/news', [NewsController::class, 'store'])->name('news.store');
++    Route::get('/news/{news}/edit', [NewsController::class, 'edit'])->whereNumber('news')->name('news.edit');
++    Route::put('/news/{news}', [NewsController::class, 'update'])->whereNumber('news')->name('news.update');
++    Route::delete('/news/{news}', [NewsController::class, 'destroy'])->whereNumber('news')->name('news.destroy');
 +});
 +
  /*
@@ -472,7 +592,7 @@ index 516bfcf798349464382bdc8523af202a4796bcab..f10ddfac12e2a2938c2302bfc7e2c930
  | Strony główne menu
  |--------------------------------------------------------------------------
  */
- Route::view('/news', 'pages.news')->name('news');
+-Route::view('/news', 'pages.news')->name('news');
  Route::view('/club', 'pages.club')->name('club');
  Route::view('/schedule', 'pages.schedule')->name('schedule');
  Route::view('/team', 'pages.team')->name('team');
@@ -492,3 +612,9 @@ index 516bfcf798349464382bdc8523af202a4796bcab..f10ddfac12e2a2938c2302bfc7e2c930
  Route::view('/club/success', 'pages.club-success')->name('club.success');
  Route::view('/club/sponsors', 'pages.club-sponsors')->name('club.sponsors');
 
+ /* Rozgrywki */
+ Route::view('/schedule/lzkosz', 'pages.schedule-lzkosz')->name('schedule.lzkosz');
+ Route::redirect('/schedule/third-league', 'https://www.lzkosz.pl/liga/215.html')->name('schedule.third-league');
+ Route::view('/schedule/table', 'pages.schedule-table')->name('schedule.table');
+ Route::view('/schedule/3x3', 'pages.schedule-3x3')->name('schedule.3x3');
+ Route::view('/schedule/3x3/tournaments', 'pages.schedule-3x3-tournaments')->name('schedule.3x3.tournaments');
