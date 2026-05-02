@@ -34,8 +34,7 @@ class RegisteredUserController extends Controller
             'accepted_privacy' => ['accepted'],
         ]);
 
-        // 🔥 stały kod pod testy
-        $code = '123456';
+        $code = (string) random_int(100000, 999999);
 
         PendingRegistration::where('email', $validated['email'])->delete();
 

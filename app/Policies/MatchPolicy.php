@@ -14,7 +14,11 @@ class MatchPolicy
 
     public function view(?User $user, MatchGame $gameMatch): bool
     {
-        return true;
+        if ($gameMatch->publish_at === null || $gameMatch->publish_at->isPast()) {
+            return true;
+        }
+
+        return $user?->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]) ?? false;
     }
 
     public function create(User $user): bool

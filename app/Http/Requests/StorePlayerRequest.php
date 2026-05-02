@@ -15,9 +15,13 @@ class StorePlayerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'number' => ['required', 'integer', 'min:0', 'max:99'],
             'position' => ['required', 'string', 'max:255'],
-            'number' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'date_of_birth' => ['required', 'date', 'before:today'],
+            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
+            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
         ];
     }
 }
