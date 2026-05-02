@@ -55,7 +55,7 @@
 
             <!-- ⚙️ PANEL -->
             @if ($isAdmin || $isEmployee)
-                @foreach ([['Matches','matches','opponent'],['News','news','title'],['Players','players','name']] as [$label,$key,$field])
+                @foreach ([['Matches','matches','opponent'],['News','news','title'],['Players','players','first_name']] as [$label,$key,$field])
                     <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold">Latest {{ $label }}</h3>
@@ -149,9 +149,13 @@
                     <form method="POST" action="{{ route('players.store') }}" class="space-y-3">
                         @csrf
 
-                        <input name="name" required placeholder="Name" class="w-full border rounded p-2" />
-                        <input name="position" required class="w-full border rounded p-2" />
-                        <input type="number" name="number" class="w-full border rounded p-2" />
+                        <input name="first_name" required placeholder="First name" class="w-full border rounded p-2" />
+                        <input name="last_name" required placeholder="Last name" class="w-full border rounded p-2" />
+                        <input name="position" required placeholder="Position" class="w-full border rounded p-2" />
+                        <input type="number" name="number" required min="0" max="99" placeholder="Number" class="w-full border rounded p-2" />
+                        <input type="date" name="date_of_birth" required class="w-full border rounded p-2" />
+                        <input type="number" name="height" min="100" max="250" placeholder="Height" class="w-full border rounded p-2" />
+                        <input type="number" name="weight" min="40" max="200" placeholder="Weight" class="w-full border rounded p-2" />
 
                         <div class="flex justify-between">
                             <button type="button" @click="openModal = null">Cancel</button>

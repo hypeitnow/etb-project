@@ -14,7 +14,11 @@ class NewsPolicy
 
     public function view(?User $user, News $news): bool
     {
-        return true;
+        if ($news->publish_at === null || $news->publish_at->isPast()) {
+            return true;
+        }
+
+        return $user?->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]) ?? false;
     }
 
     public function create(User $user): bool
