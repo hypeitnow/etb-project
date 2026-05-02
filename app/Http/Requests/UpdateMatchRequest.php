@@ -7,6 +7,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateMatchRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_home' => $this->boolean('is_home'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         $match = $this->route('match');
@@ -20,10 +27,13 @@ class UpdateMatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'opponent' => ['required', 'string', 'max:255'],
+            'opponent_name' => ['required', 'string', 'max:255'],
             'match_date' => ['required', 'date'],
             'location' => ['required', 'string', 'max:255'],
-            'result' => ['nullable', 'string', 'max:50'],
+            'is_home' => ['boolean'],
+            'our_score' => ['nullable', 'integer', 'min:0', 'max:999', 'required_with:opponent_score'],
+            'opponent_score' => ['nullable', 'integer', 'min:0', 'max:999', 'required_with:our_score'],
+            'opponent_logo' => ['nullable', 'image', 'max:2048'],
             'publish_at' => ['nullable', 'date'],
         ];
     }

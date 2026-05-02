@@ -43,11 +43,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('news', NewsController::class)->except(['index', 'show']);
 });
 
-Route::resource('matches', MatchController::class)->only(['index', 'show']);
-
-Route::middleware(['auth'])->group(function () {
-    Route::resource('matches', MatchController::class)->except(['index', 'show']);
-});
+Route::resource('matches', MatchController::class);
 
 /*
 |--------------------------------------------------------------------------
