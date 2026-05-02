@@ -1,16 +1,49 @@
+diff --git a/app/Http/Controllers/Admin/UserRoleController.php b/app/Http/Controllers/Admin/UserRoleController.php
+index 1f4aa58262c70249c72a46860e698c721a8b072d..25eea05ec232fc6df97be93c4a685548ca06cda7 100644
+--- a/app/Http/Controllers/Admin/UserRoleController.php
++++ b/app/Http/Controllers/Admin/UserRoleController.php
+@@ -1,27 +1,23 @@
+ <?php
+
+ namespace App\Http\Controllers\Admin;
+
+ use App\Http\Controllers\Controller;
+ use App\Models\User;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+ use Illuminate\Validation\Rule;
+
+ class UserRoleController extends Controller
+ {
+     public function update(Request $request, User $user): RedirectResponse
+     {
+         $validated = $request->validate([
+             'role' => ['required', 'string', Rule::in(User::roles())],
+         ]);
+
+-        $user->update([
+-            'role' => $validated['role'],
+-        ]);
++        $user->update(['role' => $validated['role']]);
+
+-        return redirect()
+-            ->route('profile.edit')
+-            ->with('status', 'role-updated');
++        return back()->with('success', 'Changes saved successfully');
+     }
+ }
 diff --git a/app/Http/Controllers/MatchController.php b/app/Http/Controllers/MatchController.php
-index 3bad60daa4d54a1c67769d1cacb49163cce46cd3..e99e212758116967becec9b41dbfa49f93abc6c2 100644
+index e99e212758116967becec9b41dbfa49f93abc6c2..b28f7dc47bc8476538cb3311df67962877271686 100644
 --- a/app/Http/Controllers/MatchController.php
 +++ b/app/Http/Controllers/MatchController.php
-@@ -1,65 +1,65 @@
+@@ -1,65 +1,27 @@
  <?php
 
  namespace App\Http\Controllers;
 
  use App\Http\Requests\StoreMatchRequest;
  use App\Http\Requests\UpdateMatchRequest;
--use App\Models\MatchModel;
-+use App\Models\MatchGame;
+ use App\Models\MatchGame;
  use Illuminate\Http\RedirectResponse;
  use Illuminate\View\View;
 
@@ -18,77 +51,245 @@ index 3bad60daa4d54a1c67769d1cacb49163cce46cd3..e99e212758116967becec9b41dbfa49f
  {
      public function index(): View
      {
--        $this->authorize('viewAny', MatchModel::class);
-+        $this->authorize('viewAny', MatchGame::class);
-
--        $matches = MatchModel::query()->orderBy('match_date')->get();
-+        $matches = MatchGame::query()->orderBy('match_date')->get();
-
+         $this->authorize('viewAny', MatchGame::class);
+-
+-        $matches = MatchGame::query()->orderBy('match_date')->get();
+-
++        $matches = MatchGame::where(function ($q) {
++            $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
++        })->latest()->get();
          return view('matches.index', compact('matches'));
      }
+-
+-    public function show(MatchGame $gameMatch): View
+-    {
+-        $this->authorize('view', $gameMatch);
+-
+-        return view('matches.show', ['match' => $gameMatch]);
+-    }
+-
+-    public function create(): View
+-    {
+-        $this->authorize('create', MatchGame::class);
+-
+-        return view('matches.create');
+-    }
+-
+-    public function store(StoreMatchRequest $request): RedirectResponse
+-    {
+-        $gameMatch = MatchGame::query()->create($request->validated());
+-
+-        return redirect()->route('matches.show', $gameMatch);
+-    }
+-
+-    public function edit(MatchGame $gameMatch): View
+-    {
+-        $this->authorize('update', $gameMatch);
+-
+-        return view('matches.edit', ['match' => $gameMatch]);
+-    }
+-
+-    public function update(UpdateMatchRequest $request, MatchGame $gameMatch): RedirectResponse
+-    {
+-        $gameMatch->update($request->validated());
+-
+-        return redirect()->route('matches.show', $gameMatch);
+-    }
+-
+-    public function destroy(MatchGame $gameMatch): RedirectResponse
+-    {
+-        $this->authorize('delete', $gameMatch);
+-
+-        $gameMatch->delete();
+-
+-        return redirect()->route('matches.index');
+-    }
++    public function show(MatchGame $gameMatch): View { $this->authorize('view', $gameMatch); return view('matches.show', ['match' => $gameMatch]); }
++    public function create(): View { $this->authorize('create', MatchGame::class); return view('matches.create'); }
++    public function store(StoreMatchRequest $request): RedirectResponse { MatchGame::query()->create($request->validated()); return back()->with('success', 'Changes saved successfully'); }
++    public function edit(MatchGame $gameMatch): View { $this->authorize('update', $gameMatch); return view('matches.edit', ['match' => $gameMatch]); }
++    public function update(UpdateMatchRequest $request, MatchGame $gameMatch): RedirectResponse { $gameMatch->update($request->validated()); return back()->with('success', 'Changes saved successfully'); }
++    public function destroy(MatchGame $gameMatch): RedirectResponse { $this->authorize('delete', $gameMatch); $gameMatch->delete(); return back()->with('success', 'Changes saved successfully'); }
+ }
+diff --git a/app/Http/Controllers/NewsController.php b/app/Http/Controllers/NewsController.php
+index e46d2ee0930795c280db0df27efa74401b0445c9..ba86311e847b2d91813931cae6665d85ca8a7a33 100644
+--- a/app/Http/Controllers/NewsController.php
++++ b/app/Http/Controllers/NewsController.php
+@@ -1,70 +1,17 @@
+ <?php
+-
+ namespace App\Http\Controllers;
+-
+ use App\Http\Requests\StoreNewsRequest;
+ use App\Http\Requests\UpdateNewsRequest;
+ use App\Models\News;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\View\View;
+-
+ class NewsController extends Controller
+ {
+-    public function index(): View
+-    {
+-        $this->authorize('viewAny', News::class);
+-
+-        $newsItems = News::query()->with('author')->latest()->get();
+-
+-        return view('news.index', compact('newsItems'));
+-    }
+-
+-    public function show(News $news): View
+-    {
+-        $this->authorize('view', $news);
+-
+-        $news->load('author');
+-
+-        return view('news.show', compact('news'));
+-    }
+-
+-    public function create(): View
+-    {
+-        $this->authorize('create', News::class);
+-
+-        return view('news.create');
+-    }
+-
+-    public function store(StoreNewsRequest $request): RedirectResponse
+-    {
+-        $news = News::query()->create([
+-            ...$request->validated(),
+-            'author_id' => $request->user()->id,
+-        ]);
+-
+-        return redirect()->route('news.show', $news);
+-    }
+-
+-    public function edit(News $news): View
+-    {
+-        $this->authorize('update', $news);
+-
+-        return view('news.edit', compact('news'));
+-    }
+-
+-    public function update(UpdateNewsRequest $request, News $news): RedirectResponse
+-    {
+-        $news->update($request->validated());
+-
+-        return redirect()->route('news.show', $news);
+-    }
+-
+-    public function destroy(News $news): RedirectResponse
+-    {
+-        $this->authorize('delete', $news);
+-
+-        $news->delete();
+-
+-        return redirect()->route('news.index');
+-    }
++    public function index(): View { $this->authorize('viewAny', News::class); $newsItems = News::where(function ($q) { $q->whereNull('publish_at')->orWhere('publish_at', '<=', now()); })->with('author')->latest()->get(); return view('news.index', compact('newsItems')); }
++    public function show(News $news): View { $this->authorize('view', $news); $news->load('author'); return view('news.show', compact('news')); }
++    public function create(): View { $this->authorize('create', News::class); return view('news.create'); }
++    public function store(StoreNewsRequest $request): RedirectResponse { News::query()->create([...$request->validated(),'author_id' => $request->user()->id]); return back()->with('success', 'Changes saved successfully'); }
++    public function edit(News $news): View { $this->authorize('update', $news); return view('news.edit', compact('news')); }
++    public function update(UpdateNewsRequest $request, News $news): RedirectResponse { $news->update($request->validated()); return back()->with('success', 'Changes saved successfully'); }
++    public function destroy(News $news): RedirectResponse { $this->authorize('delete', $news); $news->delete(); return back()->with('success', 'Changes saved successfully'); }
+ }
+diff --git a/app/Http/Controllers/PlayerController.php b/app/Http/Controllers/PlayerController.php
+index 22556e818947bb921af74624370e161552b2f33d..f604d004f41e3e4958196b71c57462706f5a5964 100644
+--- a/app/Http/Controllers/PlayerController.php
++++ b/app/Http/Controllers/PlayerController.php
+@@ -1,65 +1,40 @@
+ <?php
 
--    public function show(MatchModel $gameMatch): View
-+    public function show(MatchGame $gameMatch): View
+ namespace App\Http\Controllers;
+
+ use App\Http\Requests\StorePlayerRequest;
+ use App\Http\Requests\UpdatePlayerRequest;
+ use App\Models\Player;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\View\View;
+
+ class PlayerController extends Controller
+ {
+     public function index(): View
      {
-         $this->authorize('view', $gameMatch);
-
-         return view('matches.show', ['match' => $gameMatch]);
+         $this->authorize('viewAny', Player::class);
+-
+-        $players = Player::query()->orderBy('last_name')->orderBy('first_name')->get();
+-
++        $players = Player::query()->orderBy('first_name')->get();
+         return view('players.index', compact('players'));
      }
 
-     public function create(): View
-     {
--        $this->authorize('create', MatchModel::class);
-+        $this->authorize('create', MatchGame::class);
+-    public function create(): View
+-    {
+-        $this->authorize('create', Player::class);
+-
+-        return view('players.create');
+-    }
++    public function create(): View { $this->authorize('create', Player::class); return view('players.create'); }
 
-         return view('matches.create');
+     public function store(StorePlayerRequest $request): RedirectResponse
+     {
+-        Player::query()->create($request->validated());
+-
+-        return redirect()->route('players.index');
+-    }
+-
+-    public function show(Player $player): View
+-    {
+-        $this->authorize('view', $player);
+-
+-        return view('players.show', compact('player'));
+-    }
+-
+-    public function edit(Player $player): View
+-    {
+-        $this->authorize('update', $player);
+-
+-        return view('players.edit', compact('player'));
++        $validated = $request->validated();
++        $parts = preg_split('/\s+/', trim($validated['name']), 2);
++        Player::query()->create([
++            'first_name' => $parts[0],
++            'last_name' => $parts[1] ?? '-',
++            'position' => $validated['position'],
++            'number' => $validated['number'] ?? 0,
++            'date_of_birth' => now()->subYears(18)->toDateString(),
++        ]);
++        return back()->with('success', 'Changes saved successfully');
      }
 
-     public function store(StoreMatchRequest $request): RedirectResponse
-     {
--        $gameMatch = MatchModel::query()->create($request->validated());
-+        $gameMatch = MatchGame::query()->create($request->validated());
-
-         return redirect()->route('matches.show', $gameMatch);
-     }
-
--    public function edit(MatchModel $gameMatch): View
-+    public function edit(MatchGame $gameMatch): View
-     {
-         $this->authorize('update', $gameMatch);
-
-         return view('matches.edit', ['match' => $gameMatch]);
-     }
-
--    public function update(UpdateMatchRequest $request, MatchModel $gameMatch): RedirectResponse
-+    public function update(UpdateMatchRequest $request, MatchGame $gameMatch): RedirectResponse
-     {
-         $gameMatch->update($request->validated());
-
-         return redirect()->route('matches.show', $gameMatch);
-     }
-
--    public function destroy(MatchModel $gameMatch): RedirectResponse
-+    public function destroy(MatchGame $gameMatch): RedirectResponse
-     {
-         $this->authorize('delete', $gameMatch);
-
-         $gameMatch->delete();
-
-         return redirect()->route('matches.index');
-     }
+-    public function update(UpdatePlayerRequest $request, Player $player): RedirectResponse
+-    {
+-        $player->update($request->validated());
+-
+-        return redirect()->route('players.index');
+-    }
+-
+-    public function destroy(Player $player): RedirectResponse
+-    {
+-        $this->authorize('delete', $player);
+-
+-        $player->delete();
+-
+-        return redirect()->route('players.index');
+-    }
++    public function show(Player $player): View { $this->authorize('view', $player); return view('players.show', compact('player')); }
++    public function edit(Player $player): View { $this->authorize('update', $player); return view('players.edit', compact('player')); }
++    public function update(UpdatePlayerRequest $request, Player $player): RedirectResponse { $player->update($request->validated()); return back()->with('success', 'Changes saved successfully'); }
++    public function destroy(Player $player): RedirectResponse { $this->authorize('delete', $player); $player->delete(); return back()->with('success', 'Changes saved successfully'); }
  }
 diff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php
-index 4ff0057aca4cb1d681c12fb75ed54e9b425b00c0..749192e5a19eb48b05e19c74c0e510d3f3e8d23b 100644
+index 749192e5a19eb48b05e19c74c0e510d3f3e8d23b..faa36fbf0cf28fb1fbc25be0c997fc2c2a70d571 100644
 --- a/app/Http/Controllers/ProfileController.php
 +++ b/app/Http/Controllers/ProfileController.php
-@@ -1,49 +1,49 @@
+@@ -1,82 +1,65 @@
  <?php
 
  namespace App\Http\Controllers;
 
  use App\Http\Requests\ProfileUpdateRequest;
--use App\Models\Match as MatchModel;
-+use App\Models\MatchGame;
+ use App\Models\MatchGame;
  use App\Models\News;
  use App\Models\Player;
  use App\Models\User;
@@ -100,15 +301,20 @@ index 4ff0057aca4cb1d681c12fb75ed54e9b425b00c0..749192e5a19eb48b05e19c74c0e510d3
 
  class ProfileController extends Controller
  {
-     /**
-      * Display the user's profile form.
-      */
+-    /**
+-     * Display the user's profile form.
+-     */
      public function edit(Request $request): View
      {
          $user = $request->user();
--        $matches = MatchModel::latest()->take(5)->get();
-+        $matches = MatchGame::latest()->take(5)->get();
-         $news = News::latest()->take(5)->get();
+-        $matches = MatchGame::latest()->take(5)->get();
+-        $news = News::latest()->take(5)->get();
++        $matches = MatchGame::where(function ($q) {
++            $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
++        })->latest()->take(5)->get();
++        $news = News::where(function ($q) {
++            $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
++        })->latest()->take(5)->get();
          $players = Player::latest()->take(5)->get();
 
          return view('profile.edit', [
@@ -116,12 +322,14 @@ index 4ff0057aca4cb1d681c12fb75ed54e9b425b00c0..749192e5a19eb48b05e19c74c0e510d3
              'isAdmin' => $user->role === User::ROLE_ADMIN,
              'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
              'isAthlete' => $user->role === User::ROLE_ATHLETE,
-             'users' => $user->role === User::ROLE_ADMIN
-                 ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role'])
-                 : collect(),
-             'athleteProfile' => $user->role === User::ROLE_ATHLETE
-                 ? $user->athleteProfile()->first()
-                 : null,
+-            'users' => $user->role === User::ROLE_ADMIN
+-                ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role'])
+-                : collect(),
+-            'athleteProfile' => $user->role === User::ROLE_ATHLETE
+-                ? $user->athleteProfile()->first()
+-                : null,
++            'users' => $user->role === User::ROLE_ADMIN ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role']) : collect(),
++            'athleteProfile' => $user->role === User::ROLE_ATHLETE ? $user->athleteProfile()->first() : null,
              'availableRoles' => User::roles(),
              'matches' => $matches,
              'news' => $news,
@@ -129,29 +337,62 @@ index 4ff0057aca4cb1d681c12fb75ed54e9b425b00c0..749192e5a19eb48b05e19c74c0e510d3
          ]);
      }
 
-     /**
-      * Update the user's profile information.
-      */
+-    /**
+-     * Update the user's profile information.
+-     */
      public function update(ProfileUpdateRequest $request): RedirectResponse
+     {
+         $request->user()->fill($request->validated());
+-
+         if ($request->user()->isDirty('email')) {
+             $request->user()->email_verified_at = null;
+         }
+-
+         $request->user()->save();
+
+-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
++        return back()->with('success', 'Changes saved successfully');
+     }
+
+-    /**
+-     * Delete the user's account.
+-     */
+     public function destroy(Request $request): RedirectResponse
+     {
+-        $request->validateWithBag('userDeletion', [
+-            'password' => ['required', 'current_password'],
+-        ]);
+-
++        $request->validateWithBag('userDeletion', ['password' => ['required', 'current_password']]);
+         $user = $request->user();
+-
+         Auth::logout();
+-
+         $user->delete();
+-
+         $request->session()->invalidate();
+         $request->session()->regenerateToken();
+
+         return Redirect::to('/');
+     }
+ }
 diff --git a/app/Http/Requests/StoreMatchRequest.php b/app/Http/Requests/StoreMatchRequest.php
-index 1704cd96d3dab43555243f5b6b74c8c9e03c0819..3011d34e569f04efd6a614c909d4ff653167ec17 100644
+index 3011d34e569f04efd6a614c909d4ff653167ec17..d1ee6834a3ab0f5d3dc92c70b7d6988d38bf0bf3 100644
 --- a/app/Http/Requests/StoreMatchRequest.php
 +++ b/app/Http/Requests/StoreMatchRequest.php
-@@ -1,27 +1,27 @@
+@@ -1,27 +1,28 @@
  <?php
 
  namespace App\Http\Requests;
 
--use App\Models\MatchModel;
-+use App\Models\MatchGame;
+ use App\Models\MatchGame;
  use Illuminate\Foundation\Http\FormRequest;
 
  class StoreMatchRequest extends FormRequest
  {
      public function authorize(): bool
      {
--        return $this->user()?->can('create', MatchModel::class) ?? false;
-+        return $this->user()?->can('create', MatchGame::class) ?? false;
+         return $this->user()?->can('create', MatchGame::class) ?? false;
      }
 
      /**
@@ -164,20 +405,88 @@ index 1704cd96d3dab43555243f5b6b74c8c9e03c0819..3011d34e569f04efd6a614c909d4ff65
              'match_date' => ['required', 'date'],
              'location' => ['required', 'string', 'max:255'],
              'result' => ['nullable', 'string', 'max:50'],
++            'publish_at' => ['nullable', 'date'],
          ];
      }
  }
-diff --git a/app/Http/Requests/UpdateMatchRequest.php b/app/Http/Requests/UpdateMatchRequest.php
-index 658486030f54e9b9a3d93cdbac13b4d85ba9999d..f84b42eba3bb2537a264f94c4c11f08102211298 100644
---- a/app/Http/Requests/UpdateMatchRequest.php
-+++ b/app/Http/Requests/UpdateMatchRequest.php
-@@ -1,29 +1,29 @@
+diff --git a/app/Http/Requests/StoreNewsRequest.php b/app/Http/Requests/StoreNewsRequest.php
+index 38e69b1c3857d8ff1b1e23e8795c661a357db3e8..54e8e75f0d3d8f0c6ad9eaf2ac0c2bcf1901e841 100644
+--- a/app/Http/Requests/StoreNewsRequest.php
++++ b/app/Http/Requests/StoreNewsRequest.php
+@@ -1,25 +1,26 @@
  <?php
 
  namespace App\Http\Requests;
 
--use App\Models\MatchModel;
-+use App\Models\MatchGame;
+ use App\Models\News;
+ use Illuminate\Foundation\Http\FormRequest;
+
+ class StoreNewsRequest extends FormRequest
+ {
+     public function authorize(): bool
+     {
+         return $this->user()?->can('create', News::class) ?? false;
+     }
+
+     /**
+      * @return array<string, mixed>
+      */
+     public function rules(): array
+     {
+         return [
+             'title' => ['required', 'string', 'max:255'],
+             'content' => ['required', 'string', 'min:10'],
++            'publish_at' => ['nullable', 'date'],
+         ];
+     }
+ }
+diff --git a/app/Http/Requests/StorePlayerRequest.php b/app/Http/Requests/StorePlayerRequest.php
+index 6b3e35eb312b992cb633862c2d854ee3acc09d6f..4c24dad1ed7a918c910f9d09959f27a053187181 100644
+--- a/app/Http/Requests/StorePlayerRequest.php
++++ b/app/Http/Requests/StorePlayerRequest.php
+@@ -1,30 +1,23 @@
+ <?php
+
+ namespace App\Http\Requests;
+
+ use App\Models\Player;
+ use Illuminate\Foundation\Http\FormRequest;
+
+ class StorePlayerRequest extends FormRequest
+ {
+     public function authorize(): bool
+     {
+         return $this->user()?->can('create', Player::class) ?? false;
+     }
+
+-    /**
+-     * @return array<string, mixed>
+-     */
+     public function rules(): array
+     {
+         return [
+-            'first_name' => ['required', 'string', 'max:255'],
+-            'last_name' => ['required', 'string', 'max:255'],
+-            'number' => ['required', 'integer', 'min:0', 'max:99'],
+-            'position' => ['required', 'string'],
+-            'date_of_birth' => ['required', 'date', 'before:today'],
+-            'height' => ['nullable', 'integer', 'min:100', 'max:250'],
+-            'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
++            'name' => ['required', 'string', 'max:255'],
++            'position' => ['required', 'string', 'max:255'],
++            'number' => ['nullable', 'integer', 'min:0', 'max:99'],
+         ];
+     }
+ }
+diff --git a/app/Http/Requests/UpdateMatchRequest.php b/app/Http/Requests/UpdateMatchRequest.php
+index f84b42eba3bb2537a264f94c4c11f08102211298..5a2002109150667db2698955cbe6b5c0dfc61c31 100644
+--- a/app/Http/Requests/UpdateMatchRequest.php
++++ b/app/Http/Requests/UpdateMatchRequest.php
+@@ -2,28 +2,29 @@
+
+ namespace App\Http\Requests;
+
+ use App\Models\MatchGame;
  use Illuminate\Foundation\Http\FormRequest;
 
  class UpdateMatchRequest extends FormRequest
@@ -186,8 +495,7 @@ index 658486030f54e9b9a3d93cdbac13b4d85ba9999d..f84b42eba3bb2537a264f94c4c11f081
      {
          $match = $this->route('match');
 
--        return $this->user()?->can('update', $match instanceof MatchModel ? $match : MatchModel::class) ?? false;
-+        return $this->user()?->can('update', $match instanceof MatchGame ? $match : MatchGame::class) ?? false;
+         return $this->user()?->can('update', $match instanceof MatchGame ? $match : MatchGame::class) ?? false;
      }
 
      /**
@@ -200,17 +508,49 @@ index 658486030f54e9b9a3d93cdbac13b4d85ba9999d..f84b42eba3bb2537a264f94c4c11f081
              'match_date' => ['required', 'date'],
              'location' => ['required', 'string', 'max:255'],
              'result' => ['nullable', 'string', 'max:50'],
++            'publish_at' => ['nullable', 'date'],
          ];
      }
  }
-diff --git a/app/Models/MatchModel.php b/app/Models/MatchGame.php
-similarity index 93%
-rename from app/Models/MatchModel.php
-rename to app/Models/MatchGame.php
-index 7ff02985ecfd0fe9be272a0845710580306b8d32..d0eac75c8a7be400f9dcdee8c510b516c5443daf 100644
---- a/app/Models/MatchModel.php
+diff --git a/app/Http/Requests/UpdateNewsRequest.php b/app/Http/Requests/UpdateNewsRequest.php
+index e3fa4a2f80d19edc71ed9d1e60ab751787fce3bb..51e65b990c147a03849714fccfb96f9cebe3b0df 100644
+--- a/app/Http/Requests/UpdateNewsRequest.php
++++ b/app/Http/Requests/UpdateNewsRequest.php
+@@ -2,28 +2,29 @@
+
+ namespace App\Http\Requests;
+
+ use App\Models\News;
+ use Illuminate\Foundation\Http\FormRequest;
+
+ class UpdateNewsRequest extends FormRequest
+ {
+     public function authorize(): bool
+     {
+         $news = $this->route('news');
+
+         return $news instanceof News
+             ? ($this->user()?->can('update', $news) ?? false)
+             : false;
+     }
+
+     /**
+      * @return array<string, mixed>
+      */
+     public function rules(): array
+     {
+         return [
+             'title' => ['required', 'string', 'max:255'],
+             'content' => ['required', 'string', 'min:10'],
++            'publish_at' => ['nullable', 'date'],
+         ];
+     }
+ }
+diff --git a/app/Models/MatchGame.php b/app/Models/MatchGame.php
+index d0eac75c8a7be400f9dcdee8c510b516c5443daf..2f763ba494a3f86c1179e7cb4d0394530fb36c9a 100644
+--- a/app/Models/MatchGame.php
 +++ b/app/Models/MatchGame.php
-@@ -1,31 +1,31 @@
+@@ -1,31 +1,33 @@
  <?php
 
  namespace App\Models;
@@ -218,8 +558,7 @@ index 7ff02985ecfd0fe9be272a0845710580306b8d32..d0eac75c8a7be400f9dcdee8c510b516
  use Illuminate\Database\Eloquent\Factories\HasFactory;
  use Illuminate\Database\Eloquent\Model;
 
--class MatchModel extends Model
-+class MatchGame extends Model
+ class MatchGame extends Model
  {
      use HasFactory;
 
@@ -231,6 +570,7 @@ index 7ff02985ecfd0fe9be272a0845710580306b8d32..d0eac75c8a7be400f9dcdee8c510b516
          'match_date',
          'location',
          'result',
++        'publish_at',
      ];
 
      /**
@@ -240,81 +580,619 @@ index 7ff02985ecfd0fe9be272a0845710580306b8d32..d0eac75c8a7be400f9dcdee8c510b516
      {
          return [
              'match_date' => 'datetime',
++            'publish_at' => 'datetime',
          ];
      }
  }
-diff --git a/app/Policies/MatchPolicy.php b/app/Policies/MatchPolicy.php
-index 0ff12c47aff9ec6839b2423dfca689385efc60d8..82687396c29ac83803bca09b1a1947cd9a2b6806 100644
---- a/app/Policies/MatchPolicy.php
-+++ b/app/Policies/MatchPolicy.php
-@@ -1,34 +1,34 @@
+diff --git a/app/Models/News.php b/app/Models/News.php
+index b9b15f2a817adf9e1b0b6eccdfce03b382716c4c..3e6f251739168a5e5fc382f427154c0d9df6d634 100644
+--- a/app/Models/News.php
++++ b/app/Models/News.php
+@@ -1,26 +1,24 @@
  <?php
 
- namespace App\Policies;
+ namespace App\Models;
 
--use App\Models\MatchModel;
-+use App\Models\MatchGame;
- use App\Models\User;
+ use Illuminate\Database\Eloquent\Factories\HasFactory;
+ use Illuminate\Database\Eloquent\Model;
+ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
- class MatchPolicy
+ class News extends Model
  {
-     public function viewAny(?User $user): bool
-     {
-         return true;
-     }
+     use HasFactory;
 
--    public function view(?User $user, MatchModel $gameMatch): bool
-+    public function view(?User $user, MatchGame $gameMatch): bool
-     {
-         return true;
-     }
+-    /**
+-     * @var list<string>
+-     */
+-    protected $fillable = [
+-        'title',
+-        'content',
+-        'author_id',
+-    ];
++    protected $fillable = ['title', 'content', 'author_id', 'publish_at'];
++
++    protected function casts(): array
++    {
++        return ['publish_at' => 'datetime'];
++    }
 
-     public function create(User $user): bool
+     public function author(): BelongsTo
      {
-         return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
-     }
-
--    public function update(User $user, MatchModel $gameMatch): bool
-+    public function update(User $user, MatchGame $gameMatch): bool
-     {
-         return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
-     }
-
--    public function delete(User $user, MatchModel $gameMatch): bool
-+    public function delete(User $user, MatchGame $gameMatch): bool
-     {
-         return $user->role === User::ROLE_ADMIN;
+         return $this->belongsTo(User::class, 'author_id');
      }
  }
-diff --git a/app/Providers/AuthServiceProvider.php b/app/Providers/AuthServiceProvider.php
-index e0169b7b612a2b89e64bf2a67b9e434efe5c9e2c..05201e4dfee28ddd800631a5659e503e8d09c425 100644
---- a/app/Providers/AuthServiceProvider.php
-+++ b/app/Providers/AuthServiceProvider.php
-@@ -1,25 +1,25 @@
+diff --git a/database/migrations/2026_05_02_111711_create_match_games_table.php b/database/migrations/2026_05_02_111711_create_match_games_table.php
+index 669f00379f050e09f033d9f6d3b3153f0931d332..6749b389465241f2ac878b39c8c1b35e3851b587 100644
+--- a/database/migrations/2026_05_02_111711_create_match_games_table.php
++++ b/database/migrations/2026_05_02_111711_create_match_games_table.php
+@@ -1,27 +1,22 @@
  <?php
 
- namespace App\Providers;
+ use Illuminate\Database\Migrations\Migration;
+ use Illuminate\Database\Schema\Blueprint;
+ use Illuminate\Support\Facades\Schema;
 
--use App\Models\MatchModel;
-+use App\Models\MatchGame;
- use App\Models\News;
- use App\Models\Player;
- use App\Policies\MatchPolicy;
- use App\Policies\NewsPolicy;
- use App\Policies\PlayerPolicy;
- use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-
- class AuthServiceProvider extends ServiceProvider
+ return new class extends Migration
  {
-     protected $policies = [
-         Player::class => PlayerPolicy::class,
-         News::class => NewsPolicy::class,
--        MatchModel::class => MatchPolicy::class,
-+        MatchGame::class => MatchPolicy::class,
-     ];
-
-     public function boot(): void
+-    /**
+-     * Run the migrations.
+-     */
+     public function up(): void
      {
-         $this->registerPolicies();
+         Schema::create('match_games', function (Blueprint $table) {
+             $table->id();
++            $table->string('opponent');
++            $table->dateTime('match_date');
++            $table->string('location');
++            $table->string('result')->nullable();
++            $table->dateTime('publish_at')->nullable();
+             $table->timestamps();
+         });
      }
- }
+-
+-    /**
+-     * Reverse the migrations.
+-     */
+-    public function down(): void
+-    {
+-        Schema::dropIfExists('match_games');
+-    }
++    public function down(): void { Schema::dropIfExists('match_games'); }
+ };
+diff --git a/database/migrations/2026_05_02_120000_add_publish_at_to_news_table.php b/database/migrations/2026_05_02_120000_add_publish_at_to_news_table.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..084c35811b7d9e1a41982cbadf21146ef206e31a
+--- /dev/null
++++ b/database/migrations/2026_05_02_120000_add_publish_at_to_news_table.php
+@@ -0,0 +1,22 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('news', function (Blueprint $table) {
++            $table->dateTime('publish_at')->nullable()->after('content');
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('news', function (Blueprint $table) {
++            $table->dropColumn('publish_at');
++        });
++    }
++};
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+index 8fd12d63d508f61bda6326ac5a292f9cccf238e6..dcd98f7c7b04b71caf437fdd7bfa6e17806accf4 100644
+--- a/resources/views/layouts/app.blade.php
++++ b/resources/views/layouts/app.blade.php
+@@ -1,114 +1,36 @@
+ <!DOCTYPE html>
+ <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+ <head>
+     <meta charset="utf-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1">
+     <meta name="csrf-token" content="{{ csrf_token() }}">
+-
+     <title>{{ config('app.name', 'Laravel') }}</title>
+-
+-    <!-- Fonts -->
+     <link rel="preconnect" href="https://fonts.bunny.net">
+     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+-
+-    <!-- Styles & Scripts -->
+     @vite(['resources/css/app.css', 'resources/js/app.js'])
+ </head>
+-
+-<body class="bg-black text-white">
+-
++<body class="bg-black text-white" x-data>
+ @include('partials.navbar')
+-
+-<main id="app-main">
+-    @yield('content')
+-</main>
+-
++<main id="app-main">@yield('content')</main>
+ @include('partials.footer')
+-
+-<!-- Simple AJAX navigation: ładuje tylko zawartość main, zachowuje statyczny navbar -->
+-<script>
+-document.addEventListener('DOMContentLoaded', function() {
+-    // Inicjalizuje handlery dla linków z klasą .ajax-link
+-    function initAjaxLinks() {
+-        document.querySelectorAll('a.ajax-link').forEach(link => {
+-            // unikaj wielokrotnego przypięcia
+-            if (link.dataset.ajaxAttached) return;
+-            link.dataset.ajaxAttached = '1';
+-
+-            link.addEventListener('click', async function(e) {
+-                const href = link.getAttribute('href');
+-                // pozwól normalne działanie dla zewnętrznych lub pusta href
+-                if (!href || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#')) return;
+-                // jeśli link prowadzi do innego hosta, zostaw normalne przeładowanie
+-                try {
+-                    const url = new URL(href, location.origin);
+-                    if (url.origin !== location.origin) return;
+-                } catch (err) {
+-                    // nieprawidłowy URL — fallback
+-                    return;
+-                }
+-
+-                e.preventDefault();
+-
+-                try {
+-                    const res = await fetch(href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+-                    if (!res.ok) throw new Error('Network response was not ok');
+-
+-                    const text = await res.text();
+-                    const parser = new DOMParser();
+-                    const doc = parser.parseFromString(text, 'text/html');
+-
+-                    // szukamy nowej zawartości main (najpierw #app-main, potem main)
+-                    const newMain = doc.querySelector('#app-main') || doc.querySelector('main');
+-                    const curMain = document.querySelector('#app-main') || document.querySelector('main');
+-
+-                    if (newMain && curMain) {
+-                        curMain.innerHTML = newMain.innerHTML;
+-                        // zaktualizuj URL i historię
+-                        history.pushState({ ajax: true }, '', href);
+-                        window.scrollTo(0,0);
+-                        // ponownie przypnij handlery (np. linki wewnątrz nowo załadowanej zawartości)
+-                        initAjaxLinks();
+-                        if (window.reinitializeUi) window.reinitializeUi();
+-                    } else {
+-                        // fallback — pełne przeładowanie
+-                        location.href = href;
+-                    }
+-                } catch (err) {
+-                    console.error('AJAX navigation failed:', err);
+-                    location.href = href;
+-                }
+-            });
+-        });
+-    }
+-
+-    initAjaxLinks();
+-
+-    // Obsługa back/forward
+-    window.addEventListener('popstate', function(e) {
+-        const href = location.href;
+-        fetch(href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+-            .then(r => {
+-                if (!r.ok) throw new Error('Network response not ok');
+-                return r.text();
+-            })
+-            .then(text => {
+-                const parser = new DOMParser();
+-                const doc = parser.parseFromString(text, 'text/html');
+-                const newMain = doc.querySelector('#app-main') || doc.querySelector('main');
+-                const curMain = document.querySelector('#app-main') || document.querySelector('main');
+-                if (newMain && curMain) {
+-                    curMain.innerHTML = newMain.innerHTML;
+-                    initAjaxLinks();
+-                    if (window.reinitializeUi) window.reinitializeUi();
+-                } else {
+-                    location.reload();
+-                }
+-            })
+-            .catch(() => { location.reload(); });
+-    });
+-});
+-</script>
+-
++@php
++    $flashType = collect(['success', 'error', 'warning', 'info'])->first(fn ($type) => session()->has($type));
++    $flashMessage = $flashType ? session($flashType) : null;
++    if (! $flashMessage && session('status')) { $flashType = 'success'; $flashMessage = session('status'); }
++@endphp
++@if ($flashMessage)
++<div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition.opacity.duration.300ms class="fixed top-4 right-4 z-[60]">
++    <div @class([
++        'flex items-start gap-3 rounded-lg px-4 py-3 text-white shadow-lg',
++        'bg-green-600' => $flashType === 'success',
++        'bg-red-600' => $flashType === 'error',
++        'bg-yellow-500' => $flashType === 'warning',
++        'bg-blue-600' => $flashType === 'info',
++    ])>
++        <p class="text-sm">{{ $flashMessage }}</p>
++        <button type="button" class="text-white/90 hover:text-white" @click="show = false">✕</button>
++    </div>
++</div>
++@endif
+ </body>
+ </html>
+diff --git a/resources/views/profile/edit.blade.php b/resources/views/profile/edit.blade.php
+index 03761ea111d3e6f394dc3b01b8beb6777427795d..44b885f5da532acec4bcf3f17af3872d1fd6a5a7 100644
+--- a/resources/views/profile/edit.blade.php
++++ b/resources/views/profile/edit.blade.php
+@@ -1,195 +1,48 @@
+ @extends('layouts.app')
+
+ @section('content')
++<div class="py-12 bg-gray-100 min-h-screen text-gray-900" x-data="{ openModal: null }" @keydown.escape.window="openModal = null">
++    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
++        @if ($isAdmin)
++            <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
++                <h3 class="text-lg font-semibold mb-4">Zarządzanie użytkownikami</h3>
++                <table class="min-w-full text-sm border"><tbody>
++                @foreach ($users as $managedUser)
++                    <tr class="border-t"><td class="p-2">{{ $managedUser->name }}</td><td class="p-2">{{ $managedUser->email }}</td><td class="p-2">
++                        <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}">@csrf @method('PATCH')
++                            <select name="role" class="border rounded px-2 py-1">@foreach ($availableRoles as $role)<option value="{{ $role }}" @selected($managedUser->role === $role)>{{ strtoupper($role) }}</option>@endforeach</select>
++                            <button type="submit" class="ml-2 px-3 py-1 bg-yellow-500 text-black rounded">Zapisz</button>
++                        </form></td></tr>
++                @endforeach</tbody></table>
++            </div>
++        @endif
+
+-    <div class="py-12 bg-gray-100 min-h-screen text-gray-900">
+-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+-            <div class="grid gap-6 lg:grid-cols-12">
+-
+-                <!-- SIDEBAR -->
+-                <aside class="lg:col-span-4">
+-                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                        <h3 class="text-lg font-semibold mb-4">Twoje konto</h3>
+-
+-                        <p><strong>Imię:</strong> {{ $user->name }}</p>
+-                        <p><strong>Email:</strong> {{ $user->email }}</p>
+-                        <p><strong>Rola:</strong> {{ strtoupper($user->role) }}</p>
+-                    </div>
+-                </aside>
+-
+-                <!-- MAIN -->
+-                <main class="lg:col-span-8 space-y-6">
+-
+-                    <!-- PROFILE INFO -->
+-                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                        <h3 class="text-lg font-semibold mb-4">Dane profilu</h3>
+-
+-                        <div class="max-w-2xl">
+-                            @include('profile.partials.update-profile-information-form')
+-                        </div>
+-                    </div>
+-
+-                    <!-- PASSWORD -->
+-                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                        <h3 class="text-lg font-semibold mb-4">Zmiana hasła</h3>
+-
+-                        <div class="max-w-2xl">
+-                            @include('profile.partials.update-password-form')
+-                        </div>
+-                    </div>
+-
+-                    <!-- ADMIN -->
+-                    @if ($isAdmin)
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Zarządzanie użytkownikami</h3>
+-
+-                            @if (session('status') === 'role-updated')
+-                                <p class="text-green-600 mb-4">Rola została zaktualizowana</p>
+-                            @endif
+-
+-                            <div class="overflow-x-auto">
+-                                <table class="min-w-full text-sm border">
+-                                    <thead class="bg-gray-200">
+-                                    <tr>
+-                                        <th class="p-2 text-left">Imię</th>
+-                                        <th class="p-2 text-left">Email</th>
+-                                        <th class="p-2 text-left">Rola</th>
+-                                        <th class="p-2 text-left">Akcja</th>
+-                                    </tr>
+-                                    </thead>
+-                                    <tbody>
+-                                    @foreach ($users as $managedUser)
+-                                        <tr class="border-t">
+-                                            <td class="p-2">{{ $managedUser->name }}</td>
+-                                            <td class="p-2">{{ $managedUser->email }}</td>
+-                                            <td class="p-2">{{ strtoupper($managedUser->role) }}</td>
+-                                            <td class="p-2">
+-                                                <form method="POST" action="{{ route('admin.users.role.update', $managedUser) }}">
+-                                                    @csrf
+-                                                    @method('PATCH')
+-
+-                                                    <select name="role" class="border rounded px-2 py-1">
+-                                                        @foreach ($availableRoles as $role)
+-                                                            <option value="{{ $role }}" @selected($managedUser->role === $role)>
+-                                                                {{ strtoupper($role) }}
+-                                                            </option>
+-                                                        @endforeach
+-                                                    </select>
+-
+-                                                    <button type="submit" class="ml-2 px-3 py-1 bg-yellow-500 text-black rounded">
+-                                                        Zapisz
+-                                                    </button>
+-                                                </form>
+-                                            </td>
+-                                        </tr>
+-                                    @endforeach
+-                                    </tbody>
+-                                </table>
+-                            </div>
+-                        </div>
+-                    @endif
+-
+-                    <!-- EMPLOYEE -->
+-                    @if ($isEmployee)
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Panel pracownika</h3>
+-
+-                            <div class="grid md:grid-cols-3 gap-4">
+-                                <a href="{{ route('players.create') }}" class="p-4 border rounded hover:bg-gray-100">
+-                                    ➕ Dodaj zawodnika
+-                                </a>
+-                                <a href="{{ route('news.create') }}" class="p-4 border rounded hover:bg-gray-100">
+-                                    📰 Dodaj news
+-                                </a>
+-                                <a href="{{ route('matches.create') }}" class="p-4 border rounded hover:bg-gray-100">
+-                                    ⚽ Dodaj mecz
+-                                </a>
+-                            </div>
+-                        </div>
+-                    @endif
+-
+-
+-                    @if ($isAdmin || $isEmployee)
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Latest Matches</h3>
+-
+-                            <div class="space-y-2 text-sm">
+-                                @forelse ($matches as $match)
+-                                    <div>
+-                                        {{ $match->home_team }} vs {{ $match->away_team }}
+-                                    </div>
+-                                @empty
+-                                    <div>Brak meczów.</div>
+-                                @endforelse
+-                            </div>
+-                        </div>
+-
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Latest News</h3>
+-
+-                            <div class="space-y-2 text-sm">
+-                                @forelse ($news as $article)
+-                                    <div>
+-                                        {{ $article->title }}
+-                                    </div>
+-                                @empty
+-                                    <div>Brak newsów.</div>
+-                                @endforelse
+-                            </div>
+-                        </div>
+-
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Latest Players</h3>
+-
+-                            <div class="space-y-2 text-sm">
+-                                @forelse ($players as $player)
+-                                    <div>
+-                                        {{ $player->first_name }} {{ $player->last_name }}
+-                                    </div>
+-                                @empty
+-                                    <div>Brak zawodników.</div>
+-                                @endforelse
+-                            </div>
+-                        </div>
+-                    @endif
+-
+-                    <!-- ATHLETE -->
+-                    @if ($isAthlete)
+-                        <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                            <h3 class="text-lg font-semibold mb-4">Panel zawodnika</h3>
+-
+-                            <div class="mb-4">
+-                                <p class="text-sm text-gray-600">Dane zawodnika:</p>
+-
+-                                @if ($athleteProfile)
+-                                    <pre class="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+-{{ json_encode($athleteProfile->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}
+-                                </pre>
+-                                @else
+-                                    <p class="text-sm mt-2">Brak danych zawodnika</p>
+-                                @endif
+-                            </div>
+-
+-                            <div class="grid md:grid-cols-3 gap-4 text-sm">
+-                                <div class="border p-4 rounded">Treningi (w przyszłości)</div>
+-                                <div class="border p-4 rounded">Dostępność</div>
+-                                <div class="border p-4 rounded">Statystyki</div>
+-                            </div>
+-                        </div>
+-                    @endif
+-
+-                    <!-- DELETE -->
+-                    <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
+-                        <h3 class="text-lg font-semibold mb-4">Usuń konto</h3>
+-
+-                        <div class="max-w-2xl">
+-                            @include('profile.partials.delete-user-form')
+-                        </div>
+-                    </div>
+-
+-                </main>
++        @foreach ([['Matches','matches','opponent'],['News','news','title'],['Players','players','name']] as [$label,$key,$field])
++            <div class="p-6 bg-white border border-gray-200 shadow rounded-lg">
++                <div class="flex items-center justify-between mb-4"><h3 class="text-lg font-semibold">Latest {{ $label }}</h3><button class="px-3 py-2 bg-indigo-600 text-white rounded" @click="openModal='{{ $key }}'">Add</button></div>
++                @forelse ($$key as $item)<div class="text-sm mb-1">{{ $key === 'players' ? $item->first_name.' '.$item->last_name : $item->$field }}</div>@empty<div>Brak {{ strtolower($label) }}.</div>@endforelse
+             </div>
+-        </div>
++        @endforeach
++
++        <x-modal name="matches-modal" ::show="openModal==='matches'" maxWidth="lg"><div class="p-6"><h4 class="font-semibold mb-4">Add match</h4><form method="POST" action="{{ route('matches.store') }}" class="space-y-3">@csrf
++            <input name="opponent" required placeholder="Opponent" class="w-full border rounded" />
++            <input type="datetime-local" name="match_date" required class="w-full border rounded" />
++            <input name="location" required placeholder="Location" class="w-full border rounded" />
++            <input name="result" placeholder="Result" class="w-full border rounded" />
++            <input type="datetime-local" name="publish_at" class="w-full border rounded" />
++            <button class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button></form></div></x-modal>
++
++        <x-modal name="news-modal" ::show="openModal==='news'" maxWidth="lg"><div class="p-6"><h4 class="font-semibold mb-4">Add news</h4><form method="POST" action="{{ route('news.store') }}" class="space-y-3">@csrf
++            <input name="title" required class="w-full border rounded" />
++            <textarea name="content" required class="w-full border rounded"></textarea>
++            <input type="datetime-local" name="publish_at" class="w-full border rounded" />
++            <button class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button></form></div></x-modal>
++
++        <x-modal name="players-modal" ::show="openModal==='players'" maxWidth="lg"><div class="p-6"><h4 class="font-semibold mb-4">Add player</h4><form method="POST" action="{{ route('players.store') }}" class="space-y-3">@csrf
++            <input name="name" required placeholder="Name" class="w-full border rounded" />
++            <input name="position" required class="w-full border rounded" />
++            <input type="number" name="number" class="w-full border rounded" />
++            <button class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button></form></div></x-modal>
+     </div>
+-
++</div>
+ @endsection
+diff --git a/resources/views/profile/partials/update-password-form.blade.php b/resources/views/profile/partials/update-password-form.blade.php
+index eaca1accca55cb91af51fa37b1f78ee568cfd0b8..f095ff94621cbeb4d6cd623d626c18d96ff91b52 100644
+--- a/resources/views/profile/partials/update-password-form.blade.php
++++ b/resources/views/profile/partials/update-password-form.blade.php
+@@ -1,48 +1,29 @@
+ <section>
+     <header>
+-        <h2 class="text-lg font-medium text-gray-900">
+-            {{ __('Update Password') }}
+-        </h2>
+-
+-        <p class="mt-1 text-sm text-gray-600">
+-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
+-        </p>
++        <h2 class="text-lg font-medium text-gray-900">{{ __('Update Password') }}</h2>
++        <p class="mt-1 text-sm text-gray-600">{{ __('Ensure your account is using a long, random password to stay secure.') }}</p>
+     </header>
+
+     <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+         @csrf
+         @method('put')
+
+         <div>
+             <x-input-label for="update_password_current_password" :value="__('Current Password')" />
+             <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+             <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+         </div>
+-
+         <div>
+             <x-input-label for="update_password_password" :value="__('New Password')" />
+             <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+             <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
+         </div>
+-
+         <div>
+             <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
+             <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+             <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
+         </div>
+
+-        <div class="flex items-center gap-4">
+-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+-
+-            @if (session('status') === 'password-updated')
+-                <p
+-                    x-data="{ show: true }"
+-                    x-show="show"
+-                    x-transition
+-                    x-init="setTimeout(() => show = false, 2000)"
+-                    class="text-sm text-gray-600"
+-                >{{ __('Saved.') }}</p>
+-            @endif
+-        </div>
++        <div class="flex items-center gap-4"><x-primary-button>{{ __('Save') }}</x-primary-button></div>
+     </form>
+ </section>
+diff --git a/resources/views/profile/partials/update-profile-information-form.blade.php b/resources/views/profile/partials/update-profile-information-form.blade.php
+index 5ae3d35d053b0fa154b4a594ea873dd9b52d04f9..e3085f23bd0151fe800d9e24b748d8acd4d34e2a 100644
+--- a/resources/views/profile/partials/update-profile-information-form.blade.php
++++ b/resources/views/profile/partials/update-profile-information-form.blade.php
+@@ -1,64 +1,29 @@
+ <section>
+     <header>
+-        <h2 class="text-lg font-medium text-gray-900">
+-            {{ __('Profile Information') }}
+-        </h2>
+-
+-        <p class="mt-1 text-sm text-gray-600">
+-            {{ __("Update your account's profile information and email address.") }}
+-        </p>
++        <h2 class="text-lg font-medium text-gray-900">{{ __('Profile Information') }}</h2>
++        <p class="mt-1 text-sm text-gray-600">{{ __("Update your account's profile information and email address.") }}</p>
+     </header>
+
+-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
+-        @csrf
+-    </form>
++    <form id="send-verification" method="post" action="{{ route('verification.send') }}">@csrf</form>
+
+     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+         @csrf
+         @method('patch')
+
+         <div>
+             <x-input-label for="name" :value="__('Name')" />
+             <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
+             <x-input-error class="mt-2" :messages="$errors->get('name')" />
+         </div>
+
+         <div>
+             <x-input-label for="email" :value="__('Email')" />
+             <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+             <x-input-error class="mt-2" :messages="$errors->get('email')" />
+-
+-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
+-                <div>
+-                    <p class="text-sm mt-2 text-gray-800">
+-                        {{ __('Your email address is unverified.') }}
+-
+-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+-                            {{ __('Click here to re-send the verification email.') }}
+-                        </button>
+-                    </p>
+-
+-                    @if (session('status') === 'verification-link-sent')
+-                        <p class="mt-2 font-medium text-sm text-green-600">
+-                            {{ __('A new verification link has been sent to your email address.') }}
+-                        </p>
+-                    @endif
+-                </div>
+-            @endif
+         </div>
+
+         <div class="flex items-center gap-4">
+             <x-primary-button>{{ __('Save') }}</x-primary-button>
+-
+-            @if (session('status') === 'profile-updated')
+-                <p
+-                    x-data="{ show: true }"
+-                    x-show="show"
+-                    x-transition
+-                    x-init="setTimeout(() => show = false, 2000)"
+-                    class="text-sm text-gray-600"
+-                >{{ __('Saved.') }}</p>
+-            @endif
+         </div>
+     </form>
+ </section>
