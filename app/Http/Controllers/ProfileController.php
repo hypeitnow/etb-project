@@ -19,9 +19,15 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $matches = MatchGame::where(function ($q) {
-            $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
-        })->latest()->take(5)->get();
+        $upcomingMatches = MatchGame::query()
+            ->where('status', MatchGame::STATUS_UPCOMING)
+            ->orderBy('match_date')
+            ->get();
+
+        $finishedMatches = MatchGame::query()
+            ->where('status', MatchGame::STATUS_FINISHED)
+            ->orderByDesc('match_date')
+            ->get();
 
         $news = News::where(function ($q) {
             $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
@@ -41,7 +47,8 @@ class ProfileController extends Controller
                 ? $user->athleteProfile()->first()
                 : null,
             'availableRoles' => User::roles(),
-            'matches' => $matches,
+            'upcomingMatches' => $upcomingMatches,
+            'finishedMatches' => $finishedMatches,
             'news' => $news,
             'players' => $players,
         ]);

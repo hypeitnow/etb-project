@@ -6,6 +6,7 @@ use App\Http\Requests\StoreMatchRequest;
 use App\Http\Requests\UpdateMatchRequest;
 use App\Models\MatchGame;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class MatchController extends Controller
@@ -19,17 +20,17 @@ class MatchController extends Controller
                 $query->whereNull('publish_at')
                     ->orWhere('publish_at', '<=', now());
             })
-            ->latest()
+            ->orderBy('match_date')
             ->get();
 
         return view('matches.index', compact('matches'));
     }
 
-    public function show(MatchGame $gameMatch): View
+    public function show(MatchGame $match): View
     {
-        $this->authorize('view', $gameMatch);
+        $this->authorize('view', $match);
 
-        return view('matches.show', ['match' => $gameMatch]);
+        return view('matches.show', ['match' => $match]);
     }
 
     public function create(): View
@@ -41,31 +42,74 @@ class MatchController extends Controller
 
     public function store(StoreMatchRequest $request): RedirectResponse
     {
-        MatchGame::query()->create($request->validated());
+        $data = $this->validatedMatchData($request->validated());
 
-        return back()->with('success', 'Changes saved successfully');
+        if ($request->hasFile('opponent_logo')) {
+            $data['opponent_logo'] = $request->file('opponent_logo')->store('match-opponents', 'public');
+        }
+
+        MatchGame::query()->create($data);
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('success', 'Mecz został dodany.');
     }
 
-    public function edit(MatchGame $gameMatch): View
+    public function edit(MatchGame $match): View
     {
-        $this->authorize('update', $gameMatch);
+        $this->authorize('update', $match);
 
-        return view('matches.edit', ['match' => $gameMatch]);
+        return view('matches.edit', ['match' => $match]);
     }
 
-    public function update(UpdateMatchRequest $request, MatchGame $gameMatch): RedirectResponse
+    public function update(UpdateMatchRequest $request, MatchGame $match): RedirectResponse
     {
-        $gameMatch->update($request->validated());
+        $data = $this->validatedMatchData($request->validated());
 
-        return back()->with('success', 'Changes saved successfully');
+        if ($request->hasFile('opponent_logo')) {
+            if ($match->opponent_logo) {
+                Storage::disk('public')->delete($match->opponent_logo);
+            }
+
+            $data['opponent_logo'] = $request->file('opponent_logo')->store('match-opponents', 'public');
+        }
+
+        $match->update($data);
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('success', 'Mecz został zaktualizowany.');
     }
 
-    public function destroy(MatchGame $gameMatch): RedirectResponse
+    public function destroy(MatchGame $match): RedirectResponse
     {
-        $this->authorize('delete', $gameMatch);
+        $this->authorize('delete', $match);
 
-        $gameMatch->delete();
+        if ($match->opponent_logo) {
+            Storage::disk('public')->delete($match->opponent_logo);
+        }
 
-        return back()->with('success', 'Changes saved successfully');
+        $match->delete();
+
+        return redirect()
+            ->route('profile.edit')
+            ->with('success', 'Mecz został usunięty.');
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function validatedMatchData(array $data): array
+    {
+        unset($data['opponent_logo']);
+
+        $data['our_score'] = $data['our_score'] ?? null;
+        $data['opponent_score'] = $data['opponent_score'] ?? null;
+
+        $hasResult = $data['our_score'] !== null && $data['opponent_score'] !== null;
+        $data['status'] = $hasResult ? MatchGame::STATUS_FINISHED : MatchGame::STATUS_UPCOMING;
+
+        return $data;
     }
 }
