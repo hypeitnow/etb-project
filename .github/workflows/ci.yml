@@ -10,21 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: laravel_test
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_USER: laravel
-          MYSQL_PASSWORD: secret
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+    env:
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
 
     steps:
       - name: Checkout repo
@@ -34,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.2
-          extensions: mbstring, bcmath, pdo, mysql
+          extensions: mbstring, bcmath, pdo, pdo_sqlite, sqlite3
           coverage: none
 
       - name: Copy .env
@@ -48,15 +36,8 @@ jobs:
 
       - name: Configure database
         run: |
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=laravel_test/' .env
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=laravel/' .env
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=secret/' .env
-
-      - name: Wait for MySQL
-        run: sleep 10
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env
 
       - name: Run migrations
         run: php artisan migrate --force
