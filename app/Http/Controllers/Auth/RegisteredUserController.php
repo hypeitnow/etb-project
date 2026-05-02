@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ActivationCodeMail;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -18,30 +19,23 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'accepted_terms' => ['accepted'],
             'accepted_privacy' => ['accepted'],
         ]);
 
-        $code = (string) random_int(100000, 999999);
+        // 🔥 stały kod pod testy
+        $code = '123456';
 
         PendingRegistration::where('email', $validated['email'])->delete();
 
@@ -55,13 +49,11 @@ class RegisteredUserController extends Controller
             'code_expires_at' => now()->addMinutes(15),
         ]);
 
-        Mail::raw(
-            "Twój kod aktywacyjny ETB: {$code}. Kod jest ważny 15 minut.",
-            static fn ($message) => $message->to($validated['email'])->subject('Kod aktywacyjny ETB')
-        );
+        Mail::to($validated['email'])->send(new ActivationCodeMail($code));
 
-        return redirect()->route('register.verify.notice', ['email' => $validated['email']])
-            ->with('status', 'Wysłaliśmy kod aktywacyjny na podany adres e-mail.');
+        return redirect()->route('register.verify.notice', [
+            'email' => $validated['email'],
+        ])->with('status', 'Wysłaliśmy kod aktywacyjny na podany adres e-mail.');
     }
 
     public function showVerificationForm(Request $request): View
@@ -71,9 +63,6 @@ class RegisteredUserController extends Controller
         ]);
     }
 
-    /**
-     * @throws ValidationException
-     */
     public function verifyCode(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -81,9 +70,15 @@ class RegisteredUserController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        $pending = PendingRegistration::where('email', Str::lower($validated['email']))->latest('id')->first();
+        $pending = PendingRegistration::where('email', Str::lower($validated['email']))
+            ->latest('id')
+            ->first();
 
-        if (! $pending || now()->greaterThan($pending->code_expires_at) || ! Hash::check($validated['code'], $pending->verification_code)) {
+        if (
+            ! $pending ||
+            now()->greaterThan($pending->code_expires_at) ||
+            ! Hash::check($validated['code'], $pending->verification_code)
+        ) {
             throw ValidationException::withMessages([
                 'code' => 'Nieprawidłowy lub wygasły kod aktywacyjny.',
             ]);

@@ -18,12 +18,15 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
+
         $matches = MatchGame::where(function ($q) {
             $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
         })->latest()->take(5)->get();
+
         $news = News::where(function ($q) {
             $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
         })->latest()->take(5)->get();
+
         $players = Player::latest()->take(5)->get();
 
         return view('profile.edit', [
@@ -31,8 +34,12 @@ class ProfileController extends Controller
             'isAdmin' => $user->role === User::ROLE_ADMIN,
             'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
             'isAthlete' => $user->role === User::ROLE_ATHLETE,
-            'users' => $user->role === User::ROLE_ADMIN ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role']) : collect(),
-            'athleteProfile' => $user->role === User::ROLE_ATHLETE ? $user->athleteProfile()->first() : null,
+            'users' => $user->role === User::ROLE_ADMIN
+                ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role'])
+                : collect(),
+            'athleteProfile' => $user->role === User::ROLE_ATHLETE
+                ? $user->athleteProfile()->first()
+                : null,
             'availableRoles' => User::roles(),
             'matches' => $matches,
             'news' => $news,
@@ -43,20 +50,27 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $request->user()->fill($request->validated());
+
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }
+
         $request->user()->save();
 
-        return back()->with('success', 'Changes saved successfully');
+        return Redirect::route('profile.edit');
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', ['password' => ['required', 'current_password']]);
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+
         $user = $request->user();
+
         Auth::logout();
         $user->delete();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
