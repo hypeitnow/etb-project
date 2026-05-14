@@ -14,7 +14,7 @@ class NewsPolicy
 
     public function view(?User $user, News $news): bool
     {
-        if ($news->publish_at === null || $news->publish_at->isPast()) {
+        if ($news->isPubliclyVisible()) {
             return true;
         }
 
@@ -34,5 +34,15 @@ class NewsPolicy
     public function delete(User $user, News $news): bool
     {
         return $user->role === User::ROLE_ADMIN;
+    }
+
+    public function preview(User $user, News $news): bool
+    {
+        return $user->role === User::ROLE_ADMIN;
+    }
+
+    public function publish(User $user, News $news): bool
+    {
+        return $user->hasAnyRole([User::ROLE_ADMIN, User::ROLE_EMPLOYEE]);
     }
 }

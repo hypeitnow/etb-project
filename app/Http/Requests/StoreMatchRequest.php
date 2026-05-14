@@ -12,6 +12,9 @@ class StoreMatchRequest extends FormRequest
     {
         $this->merge([
             'is_home' => $this->boolean('is_home'),
+            'include_in_lzkosz' => $this->boolean('include_in_lzkosz'),
+            'is_ticketed' => $this->boolean('is_ticketed'),
+            'opponent_name' => $this->input('opponent_name', $this->input('opponent')),
         ]);
     }
 
@@ -27,6 +30,9 @@ class StoreMatchRequest extends FormRequest
     {
         return [
             'status' => ['required', 'string', Rule::in([MatchGame::STATUS_UPCOMING, MatchGame::STATUS_FINISHED])],
+            'season' => ['nullable', 'string', 'max:20'],
+            'include_in_lzkosz' => ['boolean'],
+            'lzkosz_round' => ['nullable', 'string', Rule::requiredIf($this->boolean('include_in_lzkosz')), Rule::in([MatchGame::LZKOSZ_ROUND_ONE, MatchGame::LZKOSZ_ROUND_TWO])],
             'opponent_name' => ['required', 'string', 'max:255'],
             'match_date' => [
                 'required',
@@ -52,6 +58,9 @@ class StoreMatchRequest extends FormRequest
             'opponent_logo' => ['nullable', 'image', 'max:2048'],
             'home_logo' => ['nullable', 'image', 'max:2048'],
             'publish_at' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+            'is_ticketed' => ['boolean'],
+            'ticket_url' => ['nullable', Rule::requiredIf($this->boolean('is_ticketed')), 'url', 'max:2048'],
         ];
     }
 }

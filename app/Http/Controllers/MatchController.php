@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMatchRequest;
 use App\Http\Requests\UpdateMatchRequest;
 use App\Models\MatchGame;
+use App\Services\AdminNotificationService;
 use App\Services\MatchGameService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class MatchController extends Controller
 {
-    public function __construct(private readonly MatchGameService $matchGameService)
+    public function __construct(
+        private readonly MatchGameService $matchGameService,
+        private readonly AdminNotificationService $notificationService
+    )
     {
     }
 
@@ -47,11 +51,12 @@ class MatchController extends Controller
 
     public function store(StoreMatchRequest $request): RedirectResponse
     {
-        $this->matchGameService->create(
+        $match = $this->matchGameService->create(
             $request->validated(),
             $request->file('opponent_logo'),
             $request->file('home_logo')
         );
+        $this->notificationService->record($request->user(), 'created', $match, "Mecz: ETB - {$match->opponent_name}");
 
         return redirect()
             ->route('profile.edit')
@@ -73,6 +78,7 @@ class MatchController extends Controller
             $request->file('opponent_logo'),
             $request->file('home_logo')
         );
+        $this->notificationService->record($request->user(), 'updated', $match, "Mecz: ETB - {$match->opponent_name}");
 
         return redirect()
             ->route('profile.edit')
@@ -83,7 +89,10 @@ class MatchController extends Controller
     {
         $this->authorize('delete', $match);
 
+        $label = "Mecz: ETB - {$match->opponent_name}";
+        $id = $match->id;
         $this->matchGameService->delete($match);
+        $this->notificationService->recordDeleted(request()->user(), MatchGame::class, $id, $label);
 
         return redirect()
             ->route('profile.edit')

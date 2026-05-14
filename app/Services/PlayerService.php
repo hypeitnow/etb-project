@@ -13,6 +13,9 @@ class PlayerService
      */
     public function create(array $data, ?UploadedFile $photo): Player
     {
+        $data['publish_description'] = (bool) ($data['publish_description'] ?? false);
+        $data['is_starting_five'] = (bool) ($data['is_starting_five'] ?? false);
+
         if ($photo) {
             $data['photo_path'] = $photo->store('players', 'public');
         }
@@ -25,6 +28,9 @@ class PlayerService
      */
     public function update(Player $player, array $data, ?UploadedFile $photo): Player
     {
+        $data['publish_description'] = (bool) ($data['publish_description'] ?? false);
+        $data['is_starting_five'] = (bool) ($data['is_starting_five'] ?? false);
+
         if ($photo) {
             if ($player->photo_path) {
                 Storage::disk('public')->delete($player->photo_path);

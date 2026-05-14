@@ -3,9 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\AdminNotification;
 use App\Models\MatchGame;
 use App\Models\News;
 use App\Models\Player;
+use App\Models\Sponsor;
+use App\Models\TeamStaff;
+use App\Models\ThreeXThreeMember;
+use App\Models\ThreeXThreeTournament;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,15 +38,14 @@ class ProfileController extends Controller
 
         $publishedNews = News::query()
             ->with(['author', 'images'])
-            ->where(function ($q) {
-                $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
-            })
+            ->active()
+            ->published()
             ->latest()
             ->get();
 
         $scheduledNews = News::query()
             ->with(['author', 'images'])
-            ->where('publish_at', '>', now())
+            ->scheduled()
             ->orderBy('publish_at')
             ->get();
 
@@ -49,6 +53,16 @@ class ProfileController extends Controller
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
+
+        $staff = TeamStaff::query()->orderBy('sort_order')->orderBy('name')->get();
+        $threeXThreeMembers = ThreeXThreeMember::query()->orderByDesc('is_coach')->orderBy('sort_order')->orderBy('name')->get();
+        $threeXThreeTournaments = ThreeXThreeTournament::query()->with('categories')->orderByDesc('date')->get();
+        $sponsors = Sponsor::query()->orderBy('type')->orderBy('sort_order')->orderBy('name')->get();
+        $adminNotifications = AdminNotification::query()
+            ->with(['actor', 'acceptedBy'])
+            ->latest()
+            ->get();
+        $unreadNotificationsCount = $adminNotifications->whereNull('read_at')->count();
 
         return view('profile.edit', [
             'user' => $user,
@@ -67,6 +81,13 @@ class ProfileController extends Controller
             'publishedNews' => $publishedNews,
             'scheduledNews' => $scheduledNews,
             'players' => $players,
+            'staff' => $staff,
+            'threeXThreeMembers' => $threeXThreeMembers,
+            'threeXThreeTournaments' => $threeXThreeTournaments,
+            'sponsors' => $sponsors,
+            'sponsorTypes' => Sponsor::types(),
+            'adminNotifications' => $adminNotifications,
+            'unreadNotificationsCount' => $unreadNotificationsCount,
         ]);
     }
 

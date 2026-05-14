@@ -1,13 +1,33 @@
 @extends('layouts.app')
 
 @section('content')
-<section class="max-w-7xl mx-auto px-6 py-12">
-    <h1 class="text-3xl font-bold text-yellow-400 mb-4">Drużyna / Sztab szkoleniowy</h1>
-    <p class="text-zinc-300 mb-6">Sekcja gotowa do dodawania treści, tekstu, zdjęć i materiałów wideo.</p>
+<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mb-10">
+        <p class="text-sm font-bold uppercase tracking-[0.25em] text-yellow-400">ETB Team</p>
+        <h1 class="mt-2 text-4xl font-black text-white">Sztab szkoleniowy</h1>
+    </div>
 
-    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-6 min-h-[220px]">
-        <h2 class="font-semibold mb-2">Panel treści</h2>
-        <p class="text-sm text-zinc-400">Tutaj można osadzać artykuły, galerie, listy zawodników i inne moduły.</p>
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        @forelse ($staff as $person)
+            <article class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 shadow-xl transition hover:-translate-y-1 hover:border-yellow-400/70">
+                <div class="aspect-[4/5] bg-zinc-900">
+                    @if ($person->photo_path)
+                        <img src="{{ asset('storage/'.$person->photo_path) }}" alt="{{ $person->name }}" class="h-full w-full object-cover object-top">
+                    @else
+                        <div class="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-zinc-600">ETB</div>
+                    @endif
+                </div>
+                <div class="p-5">
+                    <h2 class="text-xl font-black text-white">{{ $person->name }}</h2>
+                    <p class="mt-1 text-sm font-bold uppercase tracking-wide text-yellow-400">{{ $person->role }}</p>
+                    @if ($person->description)
+                        <p class="mt-4 text-sm leading-6 text-zinc-400">{{ $person->description }}</p>
+                    @endif
+                </div>
+            </article>
+        @empty
+            <p class="rounded border border-dashed border-zinc-700 p-6 text-zinc-400">Sztab zostanie opublikowany wkrótce.</p>
+        @endforelse
     </div>
 </section>
 @endsection

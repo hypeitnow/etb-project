@@ -62,8 +62,10 @@ class MatchGameService
         ?MatchGame $match = null
     ): array {
         $status = $data['status'];
-        $opponent = $this->findOrCreateOpponent($data['opponent_name']);
-        $sportsHall = $this->findOrCreateSportsHall($data['location']);
+        $opponentName = trim((string) $data['opponent_name']);
+        $locationName = trim((string) $data['location']);
+        $opponent = $this->findOrCreateOpponent($opponentName);
+        $sportsHall = $this->findOrCreateSportsHall($locationName);
 
         if ($opponentLogo) {
             if ($opponent->logo_path) {
@@ -75,11 +77,23 @@ class MatchGameService
             ]);
         }
 
+        unset($data['opponent'], $data['opponent_logo'], $data['home_logo']);
+
         if ($status === MatchGame::STATUS_UPCOMING) {
             $data['our_score'] = null;
             $data['opponent_score'] = null;
         }
 
+        if (! (bool) ($data['include_in_lzkosz'] ?? false)) {
+            $data['lzkosz_round'] = null;
+        }
+
+        if (! (bool) ($data['is_ticketed'] ?? false)) {
+            $data['ticket_url'] = null;
+        }
+
+        $data['opponent_name'] = $opponentName;
+        $data['location'] = $locationName;
         $data['opponent_id'] = $opponent->id;
         $data['sports_hall_id'] = $sportsHall->id;
         $data['opponent_logo'] = $opponent->logo_path ?? $match?->opponent_logo;
@@ -89,8 +103,6 @@ class MatchGameService
         } elseif ($match) {
             $data['home_logo'] = $match->home_logo;
         }
-
-        unset($data['opponent_logo_file'], $data['home_logo_file']);
 
         return $data;
     }

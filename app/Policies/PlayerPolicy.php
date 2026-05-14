@@ -23,7 +23,7 @@ class PlayerPolicy
     public function view(?User $user, Player $player): bool
     {
         if ($user === null) {
-            return true;
+            return $player->publish_description;
         }
 
         return $this->viewAny($user);

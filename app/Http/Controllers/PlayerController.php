@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePlayerRequest;
 use App\Http\Requests\UpdatePlayerRequest;
 use App\Models\Player;
+use App\Services\AdminNotificationService;
 use App\Services\PlayerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class PlayerController extends Controller
 {
-    public function __construct(private readonly PlayerService $playerService)
+    public function __construct(
+        private readonly PlayerService $playerService,
+        private readonly AdminNotificationService $notificationService
+    )
     {
     }
 
@@ -37,7 +41,8 @@ class PlayerController extends Controller
     public function store(StorePlayerRequest $request): RedirectResponse
     {
         $data = $request->safe()->except('photo');
-        $this->playerService->create($data, $request->file('photo'));
+        $player = $this->playerService->create($data, $request->file('photo'));
+        $this->notificationService->record($request->user(), 'created', $player, "Zawodnik: {$player->full_name}");
 
         return redirect()->route('profile.edit')->with('success', 'Zawodnik został zapisany.');
     }
@@ -60,6 +65,7 @@ class PlayerController extends Controller
     {
         $data = $request->safe()->except('photo');
         $this->playerService->update($player, $data, $request->file('photo'));
+        $this->notificationService->record($request->user(), 'updated', $player, "Zawodnik: {$player->full_name}");
 
         return redirect()->route('profile.edit')->with('success', 'Zawodnik został zaktualizowany.');
     }
@@ -68,7 +74,10 @@ class PlayerController extends Controller
     {
         $this->authorize('delete', $player);
 
+        $label = "Zawodnik: {$player->full_name}";
+        $id = $player->id;
         $this->playerService->delete($player);
+        $this->notificationService->recordDeleted(request()->user(), Player::class, $id, $label);
 
         return back()->with('success', 'Zawodnik został usunięty.');
     }

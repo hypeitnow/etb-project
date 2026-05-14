@@ -14,6 +14,8 @@ class NewsService
      */
     public function create(array $data, int $authorId, ?UploadedFile $mainImage, array $gallery): News
     {
+        $data['is_visible'] = (bool) ($data['is_visible'] ?? true);
+
         if ($mainImage) {
             $data['main_image_path'] = $mainImage->store('news/main', 'public');
         }
@@ -34,6 +36,8 @@ class NewsService
      */
     public function update(News $news, array $data, ?UploadedFile $mainImage, array $gallery): News
     {
+        $data['is_visible'] = (bool) ($data['is_visible'] ?? false);
+
         if ($mainImage) {
             if ($news->main_image_path) {
                 Storage::disk('public')->delete($news->main_image_path);
@@ -59,6 +63,16 @@ class NewsService
         }
 
         $news->delete();
+    }
+
+    public function publishNow(News $news): News
+    {
+        $news->update([
+            'is_visible' => true,
+            'publish_at' => now(),
+        ]);
+
+        return $news;
     }
 
     /**

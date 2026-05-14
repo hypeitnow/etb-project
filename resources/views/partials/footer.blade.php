@@ -1,11 +1,32 @@
 <footer class="mt-16">
-    <section class="bg-yellow-400 text-black py-8">
-        <div class="max-w-7xl mx-auto px-6">
-            <h3 class="text-2xl font-extrabold mb-4">Partnerzy</h3>
-            <div class="grid md:grid-cols-3 gap-4 text-sm font-semibold">
-                <div class="bg-yellow-300 p-4 rounded">Partner strategiczny</div>
-                <div class="bg-yellow-300 p-4 rounded">Partnerzy klubu</div>
-                <div class="bg-yellow-300 p-4 rounded">Sponsorzy</div>
+    @php
+        $footerSponsorsByType = $footerSponsorsByType ?? collect();
+        $footerSponsorTypes = \App\Models\Sponsor::types();
+    @endphp
+
+    <section id="partners" class="bg-zinc-950 py-12 text-white">
+        <div class="mx-auto max-w-7xl px-6">
+            <p class="text-xs font-black uppercase tracking-[0.28em] text-yellow-400">Partnerzy</p>
+            <h3 class="mt-2 text-3xl font-black uppercase">ETB Wspierają</h3>
+
+            <div class="mt-8 divide-y divide-white/15 border-y border-white/15">
+                @foreach ($footerSponsorTypes as $type => $label)
+                    @php($items = $footerSponsorsByType->get($type, collect()))
+                    <div class="grid gap-5 py-7 lg:grid-cols-[16rem_1fr] lg:items-center">
+                        <h4 class="text-lg font-black uppercase italic text-white">{{ $label }}</h4>
+                        @if ($items->isNotEmpty())
+                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+                                @foreach ($items as $sponsor)
+                                    <a href="{{ $sponsor->url }}" target="_blank" rel="noopener noreferrer" class="group flex min-h-24 items-center justify-center rounded-lg border border-white/10 bg-white p-4 shadow-sm transition duration-200 hover:z-10 hover:scale-105 hover:border-yellow-400 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="{{ $sponsor->name }}">
+                                        <img src="{{ asset('storage/'.$sponsor->logo_path) }}" alt="{{ $sponsor->name }}" class="max-h-16 w-full object-contain transition duration-200 group-hover:scale-105">
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="rounded-lg border border-dashed border-white/15 p-4 text-sm text-zinc-400">Ta sekcja zostanie uzupelniona po dodaniu partnerow w panelu admina.</p>
+                        @endif
+                    </div>
+                @endforeach
             </div>
         </div>
     </section>

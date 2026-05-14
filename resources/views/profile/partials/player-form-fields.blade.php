@@ -1,4 +1,6 @@
 @php
+    use App\Enums\BasketballPosition;
+
     $player = $player ?? null;
 @endphp
 
@@ -20,7 +22,11 @@
 
     <label class="block">
         <span class="text-sm font-medium text-gray-700">Pozycja</span>
-        <input name="position" required value="{{ old('position', $player?->position) }}" class="mt-1 w-full rounded border-gray-300">
+        <select name="position" required class="mt-1 w-full rounded border-gray-300">
+            @foreach (BasketballPosition::options() as $value => $label)
+                <option value="{{ $value }}" @selected(old('position', $player?->position) === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
     </label>
 
     <label class="block">
@@ -41,5 +47,20 @@
     <label class="block">
         <span class="text-sm font-medium text-gray-700">Waga w kg</span>
         <input name="weight" type="number" min="40" max="200" value="{{ old('weight', $player?->weight) }}" class="mt-1 w-full rounded border-gray-300">
+    </label>
+
+    <label class="flex items-center gap-2 rounded border border-gray-200 p-3 md:col-span-2">
+        <input name="publish_description" type="checkbox" value="1" class="rounded border-gray-300 text-yellow-500" @checked(old('publish_description', $player?->publish_description))>
+        <span class="text-sm font-medium text-gray-700">Publikuj opis zawodnika i włącz publiczny widok szczegółów</span>
+    </label>
+
+    <label class="flex items-center gap-2 rounded border border-gray-200 p-3 md:col-span-2">
+        <input name="is_starting_five" type="checkbox" value="1" class="rounded border-gray-300 text-yellow-500" @checked(old('is_starting_five', $player?->is_starting_five))>
+        <span class="text-sm font-medium text-gray-700">Pokaż zawodnika w pierwszej piątce na stronie głównej</span>
+    </label>
+
+    <label class="block md:col-span-2">
+        <span class="text-sm font-medium text-gray-700">Opis zawodnika</span>
+        <textarea name="description" rows="5" class="mt-1 w-full rounded border-gray-300">{{ old('description', $player?->description) }}</textarea>
     </label>
 </div>

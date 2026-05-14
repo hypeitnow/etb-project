@@ -13,10 +13,20 @@
         <textarea name="content" required rows="8" class="mt-1 w-full rounded border-gray-300">{{ old('content', $item?->content) }}</textarea>
     </label>
 
+    <label class="block">
+        <span class="text-sm font-medium text-gray-700">Krótki opis</span>
+        <textarea name="excerpt" rows="3" class="mt-1 w-full rounded border-gray-300">{{ old('excerpt', $item?->excerpt) }}</textarea>
+    </label>
+
     <div class="grid gap-4 md:grid-cols-2">
         <label class="block">
             <span class="text-sm font-medium text-gray-700">Data publikacji</span>
             <input name="publish_at" type="datetime-local" value="{{ old('publish_at', $item?->publish_at?->format('Y-m-d\TH:i')) }}" class="mt-1 w-full rounded border-gray-300">
+        </label>
+
+        <label class="flex items-center gap-2 rounded border border-gray-200 p-3">
+            <input name="is_visible" type="checkbox" value="1" class="rounded border-gray-300 text-yellow-500" @checked(old('is_visible', $item?->is_visible ?? true))>
+            <span class="text-sm font-medium text-gray-700">News widoczny publicznie</span>
         </label>
 
         <label class="block">

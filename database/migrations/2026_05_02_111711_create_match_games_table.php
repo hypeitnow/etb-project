@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('match_games', function (Blueprint $table) {
             $table->id();
-            $table->string('opponent');
+            $table->string('opponent_name');
             $table->dateTime('match_date');
             $table->string('location');
             $table->string('result')->nullable();

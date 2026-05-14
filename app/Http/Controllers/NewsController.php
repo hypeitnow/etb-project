@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreNewsRequest;
 use App\Http\Requests\UpdateNewsRequest;
 use App\Models\News;
+use App\Services\AdminNotificationService;
 use App\Services\NewsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class NewsController extends Controller
 {
-    public function __construct(private readonly NewsService $newsService)
+    public function __construct(
+        private readonly NewsService $newsService,
+        private readonly AdminNotificationService $notificationService
+    )
     {
     }
 
@@ -21,10 +25,9 @@ class NewsController extends Controller
 
         $newsItems = News::query()
             ->with(['author', 'images'])
-            ->where(function ($query): void {
-                $query->whereNull('publish_at')
-                    ->orWhere('publish_at', '<=', now());
-            })
+            ->active()
+            ->published()
+            ->latest('publish_at')
             ->latest()
             ->get();
 
@@ -52,7 +55,8 @@ class NewsController extends Controller
         $data = $request->safe()->except(['main_image', 'gallery']);
         $gallery = $request->file('gallery', []);
 
-        $this->newsService->create($data, $request->user()->id, $request->file('main_image'), $gallery);
+        $news = $this->newsService->create($data, $request->user()->id, $request->file('main_image'), $gallery);
+        $this->notificationService->record($request->user(), 'created', $news, "Aktualność: {$news->title}");
 
         return redirect()->route('profile.edit')->with('success', 'Aktualność została zapisana.');
     }
@@ -70,6 +74,7 @@ class NewsController extends Controller
         $gallery = $request->file('gallery', []);
 
         $this->newsService->update($news, $data, $request->file('main_image'), $gallery);
+        $this->notificationService->record($request->user(), 'updated', $news, "Aktualność: {$news->title}");
 
         return redirect()->route('profile.edit')->with('success', 'Aktualność została zaktualizowana.');
     }
@@ -78,8 +83,33 @@ class NewsController extends Controller
     {
         $this->authorize('delete', $news);
 
+        $label = "Aktualność: {$news->title}";
+        $id = $news->id;
         $this->newsService->delete($news);
+        $this->notificationService->recordDeleted(request()->user(), News::class, $id, $label);
 
         return back()->with('success', 'Aktualność została usunięta.');
+    }
+
+    public function preview(News $news): View
+    {
+        $this->authorize('preview', $news);
+
+        $news->load(['author', 'images']);
+
+        return view('pages.news-show', [
+            'news' => $news,
+            'isPreview' => true,
+        ]);
+    }
+
+    public function publish(News $news): RedirectResponse
+    {
+        $this->authorize('publish', $news);
+
+        $this->newsService->publishNow($news);
+        $this->notificationService->record(request()->user(), 'published', $news, "Aktualność: {$news->title}");
+
+        return redirect()->route('profile.edit')->with('success', 'Aktualność została opublikowana.');
     }
 }

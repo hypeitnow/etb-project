@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BasketballPosition;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,9 @@ class Player extends Model
         'height',
         'weight',
         'photo_path',
+        'description',
+        'publish_description',
+        'is_starting_five',
     ];
 
     /**
@@ -34,7 +38,24 @@ class Player extends Model
             'number' => 'integer',
             'height' => 'integer',
             'weight' => 'integer',
+            'publish_description' => 'boolean',
+            'is_starting_five' => 'boolean',
         ];
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function positionLabel(): string
+    {
+        return BasketballPosition::tryFrom((string) $this->position)?->label() ?? (string) $this->position;
+    }
+
+    public function positionOrder(): int
+    {
+        return BasketballPosition::tryFrom((string) $this->position)?->sortOrder() ?? 99;
     }
 
     public function getAgeAttribute(): ?int

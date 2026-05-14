@@ -1,4 +1,4 @@
-<article class="rounded border border-gray-200 bg-white p-4 shadow-sm transition hover:border-yellow-300">
+<article data-admin-search class="etb-admin-card rounded border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex gap-4">
         <div class="flex items-center gap-2">
             @if ($match->home_logo)

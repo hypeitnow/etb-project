@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
 window.matchForm = function matchForm(config) {
     return {
         status: config.status,
+        includeInLzkosz: Boolean(config.includeInLzkosz ?? false),
+        isTicketed: Boolean(config.isTicketed ?? false),
         locations: [],
         opponents: [],
         opponentLogo: config.opponentLogo,
@@ -102,6 +104,71 @@ window.newsLightbox = function newsLightbox() {
         },
         close() {
             this.image = null;
+        },
+    };
+};
+
+window.adminPanel = function adminPanel(config) {
+    return {
+        openModal: null,
+        matchFilter: 'all',
+        newsFilter: 'all',
+        publishAction: null,
+        panelSearch: '',
+        notificationsOpen: false,
+        accountOpen: false,
+        previewNotification: null,
+        unreadCount: Number(config.unreadCount || 0),
+        currentAccount: config.currentAccount,
+        savedAccounts: [],
+        get notificationBadge() {
+            return this.unreadCount > 99 ? '+99' : String(this.unreadCount);
+        },
+        init() {
+            this.savedAccounts = this.readSavedAccounts();
+            if (!this.savedAccounts.some((account) => account.email === this.currentAccount.email)) {
+                this.savedAccounts.unshift(this.currentAccount);
+                this.persistSavedAccounts();
+            }
+        },
+        readSavedAccounts() {
+            try {
+                return JSON.parse(localStorage.getItem('etb.admin.accounts') || '[]');
+            } catch {
+                return [];
+            }
+        },
+        persistSavedAccounts() {
+            localStorage.setItem('etb.admin.accounts', JSON.stringify(this.savedAccounts.slice(0, 6)));
+        },
+        saveCurrentAccount() {
+            this.savedAccounts = [
+                this.currentAccount,
+                ...this.savedAccounts.filter((account) => account.email !== this.currentAccount.email),
+            ].slice(0, 6);
+            this.persistSavedAccounts();
+        },
+        switchAccount(account) {
+            const loginUrl = new URL('/login', window.location.origin);
+            loginUrl.searchParams.set('email', account.email);
+            window.location.href = loginUrl.toString();
+        },
+        searchPanel() {
+            const query = this.panelSearch.trim().toLowerCase();
+            document.querySelectorAll('[data-admin-search]').forEach((element) => {
+                if (!query) {
+                    element.classList.remove('admin-highlight');
+                    return;
+                }
+
+                const text = element.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    element.classList.add('admin-highlight');
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    element.classList.remove('admin-highlight');
+                }
+            });
         },
     };
 };
@@ -161,8 +228,9 @@ const searchIndex = [
     { label: 'Drużyna', url: '/team', keywords: ['druzyna', 'zawodnicy'] },
     { label: 'Zawodnicy 3x3', url: '/team-3x3/players', keywords: ['3x3', 'trzy na trzy', 'zawodnicy 3x3', 'druzyna 3x3'] },
     { label: 'Tabela', url: '/schedule/table', keywords: ['tabela'] },
-    { label: 'Terminarz EŁZKosz', url: '/schedule/lzkosz', keywords: ['łzkosz', 'lzkosz', 'terminarz łzkosz'] },
+    { label: 'Terminarz ŁZKosz', url: '/schedule/lzkosz', keywords: ['łzkosz', 'lzkosz', 'terminarz łzkosz'] },
     { label: 'III liga mężczyzn ŁZKosz', url: '/schedule/third-league', keywords: ['iii liga', '3 liga', 'elkosz', 'lzkosz'] },
+    { label: 'Partnerzy', url: '/#partners', keywords: ['sponsorzy', 'sponsor', 'partner', 'partnerzy', 'partner strategiczny', 'partner technologiczny'] },
 ];
 
 function populateSearchSuggestions() {
