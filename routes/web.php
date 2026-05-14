@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\UserRoleController;
+use App\Http\Controllers\Admin\UserSearchController;
+use App\Http\Controllers\Admin\MatchSuggestionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NewsController;
@@ -128,6 +130,12 @@ Route::middleware(['auth', 'role:admin,employee', 'can:manage-matches'])->group(
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
+    Route::get('/admin/users/search', UserSearchController::class)->name('admin.users.search');
+});
+
+Route::middleware(['auth', 'role:admin,employee'])->group(function () {
+    Route::get('/admin/match-suggestions/locations', [MatchSuggestionController::class, 'locations'])->name('admin.match-suggestions.locations');
+    Route::get('/admin/match-suggestions/opponents', [MatchSuggestionController::class, 'opponents'])->name('admin.match-suggestions.opponents');
 });
 
 Route::middleware(['auth', 'role:athlete'])->group(function () {

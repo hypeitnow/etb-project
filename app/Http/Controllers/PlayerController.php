@@ -5,11 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePlayerRequest;
 use App\Http\Requests\UpdatePlayerRequest;
 use App\Models\Player;
+use App\Services\PlayerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class PlayerController extends Controller
 {
+    public function __construct(private readonly PlayerService $playerService)
+    {
+    }
+
     public function index(): View
     {
         $this->authorize('viewAny', Player::class);
@@ -31,9 +36,10 @@ class PlayerController extends Controller
 
     public function store(StorePlayerRequest $request): RedirectResponse
     {
-        Player::query()->create($request->validated());
+        $data = $request->safe()->except('photo');
+        $this->playerService->create($data, $request->file('photo'));
 
-        return back()->with('success', 'Changes saved successfully');
+        return redirect()->route('profile.edit')->with('success', 'Zawodnik został zapisany.');
     }
 
     public function show(Player $player): View
@@ -52,17 +58,18 @@ class PlayerController extends Controller
 
     public function update(UpdatePlayerRequest $request, Player $player): RedirectResponse
     {
-        $player->update($request->validated());
+        $data = $request->safe()->except('photo');
+        $this->playerService->update($player, $data, $request->file('photo'));
 
-        return back()->with('success', 'Changes saved successfully');
+        return redirect()->route('profile.edit')->with('success', 'Zawodnik został zaktualizowany.');
     }
 
     public function destroy(Player $player): RedirectResponse
     {
         $this->authorize('delete', $player);
 
-        $player->delete();
+        $this->playerService->delete($player);
 
-        return back()->with('success', 'Changes saved successfully');
+        return back()->with('success', 'Zawodnik został usunięty.');
     }
 }

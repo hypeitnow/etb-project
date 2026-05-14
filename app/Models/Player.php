@@ -21,6 +21,7 @@ class Player extends Model
         'date_of_birth',
         'height',
         'weight',
+        'photo_path',
     ];
 
     /**

@@ -3,6 +3,109 @@ import Alpine from 'alpinejs';
 import { createIcons, icons } from 'lucide';
 
 window.Alpine = Alpine;
+
+window.adminUserSearch = function adminUserSearch(searchUrl) {
+    return {
+        query: '',
+        results: [],
+        highlightedId: null,
+        async search() {
+            if (this.query.trim().length < 2) {
+                this.results = [];
+                return;
+            }
+
+            const response = await fetch(`${searchUrl}?q=${encodeURIComponent(this.query)}`, {
+                headers: { Accept: 'application/json' },
+            });
+
+            this.results = await response.json();
+        },
+        focusUser(user) {
+            this.results = [];
+            this.query = user.name;
+            this.highlightedId = user.id;
+
+            const element = document.getElementById(`managed-user-${user.id}`);
+            if (!element) {
+                window.location.href = `${window.location.pathname}?page=${user.page}&focus_user=${user.id}#managed-user-${user.id}`;
+                return;
+            }
+
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('admin-highlight');
+
+            setTimeout(() => {
+                element.classList.remove('admin-highlight');
+            }, 4500);
+        },
+    };
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const focusUser = new URLSearchParams(window.location.search).get('focus_user');
+    if (!focusUser) return;
+
+    const element = document.getElementById(`managed-user-${focusUser}`);
+    if (!element) return;
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    element.classList.add('admin-highlight');
+
+    setTimeout(() => {
+        element.classList.remove('admin-highlight');
+    }, 4500);
+});
+
+window.matchForm = function matchForm(config) {
+    return {
+        status: config.status,
+        locations: [],
+        opponents: [],
+        opponentLogo: config.opponentLogo,
+        async loadLocations(query) {
+            const response = await fetch(`${config.locationsUrl}?q=${encodeURIComponent(query)}`, {
+                headers: { Accept: 'application/json' },
+            });
+            this.locations = await response.json();
+        },
+        async loadOpponents(query) {
+            const response = await fetch(`${config.opponentsUrl}?q=${encodeURIComponent(query)}`, {
+                headers: { Accept: 'application/json' },
+            });
+            this.opponents = await response.json();
+        },
+        selectLocation(location) {
+            this.$root.querySelector('[name="location"]').value = location.name;
+            this.locations = [];
+        },
+        selectOpponent(opponent) {
+            this.$root.querySelector('[name="opponent_name"]').value = opponent.name;
+            this.opponentLogo = opponent.logo_path ? `/storage/${opponent.logo_path}` : null;
+            this.opponents = [];
+        },
+        syncTime(value) {
+            const input = this.$root.querySelector('[name="match_date"]');
+            if (!input || !value) return;
+
+            const date = input.value ? input.value.slice(0, 10) : new Date().toISOString().slice(0, 10);
+            input.value = `${date}T${value}`;
+        },
+    };
+};
+
+window.newsLightbox = function newsLightbox() {
+    return {
+        image: null,
+        open(path) {
+            this.image = path;
+        },
+        close() {
+            this.image = null;
+        },
+    };
+};
+
 Alpine.start();
 
 window.reinitializeUi = function reinitializeUi() {

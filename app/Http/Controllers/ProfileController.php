@@ -20,20 +20,35 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $upcomingMatches = MatchGame::query()
+            ->with(['opponent', 'sportsHall'])
             ->where('status', MatchGame::STATUS_UPCOMING)
             ->orderBy('match_date')
             ->get();
 
         $finishedMatches = MatchGame::query()
+            ->with(['opponent', 'sportsHall'])
             ->where('status', MatchGame::STATUS_FINISHED)
             ->orderByDesc('match_date')
             ->get();
 
-        $news = News::where(function ($q) {
-            $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
-        })->latest()->take(5)->get();
+        $publishedNews = News::query()
+            ->with(['author', 'images'])
+            ->where(function ($q) {
+                $q->whereNull('publish_at')->orWhere('publish_at', '<=', now());
+            })
+            ->latest()
+            ->get();
 
-        $players = Player::latest()->take(5)->get();
+        $scheduledNews = News::query()
+            ->with(['author', 'images'])
+            ->where('publish_at', '>', now())
+            ->orderBy('publish_at')
+            ->get();
+
+        $players = Player::query()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
 
         return view('profile.edit', [
             'user' => $user,
@@ -41,7 +56,7 @@ class ProfileController extends Controller
             'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
             'isAthlete' => $user->role === User::ROLE_ATHLETE,
             'users' => $user->role === User::ROLE_ADMIN
-                ? User::query()->orderBy('name')->get(['id', 'name', 'email', 'role'])
+                ? User::query()->orderBy('name')->paginate(5, ['id', 'name', 'email', 'role'])
                 : collect(),
             'athleteProfile' => $user->role === User::ROLE_ATHLETE
                 ? $user->athleteProfile()->first()
@@ -49,7 +64,8 @@ class ProfileController extends Controller
             'availableRoles' => User::roles(),
             'upcomingMatches' => $upcomingMatches,
             'finishedMatches' => $finishedMatches,
-            'news' => $news,
+            'publishedNews' => $publishedNews,
+            'scheduledNews' => $scheduledNews,
             'players' => $players,
         ]);
     }

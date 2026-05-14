@@ -18,6 +18,6 @@ class UserRoleController extends Controller
 
         $user->update(['role' => $validated['role']]);
 
-        return back()->with('success', 'Changes saved successfully');
+        return back()->with('success', 'Rola użytkownika została zaktualizowana.');
     }
 }

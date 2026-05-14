@@ -22,6 +22,7 @@ class StorePlayerRequest extends FormRequest
             'date_of_birth' => ['required', 'date', 'before:today'],
             'height' => ['nullable', 'integer', 'min:100', 'max:250'],
             'weight' => ['nullable', 'integer', 'min:40', 'max:200'],
+            'photo' => ['nullable', 'image', 'max:4096'],
         ];
     }
 }

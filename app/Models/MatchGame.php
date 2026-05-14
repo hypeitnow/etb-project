@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MatchGame extends Model
 {
@@ -17,12 +18,15 @@ class MatchGame extends Model
      */
     protected $fillable = [
         'opponent_name',
+        'opponent_id',
         'match_date',
         'location',
+        'sports_hall_id',
         'is_home',
         'our_score',
         'opponent_score',
         'opponent_logo',
+        'home_logo',
         'status',
         'publish_at',
     ];
@@ -58,5 +62,15 @@ class MatchGame extends Model
     public function isPublished(): bool
     {
         return $this->publish_at === null || $this->publish_at->isPast();
+    }
+
+    public function opponent(): BelongsTo
+    {
+        return $this->belongsTo(Opponent::class);
+    }
+
+    public function sportsHall(): BelongsTo
+    {
+        return $this->belongsTo(SportsHall::class);
     }
 }

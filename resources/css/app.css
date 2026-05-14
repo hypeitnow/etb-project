@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+[x-cloak] {
+    display: none !important;
+}
+
+.admin-highlight {
+    animation: admin-highlight-pulse 4.5s ease-in-out;
+}
+
+@keyframes admin-highlight-pulse {
+    0% {
+        background-color: #fef3c7;
+        box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.65);
+    }
+
+    45% {
+        background-color: #fef9c3;
+        box-shadow: 0 0 0 8px rgba(250, 204, 21, 0);
+    }
+
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
 .dropdown-panel {
     position: absolute;
     top: 100%;

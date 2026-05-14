@@ -5,17 +5,22 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMatchRequest;
 use App\Http\Requests\UpdateMatchRequest;
 use App\Models\MatchGame;
+use App\Services\MatchGameService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class MatchController extends Controller
 {
+    public function __construct(private readonly MatchGameService $matchGameService)
+    {
+    }
+
     public function index(): View
     {
         $this->authorize('viewAny', MatchGame::class);
 
         $matches = MatchGame::query()
+            ->with(['opponent', 'sportsHall'])
             ->where(function ($query): void {
                 $query->whereNull('publish_at')
                     ->orWhere('publish_at', '<=', now());
@@ -42,13 +47,11 @@ class MatchController extends Controller
 
     public function store(StoreMatchRequest $request): RedirectResponse
     {
-        $data = $this->validatedMatchData($request->validated());
-
-        if ($request->hasFile('opponent_logo')) {
-            $data['opponent_logo'] = $request->file('opponent_logo')->store('match-opponents', 'public');
-        }
-
-        MatchGame::query()->create($data);
+        $this->matchGameService->create(
+            $request->validated(),
+            $request->file('opponent_logo'),
+            $request->file('home_logo')
+        );
 
         return redirect()
             ->route('profile.edit')
@@ -64,17 +67,12 @@ class MatchController extends Controller
 
     public function update(UpdateMatchRequest $request, MatchGame $match): RedirectResponse
     {
-        $data = $this->validatedMatchData($request->validated());
-
-        if ($request->hasFile('opponent_logo')) {
-            if ($match->opponent_logo) {
-                Storage::disk('public')->delete($match->opponent_logo);
-            }
-
-            $data['opponent_logo'] = $request->file('opponent_logo')->store('match-opponents', 'public');
-        }
-
-        $match->update($data);
+        $this->matchGameService->update(
+            $match,
+            $request->validated(),
+            $request->file('opponent_logo'),
+            $request->file('home_logo')
+        );
 
         return redirect()
             ->route('profile.edit')
@@ -85,31 +83,11 @@ class MatchController extends Controller
     {
         $this->authorize('delete', $match);
 
-        if ($match->opponent_logo) {
-            Storage::disk('public')->delete($match->opponent_logo);
-        }
-
-        $match->delete();
+        $this->matchGameService->delete($match);
 
         return redirect()
             ->route('profile.edit')
             ->with('success', 'Mecz został usunięty.');
     }
 
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function validatedMatchData(array $data): array
-    {
-        unset($data['opponent_logo']);
-
-        $data['our_score'] = $data['our_score'] ?? null;
-        $data['opponent_score'] = $data['opponent_score'] ?? null;
-
-        $hasResult = $data['our_score'] !== null && $data['opponent_score'] !== null;
-        $data['status'] = $hasResult ? MatchGame::STATUS_FINISHED : MatchGame::STATUS_UPCOMING;
-
-        return $data;
-    }
 }

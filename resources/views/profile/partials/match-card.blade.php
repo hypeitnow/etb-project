@@ -1,25 +1,31 @@
-<article class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+<article class="rounded border border-gray-200 bg-white p-4 shadow-sm transition hover:border-yellow-300">
     <div class="flex gap-4">
-        @if ($match->opponent_logo)
-            <img src="{{ asset('storage/'.$match->opponent_logo) }}"
-                 alt="Logo przeciwnika {{ $match->opponent_name }}"
-                 class="h-14 w-14 rounded bg-white object-contain p-1 ring-1 ring-gray-200">
-        @else
-            <div class="flex h-14 w-14 items-center justify-center rounded bg-white text-xs font-semibold text-gray-500 ring-1 ring-gray-200">
-                Logo
-            </div>
-        @endif
+        <div class="flex items-center gap-2">
+            @if ($match->home_logo)
+                <img src="{{ asset('storage/'.$match->home_logo) }}"
+                     alt="Logo ETB"
+                     class="h-12 w-12 rounded bg-white object-contain p-1 ring-1 ring-gray-200">
+            @endif
+
+            @if ($match->opponent_logo)
+                <img src="{{ asset('storage/'.$match->opponent_logo) }}"
+                     alt="Logo przeciwnika {{ $match->opponent_name }}"
+                     class="h-12 w-12 rounded bg-white object-contain p-1 ring-1 ring-gray-200">
+            @else
+                <div class="flex h-12 w-12 items-center justify-center rounded bg-gray-100 text-xs font-semibold text-gray-500 ring-1 ring-gray-200">
+                    Logo
+                </div>
+            @endif
+        </div>
 
         <div class="min-w-0 flex-1">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h5 class="font-semibold">{{ $match->opponent_name }}</h5>
-                    <p class="text-sm text-gray-600">
-                        {{ $match->match_date->format('d.m.Y H:i') }}
-                    </p>
+                    <h5 class="font-semibold text-gray-950">ETB kontra {{ $match->opponent_name }}</h5>
+                    <p class="text-sm text-gray-600">{{ $match->match_date->format('d.m.Y H:i') }}</p>
                 </div>
 
-                <span class="inline-flex w-fit rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 ring-1 ring-gray-200">
+                <span class="inline-flex w-fit rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-900">
                     {{ $match->is_home ? 'U siebie' : 'Wyjazd' }}
                 </span>
             </div>
@@ -33,12 +39,17 @@
                 @if ($match->hasResult())
                     <div>
                         <dt class="font-medium text-gray-900">Wynik</dt>
-                        <dd>{{ $match->resultLabel() }}</dd>
+                        <dd class="text-lg font-bold">{{ $match->resultLabel() }}</dd>
                     </div>
                 @endif
             </dl>
 
             <div class="mt-4 flex flex-wrap gap-2">
+                <a href="{{ route('matches.show', $match) }}"
+                   class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-gray-100">
+                    Szczegóły
+                </a>
+
                 @can('update', $match)
                     <button type="button"
                             class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-gray-100"

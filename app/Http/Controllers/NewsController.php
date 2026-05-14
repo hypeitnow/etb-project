@@ -5,21 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreNewsRequest;
 use App\Http\Requests\UpdateNewsRequest;
 use App\Models\News;
+use App\Services\NewsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class NewsController extends Controller
 {
+    public function __construct(private readonly NewsService $newsService)
+    {
+    }
+
     public function index(): View
     {
         $this->authorize('viewAny', News::class);
 
         $newsItems = News::query()
+            ->with(['author', 'images'])
             ->where(function ($query): void {
                 $query->whereNull('publish_at')
                     ->orWhere('publish_at', '<=', now());
             })
-            ->with('author')
             ->latest()
             ->get();
 
@@ -30,7 +35,7 @@ class NewsController extends Controller
     {
         $this->authorize('view', $news);
 
-        $news->load('author');
+        $news->load(['author', 'images']);
 
         return view('news.show', compact('news'));
     }
@@ -44,12 +49,12 @@ class NewsController extends Controller
 
     public function store(StoreNewsRequest $request): RedirectResponse
     {
-        News::query()->create([
-            ...$request->validated(),
-            'author_id' => $request->user()->id,
-        ]);
+        $data = $request->safe()->except(['main_image', 'gallery']);
+        $gallery = $request->file('gallery', []);
 
-        return back()->with('success', 'Changes saved successfully');
+        $this->newsService->create($data, $request->user()->id, $request->file('main_image'), $gallery);
+
+        return redirect()->route('profile.edit')->with('success', 'Aktualność została zapisana.');
     }
 
     public function edit(News $news): View
@@ -61,17 +66,20 @@ class NewsController extends Controller
 
     public function update(UpdateNewsRequest $request, News $news): RedirectResponse
     {
-        $news->update($request->validated());
+        $data = $request->safe()->except(['main_image', 'gallery']);
+        $gallery = $request->file('gallery', []);
 
-        return back()->with('success', 'Changes saved successfully');
+        $this->newsService->update($news, $data, $request->file('main_image'), $gallery);
+
+        return redirect()->route('profile.edit')->with('success', 'Aktualność została zaktualizowana.');
     }
 
     public function destroy(News $news): RedirectResponse
     {
         $this->authorize('delete', $news);
 
-        $news->delete();
+        $this->newsService->delete($news);
 
-        return back()->with('success', 'Changes saved successfully');
+        return back()->with('success', 'Aktualność została usunięta.');
     }
 }
