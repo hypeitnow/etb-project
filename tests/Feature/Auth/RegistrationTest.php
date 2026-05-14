@@ -17,8 +17,8 @@ test('registration sends activation code before account creation', function () {
     $response = $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
+        'password' => 'very-long-test-password',
+        'password_confirmation' => 'very-long-test-password',
         'accepted_terms' => '1',
         'accepted_privacy' => '1',
     ]);
@@ -36,7 +36,7 @@ test('new users can complete registration with activation code', function () {
     $pending = PendingRegistration::create([
         'name' => 'Test User',
         'email' => 'test@example.com',
-        'password' => Hash::make('password'),
+        'password' => Hash::make('very-long-test-password'),
         'accepted_terms' => true,
         'accepted_privacy' => true,
         'verification_code' => Hash::make('123456'),

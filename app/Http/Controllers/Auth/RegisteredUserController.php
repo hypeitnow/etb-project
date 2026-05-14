@@ -28,14 +28,16 @@ class RegisteredUserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'accepted_terms' => ['accepted'],
             'accepted_privacy' => ['accepted'],
         ]);
 
         $code = (string) random_int(100000, 999999);
+        $ttlMinutes = max(1, (int) config('security.registration_code.ttl_minutes', 10));
 
+        PendingRegistration::where('code_expires_at', '<', now())->delete();
         PendingRegistration::where('email', $validated['email'])->delete();
 
         PendingRegistration::create([
@@ -45,7 +47,7 @@ class RegisteredUserController extends Controller
             'accepted_terms' => (bool) $request->boolean('accepted_terms'),
             'accepted_privacy' => (bool) $request->boolean('accepted_privacy'),
             'verification_code' => Hash::make($code),
-            'code_expires_at' => now()->addMinutes(15),
+            'code_expires_at' => now()->addMinutes($ttlMinutes),
         ]);
 
         Mail::to($validated['email'])->send(new ActivationCodeMail($code));
@@ -68,19 +70,35 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'email'],
             'code' => ['required', 'digits:6'],
         ]);
+        $maxAttempts = max(1, (int) config('security.registration_code.max_attempts', 5));
 
         $pending = PendingRegistration::where('email', Str::lower($validated['email']))
             ->latest('id')
             ->first();
 
-        if (
-            ! $pending ||
-            now()->greaterThan($pending->code_expires_at) ||
-            ! Hash::check($validated['code'], $pending->verification_code)
-        ) {
-            throw ValidationException::withMessages([
-                'code' => 'Nieprawidłowy lub wygasły kod aktywacyjny.',
-            ]);
+        if (! $pending) {
+            $this->throwInvalidActivationCode();
+        }
+
+        if (now()->greaterThan($pending->code_expires_at)) {
+            $pending->delete();
+            $this->throwInvalidActivationCode();
+        }
+
+        if ($pending->verification_attempts >= $maxAttempts) {
+            $pending->delete();
+            $this->throwInvalidActivationCode();
+        }
+
+        if (! Hash::check($validated['code'], $pending->verification_code)) {
+            $pending->increment('verification_attempts');
+            $pending->refresh();
+
+            if ($pending->verification_attempts >= $maxAttempts) {
+                $pending->delete();
+            }
+
+            $this->throwInvalidActivationCode();
         }
 
         $user = User::create([
@@ -89,6 +107,7 @@ class RegisteredUserController extends Controller
             'password' => $pending->password,
             'role' => User::ROLE_FAN,
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         $user->fanProfile()->create([
             'can_buy_tickets' => true,
@@ -100,7 +119,15 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    private function throwInvalidActivationCode(): never
+    {
+        throw ValidationException::withMessages([
+            'code' => 'Nieprawidłowy lub wygasły kod aktywacyjny.',
+        ]);
     }
 }

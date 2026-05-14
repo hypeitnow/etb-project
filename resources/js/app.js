@@ -126,10 +126,6 @@ window.adminPanel = function adminPanel(config) {
         },
         init() {
             this.savedAccounts = this.readSavedAccounts();
-            if (!this.savedAccounts.some((account) => account.email === this.currentAccount.email)) {
-                this.savedAccounts.unshift(this.currentAccount);
-                this.persistSavedAccounts();
-            }
         },
         readSavedAccounts() {
             try {
@@ -149,9 +145,8 @@ window.adminPanel = function adminPanel(config) {
             this.persistSavedAccounts();
         },
         switchAccount(account) {
-            const loginUrl = new URL('/login', window.location.origin);
-            loginUrl.searchParams.set('email', account.email);
-            window.location.href = loginUrl.toString();
+            sessionStorage.setItem('etb.login.email', account.email);
+            window.location.href = '/login';
         },
         searchPanel() {
             const query = this.panelSearch.trim().toLowerCase();
@@ -174,6 +169,18 @@ window.adminPanel = function adminPanel(config) {
 };
 
 Alpine.start();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loginEmail = sessionStorage.getItem('etb.login.email');
+    if (!loginEmail) return;
+
+    const input = document.querySelector('input[name="email"][autocomplete="username"]');
+    if (input && !input.value) {
+        input.value = loginEmail;
+    }
+
+    sessionStorage.removeItem('etb.login.email');
+});
 
 window.reinitializeUi = function reinitializeUi() {
     createIcons({ icons });

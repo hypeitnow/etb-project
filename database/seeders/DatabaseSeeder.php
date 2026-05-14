@@ -20,19 +20,19 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'System Admin',
                 'email' => 'admin@example.com',
-                'password' => 'AdminPass!2026',
+                'password' => 'AdminPassphrase!2026',
                 'role' => User::ROLE_ADMIN,
             ],
             [
                 'name' => 'Club Employee',
                 'email' => 'employee@example.com',
-                'password' => 'EmployeePass!2026',
+                'password' => 'EmployeePassphrase!2026',
                 'role' => User::ROLE_EMPLOYEE,
             ],
             [
                 'name' => 'Team Fan',
                 'email' => 'fan@example.com',
-                'password' => 'FanPass!2026',
+                'password' => 'FanPassphrase!2026',
                 'role' => User::ROLE_FAN,
             ],
         ];

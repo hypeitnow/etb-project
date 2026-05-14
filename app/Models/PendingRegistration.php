@@ -13,7 +13,13 @@ class PendingRegistration extends Model
         'accepted_terms',
         'accepted_privacy',
         'verification_code',
+        'verification_attempts',
         'code_expires_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'verification_code',
     ];
 
     protected function casts(): array
@@ -21,6 +27,7 @@ class PendingRegistration extends Model
         return [
             'accepted_terms' => 'boolean',
             'accepted_privacy' => 'boolean',
+            'verification_attempts' => 'integer',
             'code_expires_at' => 'datetime',
         ];
     }
