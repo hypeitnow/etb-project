@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaymentGatewayInterface;
 use App\Models\Sponsor;
 use App\Models\User;
 use App\Rules\NotCommonPassword;
+use App\Services\Przelewy24Gateway;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(PaymentGatewayInterface::class, Przelewy24Gateway::class);
     }
 
     public function boot(): void

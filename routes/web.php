@@ -60,6 +60,22 @@ Route::resource('matches', MatchController::class);
 Route::get('/shop', [PublicProductController::class, 'index'])->name('shop.index');
 Route::get('/shop/{product}', [PublicProductController::class, 'show'])->name('shop.show');
 
+Route::get('/cart', [App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add', [App\Http\Controllers\CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/update', [App\Http\Controllers\CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove', [App\Http\Controllers\CartController::class, 'remove'])->name('cart.remove');
+Route::get('/cart/badge', [App\Http\Controllers\CartController::class, 'badge'])->name('cart.badge');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/checkout/shipping', [App\Http\Controllers\CheckoutController::class, 'shipping'])->name('checkout.shipping');
+    Route::post('/checkout/shipping', [App\Http\Controllers\CheckoutController::class, 'storeShipping']);
+    Route::get('/checkout/payment', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('checkout.payment');
+    Route::post('/checkout/place', [App\Http\Controllers\CheckoutController::class, 'place'])->name('checkout.place');
+    Route::get('/checkout/confirmation/{order}', [App\Http\Controllers\CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+});
+
+Route::post('/payment/przelewy24/webhook', [App\Http\Controllers\CheckoutController::class, 'webhook'])->name('payment.przelewy24.webhook');
+
 /*
 |--------------------------------------------------------------------------
 | Strony główne menu
@@ -100,5 +116,4 @@ Route::get('/3x3/tournaments/{tournament}', [ThreeXThreeTournamentController::cl
 
 /* CTA */
 Route::view('/tickets', 'pages.tickets')->name('tickets');
-Route::view('/shop', 'pages.shop')->name('shop');
 Route::view('/academy', 'pages.academy')->name('academy');
