@@ -16,6 +16,12 @@
                 </div>
             @endif
 
+            @if(session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -53,6 +59,65 @@
                     </div>
                 </div>
             </div>
+
+            @php
+                $transitions = [
+                    'paid' => ['label' => 'Oznacz jako opłacone', 'target' => 'paid', 'color' => 'bg-green-600 hover:bg-green-700'],
+                    'shipped' => ['label' => 'Oznacz jako wysłane', 'target' => 'shipped', 'color' => 'bg-blue-600 hover:bg-blue-700'],
+                    'delivered' => ['label' => 'Oznacz jako dostarczone', 'target' => 'delivered', 'color' => 'bg-gray-600 hover:bg-gray-700'],
+                    'cancelled' => ['label' => 'Anuluj zamówienie', 'target' => 'cancelled', 'color' => 'bg-red-600 hover:bg-red-700'],
+                ];
+                $available = $order->availableTransitions();
+            @endphp
+
+            @if(!empty($available))
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Zmiana statusu</h3>
+
+                        @if($order->status === 'cancelled')
+                            <form method="POST" action="{{ route('admin.orders.transition', $order) }}" class="space-y-4">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="pending_payment">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium">Ponowne otwarcie zamówienia</p>
+                                        <p class="text-sm text-gray-500">Anuluje poprzedni status i przywróci do oczekiwania na płatność.</p>
+                                    </div>
+                                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-4 py-2 rounded text-sm">
+                                        Ponownie otwórz
+                                    </button>
+                                </div>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('admin.orders.transition', $order) }}" class="space-y-4">
+                                @csrf
+                                @method('PATCH')
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($available as $transition)
+                                        <button type="submit" name="status" value="{{ $transition }}" class="{{ $transitions[$transition]['color'] ?? 'bg-gray-600 hover:bg-gray-700' }} text-white font-semibold px-4 py-2 rounded text-sm">
+                                            {{ $transitions[$transition]['label'] ?? ucfirst($transition) }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                                @if(in_array('cancelled', $available))
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Notatka do anulowania (opcjonalna)</label>
+                                        <input type="text" name="note" placeholder="Np. brak płatności, rezygnacja klienta..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                    </div>
+                                @endif
+                                @if(in_array('shipped', $available))
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Numer przesyłki</label>
+                                        <input type="text" name="tracking_number" placeholder="Wpisz numer przesyłki..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                    </div>
+                                @endif
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
@@ -146,6 +211,54 @@
                     </dl>
                 </div>
             </div>
+
+            @if($order->statusLogs->isNotEmpty())
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4">Historia zmian statusu</h3>
+                        <div class="flow-root">
+                            <ul class="-mb-8">
+                                @foreach($order->statusLogs as $log)
+                                    <li>
+                                        <div class="relative pb-8">
+                                            @if(!$loop->last)
+                                                <span class="absolute top-4 left-5 -ml-px h-full w-0.5 bg-gray-200"></span>
+                                            @endif
+                                            <div class="relative flex space-x-3">
+                                                <div>
+                                                    <span class="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                        <span class="text-xs font-bold text-gray-600">#{{ $log->id }}</span>
+                                                    </span>
+                                                </div>
+                                                <div class="flex-1 pt-1 flex justify-between items-start">
+                                                    <div>
+                                                        <p class="text-sm text-gray-800">
+                                                            @if($log->from_status)
+                                                                <span class="font-medium">{{ $order->statusLabel() }}</span>
+                                                                {{ ' → ' }}
+                                                                <span class="font-medium">{{ $log->to_status }}</span>
+                                                            @else
+                                                                Utworzono jako <span class="font-medium">{{ $log->to_status }}</span>
+                                                            @endif
+                                                        </p>
+                                                        <p class="text-xs text-gray-500">
+                                                            przez {{ $log->user->name }}
+                                                            · {{ $log->created_at->format('d.m.Y H:i') }}
+                                                        </p>
+                                                        @if($log->note)
+                                                            <p class="text-xs text-gray-600 mt-1 italic">"{{ $log->note }}"</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

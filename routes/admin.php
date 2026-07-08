@@ -35,6 +35,7 @@ Route::middleware(['auth', 'role:admin,employee'])->group(function () {
     Route::delete('/admin/products/{product}/variants/{variant}', [ProductController::class, 'removeVariant'])->name('admin.products.variants.destroy');
     Route::resource('/admin/categories', CategoryController::class)->names('admin.categories');
     Route::resource('/admin/orders', OrderController::class)->names('admin.orders')->only(['index', 'show']);
+    Route::patch('/admin/orders/{order}/transition', [OrderController::class, 'transition'])->name('admin.orders.transition');
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {

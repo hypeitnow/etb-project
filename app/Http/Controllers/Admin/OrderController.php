@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -35,8 +36,37 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['user', 'items.product', 'items.variantSize']);
+        $order->load(['user', 'items.product', 'items.variantSize', 'statusLogs.user']);
 
         return view('admin.orders.show', compact('order'));
+    }
+
+    public function transition(Request $request, Order $order): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:'.implode(',', $order->availableTransitions())],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'tracking_number' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $order->transitionTo(
+                $validated['status'],
+                $request->user(),
+                $validated['note'] ?? null,
+            );
+
+            if (! empty($validated['tracking_number'])) {
+                $order->update(['tracking_number' => $validated['tracking_number']]);
+            }
+        } catch (\InvalidArgumentException) {
+            return redirect()
+                ->back()
+                ->with('error', 'Nie można wykonać tego przejścia statusu.');
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Status zamówienia został zaktualizowany.');
     }
 }
