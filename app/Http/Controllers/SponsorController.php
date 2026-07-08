@@ -14,8 +14,7 @@ class SponsorController extends Controller
     public function __construct(
         private readonly SponsorService $sponsorService,
         private readonly AdminNotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     public function store(StoreSponsorRequest $request): RedirectResponse
     {

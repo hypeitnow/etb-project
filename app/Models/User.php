@@ -16,8 +16,11 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_ATHLETE = 'athlete';
+
     public const ROLE_FAN = 'fan';
+
     public const ROLE_EMPLOYEE = 'employee';
 
     /**
@@ -74,7 +77,7 @@ class User extends Authenticatable
     }
 
     /**
-     * @param list<string> $roles
+     * @param  list<string>  $roles
      */
     public function hasAnyRole(array $roles): bool
     {
@@ -101,4 +104,3 @@ class User extends Authenticatable
         return $this->hasMany(News::class, 'author_id');
     }
 }
-

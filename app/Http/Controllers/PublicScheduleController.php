@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MatchGame;
+use App\Models\TeamMatch;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -14,7 +14,7 @@ class PublicScheduleController extends Controller
         $view = $request->string('view', 'all')->toString();
         $sort = $request->string('sort', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
 
-        $query = MatchGame::query()
+        $query = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
             ->where(function ($query): void {
                 $query->whereNull('publish_at')->orWhere('publish_at', '<=', now());
@@ -24,13 +24,13 @@ class PublicScheduleController extends Controller
             $query->where('season', $season);
         }
 
-        if (in_array($view, [MatchGame::STATUS_UPCOMING, MatchGame::STATUS_FINISHED], true)) {
+        if (in_array($view, [TeamMatch::STATUS_UPCOMING, TeamMatch::STATUS_FINISHED], true)) {
             $query->where('status', $view);
         }
 
         $matches = $query->orderBy('match_date', $sort)->get();
 
-        $seasons = MatchGame::query()
+        $seasons = TeamMatch::query()
             ->whereNotNull('season')
             ->distinct()
             ->orderByDesc('season')
@@ -38,8 +38,8 @@ class PublicScheduleController extends Controller
 
         return view('pages.schedule', [
             'matches' => $matches,
-            'upcomingMatches' => $matches->where('status', MatchGame::STATUS_UPCOMING),
-            'finishedMatches' => $matches->where('status', MatchGame::STATUS_FINISHED),
+            'upcomingMatches' => $matches->where('status', TeamMatch::STATUS_UPCOMING),
+            'finishedMatches' => $matches->where('status', TeamMatch::STATUS_FINISHED),
             'seasons' => $seasons,
             'selectedSeason' => $season,
             'selectedView' => $view,
@@ -47,7 +47,7 @@ class PublicScheduleController extends Controller
         ]);
     }
 
-    public function show(MatchGame $match): View
+    public function show(TeamMatch $match): View
     {
         abort_unless($match->isPublished(), 404);
 
@@ -58,7 +58,7 @@ class PublicScheduleController extends Controller
 
     public function lzkosz(): View
     {
-        $matches = MatchGame::query()
+        $matches = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
             ->where('include_in_lzkosz', true)
             ->where(function ($query): void {
@@ -68,8 +68,8 @@ class PublicScheduleController extends Controller
             ->get();
 
         return view('pages.schedule-lzkosz', [
-            'roundOneMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_ONE),
-            'roundTwoMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_TWO),
+            'roundOneMatches' => $matches->where('lzkosz_round', TeamMatch::LZKOSZ_ROUND_ONE),
+            'roundTwoMatches' => $matches->where('lzkosz_round', TeamMatch::LZKOSZ_ROUND_TWO),
         ]);
     }
 }

@@ -1,13 +1,16 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminMatchController;
+use App\Http\Controllers\Admin\AdminNotificationController;
+use App\Http\Controllers\Admin\MatchSuggestionController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\UserSearchController;
-use App\Http\Controllers\Admin\MatchSuggestionController;
-use App\Http\Controllers\Admin\AdminNotificationController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicNewsController;
 use App\Http\Controllers\PublicScheduleController;
 use App\Http\Controllers\PublicTeamController;
@@ -15,90 +18,67 @@ use App\Http\Controllers\SponsorController;
 use App\Http\Controllers\TeamStaffController;
 use App\Http\Controllers\ThreeXThreeMemberController;
 use App\Http\Controllers\ThreeXThreeTournamentController;
-use App\Models\AppSetting;
-use App\Models\Game;
-use App\Models\MatchGame;
-use App\Models\News;
-use App\Models\Player;
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Controllers\UserDataController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    $latestNews = News::query()
-        ->with(['author', 'images'])
-        ->active()
-        ->published()
-        ->latest('publish_at')
-        ->latest()
-        ->take(11)
-        ->get();
+Route::get('/', HomeController::class)->name('home');
 
-    $lastFinishedMatch = MatchGame::query()
-        ->with(['opponent', 'sportsHall'])
-        ->where('status', MatchGame::STATUS_FINISHED)
-        ->where(function ($query): void {
-            $query->whereNull('publish_at')->orWhere('publish_at', '<=', now());
-        })
-        ->latest('match_date')
-        ->first();
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
-    $upcomingMatches = MatchGame::query()
-        ->with(['opponent', 'sportsHall'])
-        ->where('status', MatchGame::STATUS_UPCOMING)
-        ->where('match_date', '>=', now())
-        ->where(function ($query): void {
-            $query->whereNull('publish_at')->orWhere('publish_at', '<=', now());
-        })
-        ->orderBy('match_date')
-        ->take(2)
-        ->get();
-
-    $startingFive = Player::query()
-        ->where('is_starting_five', true)
-        ->orderBy('number')
-        ->get()
-        ->sortBy(fn (Player $player): array => [$player->positionOrder(), $player->number])
-        ->take(5)
-        ->values();
-
-    return view('home', [
-        'heroNews' => $latestNews->take(5),
-        'featuredArticles' => $latestNews->slice(5, 2),
-        'moreArticles' => $latestNews->slice(7, 4),
-        'lastFinishedMatch' => $lastFinishedMatch,
-        'upcomingMatches' => $upcomingMatches,
-        'startingFive' => $startingFive,
-    ]);
-})->name('home');
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+require __DIR__.'/auth.php';
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
-require __DIR__.'/auth.php';
-
-Route::resource('players', PlayerController::class)->only(['index', 'show']);
-
-Route::middleware(['auth'])->group(function () {
     Route::resource('players', PlayerController::class)->except(['index', 'show']);
-});
 
-
-Route::get('/news', [PublicNewsController::class, 'index'])->name('news.index');
-Route::get('/news/{news}', [PublicNewsController::class, 'show'])->name('news.show');
-
-Route::middleware(['auth'])->group(function () {
     Route::resource('news', NewsController::class)->except(['index', 'show']);
     Route::get('/admin/news/{news}/preview', [NewsController::class, 'preview'])->name('admin.news.preview');
     Route::patch('/admin/news/{news}/publish', [NewsController::class, 'publish'])->name('admin.news.publish');
+
+    Route::middleware('role:admin,employee')->group(function () {
+        Route::middleware('can:manage-matches')->group(function () {
+            Route::get('/admin/matches/create', [AdminMatchController::class, 'create'])->name('admin.matches.create');
+            Route::post('/admin/matches', [AdminMatchController::class, 'store'])->name('admin.matches.store');
+        });
+
+        Route::get('/admin/match-suggestions/locations', [MatchSuggestionController::class, 'locations'])->name('admin.match-suggestions.locations');
+        Route::get('/admin/match-suggestions/opponents', [MatchSuggestionController::class, 'opponents'])->name('admin.match-suggestions.opponents');
+        Route::patch('/admin/notifications/{notification}/read', [AdminNotificationController::class, 'read'])->name('admin.notifications.read');
+        Route::patch('/admin/notifications/{notification}/accept', [AdminNotificationController::class, 'accept'])->name('admin.notifications.accept');
+        Route::delete('/admin/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('admin.notifications.destroy');
+        Route::resource('/admin/staff', TeamStaffController::class)->only(['store', 'update', 'destroy'])->parameters(['staff' => 'staff']);
+        Route::resource('/admin/3x3/members', ThreeXThreeMemberController::class)->only(['store', 'update', 'destroy'])->parameters(['members' => 'member']);
+        Route::resource('/admin/3x3/tournaments', ThreeXThreeTournamentController::class)->only(['store', 'update', 'destroy'])->parameters(['tournaments' => 'tournament']);
+        Route::resource('/admin/sponsors', SponsorController::class)->only(['store', 'update', 'destroy']);
+    });
+
+    Route::middleware('role:admin')->group(function () {
+        Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
+        Route::get('/admin/users/search', UserSearchController::class)->name('admin.users.search');
+    });
+
+    Route::middleware('role:athlete')->group(function () {
+        Route::get('/athlete/data', [UserDataController::class, 'athlete'])->name('athlete.data');
+    });
+
+    Route::middleware('role:fan')->group(function () {
+        Route::get('/fan/data', [UserDataController::class, 'fan'])->name('fan.data');
+    });
+
+    Route::middleware('role:employee')->group(function () {
+        Route::get('/employee/data', [UserDataController::class, 'employee'])->name('employee.data');
+    });
 });
+
+Route::resource('players', PlayerController::class)->only(['index', 'show']);
+
+Route::get('/news', [PublicNewsController::class, 'index'])->name('news.index');
+Route::get('/news/{news}', [PublicNewsController::class, 'show'])->name('news.show');
 
 Route::resource('matches', MatchController::class);
 
@@ -112,7 +92,6 @@ Route::get('/schedule', [PublicScheduleController::class, 'index'])->name('sched
 Route::get('/schedule/matches/{match}', [PublicScheduleController::class, 'show'])->name('schedule.matches.show');
 Route::view('/team', 'pages.team')->name('team');
 Route::view('/contact', 'pages.contact')->name('contact');
-
 
 /* Klub */
 Route::view('/club/history', 'pages.club-history')->name('club.history');
@@ -145,81 +124,3 @@ Route::get('/3x3/tournaments/{tournament}', [ThreeXThreeTournamentController::cl
 Route::view('/tickets', 'pages.tickets')->name('tickets');
 Route::view('/shop', 'pages.shop')->name('shop');
 Route::view('/academy', 'pages.academy')->name('academy');
-
-Route::middleware(['auth', 'role:admin,employee', 'can:manage-matches'])->group(function () {
-    Route::get('/admin/matches/create', function () {
-        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
-
-        return view('admin.create-match', compact('defaultHomeLogo'));
-    })->name('admin.matches.create');
-
-    Route::post('/admin/matches', function (Request $request) {
-        $validated = $request->validate([
-            'opponent' => ['required', 'string', 'max:255'],
-            'match_date' => ['required', 'date'],
-            'location' => ['required', 'string', 'max:255'],
-            'exact_address' => ['nullable', 'string', 'max:500'],
-            'is_home' => ['nullable', 'boolean'],
-            'image' => ['nullable', 'image', 'max:5120'],
-            'away_logo' => ['nullable', 'image', 'max:5120'],
-            'default_home_logo' => ['nullable', 'image', 'max:5120'],
-        ]);
-
-        $defaultHomeLogo = AppSetting::getValue('default_home_logo');
-
-        if ($request->hasFile('default_home_logo')) {
-            $defaultHomeLogo = $request->file('default_home_logo')->store('logos', 'public');
-            AppSetting::setValue('default_home_logo', $defaultHomeLogo);
-        }
-
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('matches', 'public');
-        }
-
-        if ($request->hasFile('away_logo')) {
-            $validated['away_logo'] = $request->file('away_logo')->store('logos', 'public');
-        }
-
-        $validated['home_logo'] = $defaultHomeLogo;
-        $validated['is_home'] = $request->boolean('is_home');
-
-        Game::create($validated);
-
-        return redirect()->route('admin.matches.create')->with('status', 'Mecz został zapisany.');
-    })->name('admin.matches.store');
-});
-
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
-    Route::get('/admin/users/search', UserSearchController::class)->name('admin.users.search');
-});
-
-Route::middleware(['auth', 'role:admin,employee'])->group(function () {
-    Route::get('/admin/match-suggestions/locations', [MatchSuggestionController::class, 'locations'])->name('admin.match-suggestions.locations');
-    Route::get('/admin/match-suggestions/opponents', [MatchSuggestionController::class, 'opponents'])->name('admin.match-suggestions.opponents');
-    Route::patch('/admin/notifications/{notification}/read', [AdminNotificationController::class, 'read'])->name('admin.notifications.read');
-    Route::patch('/admin/notifications/{notification}/accept', [AdminNotificationController::class, 'accept'])->name('admin.notifications.accept');
-    Route::delete('/admin/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('admin.notifications.destroy');
-    Route::resource('/admin/staff', TeamStaffController::class)->only(['store', 'update', 'destroy'])->parameters(['staff' => 'staff']);
-    Route::resource('/admin/3x3/members', ThreeXThreeMemberController::class)->only(['store', 'update', 'destroy'])->parameters(['members' => 'member']);
-    Route::resource('/admin/3x3/tournaments', ThreeXThreeTournamentController::class)->only(['store', 'update', 'destroy'])->parameters(['tournaments' => 'tournament']);
-    Route::resource('/admin/sponsors', SponsorController::class)->only(['store', 'update', 'destroy']);
-});
-
-Route::middleware(['auth', 'role:athlete'])->group(function () {
-    Route::get('/athlete/data', function () {
-        return response()->json(request()->user()->athleteProfile);
-    })->name('athlete.data');
-});
-
-Route::middleware(['auth', 'role:fan'])->group(function () {
-    Route::get('/fan/data', function () {
-        return response()->json(request()->user()->fanProfile);
-    })->name('fan.data');
-});
-
-Route::middleware(['auth', 'role:employee'])->group(function () {
-    Route::get('/employee/data', function () {
-        return response()->json(request()->user()->employeeProfile);
-    })->name('employee.data');
-});

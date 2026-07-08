@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @php
-    use App\Models\MatchGame;
+    use App\Models\TeamMatch;
     use App\Models\ThreeXThreeTournament;
 
     $isPanelUser = $isAdmin || $isEmployee;

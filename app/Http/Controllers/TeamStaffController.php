@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTeamStaffRequest;
 use App\Http\Requests\UpdateTeamStaffRequest;
 use App\Models\TeamStaff;
+use App\Models\User;
 use App\Services\AdminNotificationService;
 use App\Services\MediaCardService;
 use Illuminate\Http\RedirectResponse;
@@ -14,9 +15,7 @@ class TeamStaffController extends Controller
     public function __construct(
         private readonly MediaCardService $mediaCardService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function store(StoreTeamStaffRequest $request): RedirectResponse
     {
@@ -36,7 +35,7 @@ class TeamStaffController extends Controller
 
     public function destroy(TeamStaff $staff): RedirectResponse
     {
-        abort_unless(request()->user()?->role === \App\Models\User::ROLE_ADMIN, 403);
+        abort_unless(request()->user()?->role === User::ROLE_ADMIN, 403);
 
         $label = "Sztab: {$staff->name}";
         $id = $staff->id;

@@ -12,6 +12,7 @@ class ThreeXThreeTournament extends Model
     use HasFactory;
 
     public const STATUS_UPCOMING = 'upcoming';
+
     public const STATUS_FINISHED = 'finished';
 
     protected $fillable = [

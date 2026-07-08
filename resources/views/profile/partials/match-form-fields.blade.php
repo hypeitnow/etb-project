@@ -1,8 +1,8 @@
 @php
-    use App\Models\MatchGame;
+    use App\Models\TeamMatch;
 
     $match = $match ?? null;
-    $currentStatus = old('status', $match?->status ?? MatchGame::STATUS_UPCOMING);
+    $currentStatus = old('status', $match?->status ?? TeamMatch::STATUS_UPCOMING);
     $isHome = filter_var(old('is_home', $match?->is_home ?? true), FILTER_VALIDATE_BOOLEAN);
     $includeInLzkosz = filter_var(old('include_in_lzkosz', $match?->include_in_lzkosz ?? false), FILTER_VALIDATE_BOOLEAN);
     $isTicketed = filter_var(old('is_ticketed', $match?->is_ticketed ?? false), FILTER_VALIDATE_BOOLEAN);
@@ -19,7 +19,7 @@
      class="space-y-5">
     <div class="grid gap-3 sm:grid-cols-2">
         <label class="flex cursor-pointer items-center gap-3 rounded border border-gray-200 p-3">
-            <input type="radio" name="status" value="{{ MatchGame::STATUS_UPCOMING }}" x-model="status" class="border-gray-300 text-yellow-500">
+            <input type="radio" name="status" value="{{ TeamMatch::STATUS_UPCOMING }}" x-model="status" class="border-gray-300 text-yellow-500">
             <span>
                 <span class="block text-sm font-semibold text-gray-900">Mecz nadchodzący</span>
                 <span class="block text-xs text-gray-500">Wynik pozostaje ukryty.</span>
@@ -27,7 +27,7 @@
         </label>
 
         <label class="flex cursor-pointer items-center gap-3 rounded border border-gray-200 p-3">
-            <input type="radio" name="status" value="{{ MatchGame::STATUS_FINISHED }}" x-model="status" class="border-gray-300 text-yellow-500">
+            <input type="radio" name="status" value="{{ TeamMatch::STATUS_FINISHED }}" x-model="status" class="border-gray-300 text-yellow-500">
             <span>
                 <span class="block text-sm font-semibold text-gray-900">Mecz zakończony</span>
                 <span class="block text-xs text-gray-500">Uzupełnij końcowy wynik.</span>
@@ -50,7 +50,7 @@
 
         <label class="block">
             <span class="text-sm font-medium text-gray-700">Data meczu</span>
-            <input name="match_date" type="datetime-local" required :min="status === '{{ MatchGame::STATUS_UPCOMING }}' ? '{{ now()->format('Y-m-d\T00:00') }}' : null" value="{{ old('match_date', $match?->match_date?->format('Y-m-d\TH:i')) }}" class="mt-1 w-full rounded border-gray-300">
+            <input name="match_date" type="datetime-local" required :min="status === '{{ TeamMatch::STATUS_UPCOMING }}' ? '{{ now()->format('Y-m-d\T00:00') }}' : null" value="{{ old('match_date', $match?->match_date?->format('Y-m-d\TH:i')) }}" class="mt-1 w-full rounded border-gray-300">
         </label>
 
         <label class="relative block">
@@ -88,8 +88,8 @@
         <label class="block" x-show="includeInLzkosz" x-cloak>
             <span class="text-sm font-medium text-gray-700">Runda ŁZKosz</span>
             <select name="lzkosz_round" :disabled="!includeInLzkosz" class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
-                <option value="{{ MatchGame::LZKOSZ_ROUND_ONE }}" @selected(old('lzkosz_round', $match?->lzkosz_round ?? MatchGame::LZKOSZ_ROUND_ONE) === MatchGame::LZKOSZ_ROUND_ONE)>Runda 1</option>
-                <option value="{{ MatchGame::LZKOSZ_ROUND_TWO }}" @selected(old('lzkosz_round', $match?->lzkosz_round) === MatchGame::LZKOSZ_ROUND_TWO)>Runda 2</option>
+                <option value="{{ TeamMatch::LZKOSZ_ROUND_ONE }}" @selected(old('lzkosz_round', $match?->lzkosz_round ?? TeamMatch::LZKOSZ_ROUND_ONE) === TeamMatch::LZKOSZ_ROUND_ONE)>Runda 1</option>
+                <option value="{{ TeamMatch::LZKOSZ_ROUND_TWO }}" @selected(old('lzkosz_round', $match?->lzkosz_round) === TeamMatch::LZKOSZ_ROUND_TWO)>Runda 2</option>
             </select>
         </label>
 
@@ -103,15 +103,15 @@
             <input name="ticket_url" type="url" :disabled="!isTicketed" value="{{ old('ticket_url', $match?->ticket_url) }}" placeholder="https://..." class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
         </label>
 
-        <div class="grid gap-4 md:col-span-2 md:grid-cols-2" x-show="status === '{{ MatchGame::STATUS_FINISHED }}'">
+        <div class="grid gap-4 md:col-span-2 md:grid-cols-2" x-show="status === '{{ TeamMatch::STATUS_FINISHED }}'">
             <label class="block">
                 <span class="text-sm font-medium text-gray-700">Punkty ETB</span>
-                <input name="our_score" type="number" min="0" max="999" :disabled="status !== '{{ MatchGame::STATUS_FINISHED }}'" value="{{ old('our_score', $match?->our_score) }}" class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
+                <input name="our_score" type="number" min="0" max="999" :disabled="status !== '{{ TeamMatch::STATUS_FINISHED }}'" value="{{ old('our_score', $match?->our_score) }}" class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
             </label>
 
             <label class="block">
                 <span class="text-sm font-medium text-gray-700">Punkty przeciwnika</span>
-                <input name="opponent_score" type="number" min="0" max="999" :disabled="status !== '{{ MatchGame::STATUS_FINISHED }}'" value="{{ old('opponent_score', $match?->opponent_score) }}" class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
+                <input name="opponent_score" type="number" min="0" max="999" :disabled="status !== '{{ TeamMatch::STATUS_FINISHED }}'" value="{{ old('opponent_score', $match?->opponent_score) }}" class="mt-1 w-full rounded border-gray-300 disabled:bg-gray-100">
             </label>
         </div>
 

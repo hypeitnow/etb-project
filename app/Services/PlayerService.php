@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class PlayerService
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data, ?UploadedFile $photo): Player
     {
@@ -24,7 +24,7 @@ class PlayerService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Player $player, array $data, ?UploadedFile $photo): Player
     {

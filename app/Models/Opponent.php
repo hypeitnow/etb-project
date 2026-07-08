@@ -17,6 +17,6 @@ class Opponent extends Model
 
     public function matches(): HasMany
     {
-        return $this->hasMany(MatchGame::class);
+        return $this->hasMany(TeamMatch::class);
     }
 }

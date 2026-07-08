@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\MatchGame;
 use App\Models\News;
 use App\Models\Player;
+use App\Models\TeamMatch;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -30,32 +30,32 @@ it('shows homepage sections from published news, visible matches, and starting f
         'is_visible' => false,
     ]);
 
-    MatchGame::query()->create([
+    TeamMatch::query()->create([
         'opponent_name' => 'LKS Lodz',
         'match_date' => now()->subDays(2),
         'location' => 'Lodz',
         'is_home' => false,
         'our_score' => 81,
         'opponent_score' => 74,
-        'status' => MatchGame::STATUS_FINISHED,
+        'status' => TeamMatch::STATUS_FINISHED,
         'publish_at' => now()->subDays(3),
     ]);
 
-    MatchGame::query()->create([
+    TeamMatch::query()->create([
         'opponent_name' => 'Trefl Sopot',
         'match_date' => now()->addDays(2),
         'location' => 'Hala ETB',
         'is_home' => true,
-        'status' => MatchGame::STATUS_UPCOMING,
+        'status' => TeamMatch::STATUS_UPCOMING,
         'publish_at' => now()->subDay(),
     ]);
 
-    MatchGame::query()->create([
+    TeamMatch::query()->create([
         'opponent_name' => 'Slask Wroclaw',
         'match_date' => now()->addDays(5),
         'location' => 'Wroclaw',
         'is_home' => false,
-        'status' => MatchGame::STATUS_UPCOMING,
+        'status' => TeamMatch::STATUS_UPCOMING,
         'publish_at' => now()->subDay(),
     ]);
 

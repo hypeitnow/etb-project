@@ -1,5 +1,5 @@
 @php
-    use App\Models\MatchGame;
+    use App\Models\TeamMatch;
 
     $logo = $match?->opponent_logo ?: $match?->opponent?->logo_path;
 @endphp
@@ -23,7 +23,7 @@
                 <p class="text-sm font-semibold text-zinc-400">{{ $match->is_home ? 'Domowy' : 'Wyjazdowy' }} · {{ $match->location }}</p>
             </div>
         </div>
-        <span class="rounded bg-zinc-900 px-2 py-1 text-xs font-bold uppercase text-yellow-400">{{ $match->status === MatchGame::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</span>
+        <span class="rounded bg-zinc-900 px-2 py-1 text-xs font-bold uppercase text-yellow-400">{{ $match->status === TeamMatch::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</span>
     </div>
 
     <div class="mt-6 flex items-end justify-between gap-4">
@@ -32,7 +32,7 @@
             <p class="mt-1 text-2xl font-black text-white">{{ $match->match_date?->format('H:i') }}</p>
         </div>
 
-        @if ($match->status === MatchGame::STATUS_FINISHED)
+        @if ($match->status === TeamMatch::STATUS_FINISHED)
             <div class="text-right">
                 <p class="text-3xl font-black {{ $match->isWin() ? 'text-emerald-400' : 'text-red-400' }}">{{ $match->our_score }}:{{ $match->opponent_score }}</p>
                 <p class="text-xs font-bold uppercase tracking-widest {{ $match->isWin() ? 'text-emerald-400' : 'text-red-400' }}">{{ $match->isWin() ? 'Zwycięstwo' : 'Porażka' }}</p>

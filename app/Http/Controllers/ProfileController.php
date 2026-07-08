@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\AdminNotification;
-use App\Models\MatchGame;
 use App\Models\News;
 use App\Models\Player;
 use App\Models\Sponsor;
+use App\Models\TeamMatch;
 use App\Models\TeamStaff;
 use App\Models\ThreeXThreeMember;
 use App\Models\ThreeXThreeTournament;
@@ -24,15 +24,15 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $upcomingMatches = MatchGame::query()
+        $upcomingMatches = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
-            ->where('status', MatchGame::STATUS_UPCOMING)
+            ->where('status', TeamMatch::STATUS_UPCOMING)
             ->orderBy('match_date')
             ->get();
 
-        $finishedMatches = MatchGame::query()
+        $finishedMatches = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
-            ->where('status', MatchGame::STATUS_FINISHED)
+            ->where('status', TeamMatch::STATUS_FINISHED)
             ->orderByDesc('match_date')
             ->get();
 

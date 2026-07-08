@@ -2,6 +2,4 @@
 
 namespace App\Http\Requests;
 
-class UpdateThreeXThreeTournamentRequest extends StoreThreeXThreeTournamentRequest
-{
-}
+class UpdateThreeXThreeTournamentRequest extends StoreThreeXThreeTournamentRequest {}

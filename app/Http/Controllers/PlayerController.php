@@ -15,9 +15,7 @@ class PlayerController extends Controller
     public function __construct(
         private readonly PlayerService $playerService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function index(): View
     {

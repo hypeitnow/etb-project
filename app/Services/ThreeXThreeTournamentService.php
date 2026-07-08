@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class ThreeXThreeTournamentService
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data, ?UploadedFile $image): ThreeXThreeTournament
     {
@@ -27,7 +27,7 @@ class ThreeXThreeTournamentService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(ThreeXThreeTournament $tournament, array $data, ?UploadedFile $image): ThreeXThreeTournament
     {
@@ -58,7 +58,7 @@ class ThreeXThreeTournamentService
     }
 
     /**
-     * @param array<int, string> $categories
+     * @param  array<int, string>  $categories
      */
     private function syncCategories(ThreeXThreeTournament $tournament, array $categories): void
     {

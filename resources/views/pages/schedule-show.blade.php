@@ -55,7 +55,7 @@
             </div>
             <div class="rounded border border-zinc-800 bg-zinc-900 p-4">
                 <dt class="text-xs uppercase tracking-widest text-zinc-500">Status</dt>
-                <dd class="mt-1 font-bold text-white">{{ $match->status === \App\Models\MatchGame::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</dd>
+                <dd class="mt-1 font-bold text-white">{{ $match->status === \App\Models\TeamMatch::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</dd>
             </div>
         </dl>
 

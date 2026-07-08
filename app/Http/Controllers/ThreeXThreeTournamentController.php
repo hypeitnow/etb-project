@@ -16,9 +16,7 @@ class ThreeXThreeTournamentController extends Controller
     public function __construct(
         private readonly ThreeXThreeTournamentService $tournamentService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function index(): View
     {

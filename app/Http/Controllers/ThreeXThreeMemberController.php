@@ -15,9 +15,7 @@ class ThreeXThreeMemberController extends Controller
     public function __construct(
         private readonly MediaCardService $mediaCardService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function store(StoreThreeXThreeMemberRequest $request): RedirectResponse
     {
