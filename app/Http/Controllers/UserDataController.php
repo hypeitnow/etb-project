@@ -20,4 +20,9 @@ class UserDataController extends Controller
     {
         return response()->json(request()->user()->employeeProfile);
     }
+
+    public function trainer(): JsonResponse
+    {
+        return response()->json(['role' => 'trainer']);
+    }
 }

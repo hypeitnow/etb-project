@@ -23,6 +23,8 @@ class User extends Authenticatable
 
     public const ROLE_EMPLOYEE = 'employee';
 
+    public const ROLE_TRAINER = 'trainer';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -68,6 +70,7 @@ class User extends Authenticatable
             self::ROLE_ATHLETE,
             self::ROLE_FAN,
             self::ROLE_EMPLOYEE,
+            self::ROLE_TRAINER,
         ];
     }
 

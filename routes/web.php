@@ -1,10 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminMatchController;
-use App\Http\Controllers\Admin\AdminNotificationController;
-use App\Http\Controllers\Admin\MatchSuggestionController;
-use App\Http\Controllers\Admin\UserRoleController;
-use App\Http\Controllers\Admin\UserSearchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MatchController;
@@ -12,12 +7,9 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicNewsController;
+use App\Http\Controllers\PublicProductController;
 use App\Http\Controllers\PublicScheduleController;
 use App\Http\Controllers\PublicTeamController;
-use App\Http\Controllers\SponsorController;
-use App\Http\Controllers\TeamStaffController;
-use App\Http\Controllers\ThreeXThreeMemberController;
-use App\Http\Controllers\ThreeXThreeTournamentController;
 use App\Http\Controllers\UserDataController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +20,7 @@ Route::get('/dashboard', DashboardController::class)
     ->name('dashboard');
 
 require __DIR__.'/auth.php';
+require __DIR__.'/admin.php';
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -40,28 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/news/{news}/preview', [NewsController::class, 'preview'])->name('admin.news.preview');
     Route::patch('/admin/news/{news}/publish', [NewsController::class, 'publish'])->name('admin.news.publish');
 
-    Route::middleware('role:admin,employee')->group(function () {
-        Route::middleware('can:manage-matches')->group(function () {
-            Route::get('/admin/matches/create', [AdminMatchController::class, 'create'])->name('admin.matches.create');
-            Route::post('/admin/matches', [AdminMatchController::class, 'store'])->name('admin.matches.store');
-        });
-
-        Route::get('/admin/match-suggestions/locations', [MatchSuggestionController::class, 'locations'])->name('admin.match-suggestions.locations');
-        Route::get('/admin/match-suggestions/opponents', [MatchSuggestionController::class, 'opponents'])->name('admin.match-suggestions.opponents');
-        Route::patch('/admin/notifications/{notification}/read', [AdminNotificationController::class, 'read'])->name('admin.notifications.read');
-        Route::patch('/admin/notifications/{notification}/accept', [AdminNotificationController::class, 'accept'])->name('admin.notifications.accept');
-        Route::delete('/admin/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('admin.notifications.destroy');
-        Route::resource('/admin/staff', TeamStaffController::class)->only(['store', 'update', 'destroy'])->parameters(['staff' => 'staff']);
-        Route::resource('/admin/3x3/members', ThreeXThreeMemberController::class)->only(['store', 'update', 'destroy'])->parameters(['members' => 'member']);
-        Route::resource('/admin/3x3/tournaments', ThreeXThreeTournamentController::class)->only(['store', 'update', 'destroy'])->parameters(['tournaments' => 'tournament']);
-        Route::resource('/admin/sponsors', SponsorController::class)->only(['store', 'update', 'destroy']);
-    });
-
-    Route::middleware('role:admin')->group(function () {
-        Route::patch('/admin/users/{user}/role', [UserRoleController::class, 'update'])->name('admin.users.role.update');
-        Route::get('/admin/users/search', UserSearchController::class)->name('admin.users.search');
-    });
-
     Route::middleware('role:athlete')->group(function () {
         Route::get('/athlete/data', [UserDataController::class, 'athlete'])->name('athlete.data');
     });
@@ -73,6 +44,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:employee')->group(function () {
         Route::get('/employee/data', [UserDataController::class, 'employee'])->name('employee.data');
     });
+
+    Route::middleware('role:trainer')->group(function () {
+        Route::get('/trainer/data', [UserDataController::class, 'trainer'])->name('trainer.data');
+    });
 });
 
 Route::resource('players', PlayerController::class)->only(['index', 'show']);
@@ -81,6 +56,9 @@ Route::get('/news', [PublicNewsController::class, 'index'])->name('news.index');
 Route::get('/news/{news}', [PublicNewsController::class, 'show'])->name('news.show');
 
 Route::resource('matches', MatchController::class);
+
+Route::get('/shop', [PublicProductController::class, 'index'])->name('shop.index');
+Route::get('/shop/{product}', [PublicProductController::class, 'show'])->name('shop.show');
 
 /*
 |--------------------------------------------------------------------------
