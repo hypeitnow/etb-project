@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Contracts\PaymentGatewayInterface;
 use App\Models\Cart;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Services\CartService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -132,7 +132,7 @@ class CheckoutController extends Controller
         }
     }
 
-    public function webhook(Request $request): \Illuminate\Http\JsonResponse
+    public function webhook(Request $request): JsonResponse
     {
         $data = $request->all();
 

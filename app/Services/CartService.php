@@ -89,6 +89,7 @@ class CartService
     {
         if ($qty < 1) {
             $this->removeItem($user, $productId, $variantSizeId);
+
             return;
         }
 
@@ -204,7 +205,7 @@ class CartService
     private function guestCart(): Cart
     {
         $items = $this->getGuestCartItems();
-        $cart = new Cart();
+        $cart = new Cart;
         $cart->total_grosze = collect($items)->sum(fn ($i) => $i['qty'] * $i['unit_price_grosze']);
 
         return $cart;

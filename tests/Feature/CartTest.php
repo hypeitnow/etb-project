@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariantSize;
 use App\Models\User;

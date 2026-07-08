@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MatchController;
@@ -60,21 +62,21 @@ Route::resource('matches', MatchController::class);
 Route::get('/shop', [PublicProductController::class, 'index'])->name('shop.index');
 Route::get('/shop/{product}', [PublicProductController::class, 'show'])->name('shop.show');
 
-Route::get('/cart', [App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
-Route::post('/cart/add', [App\Http\Controllers\CartController::class, 'add'])->name('cart.add');
-Route::post('/cart/update', [App\Http\Controllers\CartController::class, 'update'])->name('cart.update');
-Route::post('/cart/remove', [App\Http\Controllers\CartController::class, 'remove'])->name('cart.remove');
-Route::get('/cart/badge', [App\Http\Controllers\CartController::class, 'badge'])->name('cart.badge');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
+Route::get('/cart/badge', [CartController::class, 'badge'])->name('cart.badge');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/checkout/shipping', [App\Http\Controllers\CheckoutController::class, 'shipping'])->name('checkout.shipping');
-    Route::post('/checkout/shipping', [App\Http\Controllers\CheckoutController::class, 'storeShipping']);
-    Route::get('/checkout/payment', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('checkout.payment');
-    Route::post('/checkout/place', [App\Http\Controllers\CheckoutController::class, 'place'])->name('checkout.place');
-    Route::get('/checkout/confirmation/{order}', [App\Http\Controllers\CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+    Route::get('/checkout/shipping', [CheckoutController::class, 'shipping'])->name('checkout.shipping');
+    Route::post('/checkout/shipping', [CheckoutController::class, 'storeShipping']);
+    Route::get('/checkout/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
+    Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
+    Route::get('/checkout/confirmation/{order}', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
 });
 
-Route::post('/payment/przelewy24/webhook', [App\Http\Controllers\CheckoutController::class, 'webhook'])->name('payment.przelewy24.webhook');
+Route::post('/payment/przelewy24/webhook', [CheckoutController::class, 'webhook'])->name('payment.przelewy24.webhook');
 
 /*
 |--------------------------------------------------------------------------

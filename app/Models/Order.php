@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,15 +10,29 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    /** @use HasFactory<\Database\Factories\OrderFactory> */
+    /** @use HasFactory<OrderFactory> */
     use HasFactory;
 
     public const STATUS_PENDING_PAYMENT = 'pending_payment';
+
     public const STATUS_PAID = 'paid';
+
     public const STATUS_SHIPPED = 'shipped';
+
     public const STATUS_DELIVERED = 'delivered';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_FAILED = 'failed';
+
+    public const STATUSES = [
+        self::STATUS_PENDING_PAYMENT => 'Oczekuje na płatność',
+        self::STATUS_PAID => 'Opłacone',
+        self::STATUS_SHIPPED => 'Wysłane',
+        self::STATUS_DELIVERED => 'Dostarczone',
+        self::STATUS_CANCELLED => 'Anulowane',
+        self::STATUS_FAILED => 'Nieudane',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -55,6 +70,11 @@ class Order extends Model
     public function isPaid(): bool
     {
         return $this->status === self::STATUS_PAID;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? $this->status;
     }
 
     public function displayTotal(): string

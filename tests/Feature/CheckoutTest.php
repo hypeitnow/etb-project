@@ -5,6 +5,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\CartService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -33,7 +34,7 @@ it('redirects to shop if cart is empty on shipping step', function () {
 });
 
 it('shows shipping form with items in cart', function () {
-    app(\App\Services\CartService::class)->addItem($this->user, $this->product->id, null, 1);
+    app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
 
     $response = $this->actingAs($this->user)
         ->get(route('checkout.shipping'));
@@ -43,7 +44,7 @@ it('shows shipping form with items in cart', function () {
 });
 
 it('stores shipping address and method', function () {
-    app(\App\Services\CartService::class)->addItem($this->user, $this->product->id, null, 1);
+    app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
 
     $response = $this->actingAs($this->user)
         ->post(route('checkout.shipping'), [
@@ -64,7 +65,7 @@ it('stores shipping address and method', function () {
 });
 
 it('shows payment page with items', function () {
-    app(\App\Services\CartService::class)->addItem($this->user, $this->product->id, null, 1);
+    app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
     $cart = Cart::firstOrCreate(['user_id' => $this->user->id]);
     $cart->update(['shipping_method' => 'courier', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
 
@@ -80,7 +81,7 @@ it('creates order and redirects to payment gateway', function () {
     $gateway->shouldReceive('createPayment')->once()->andReturn('test-token-123');
     $this->app->instance(PaymentGatewayInterface::class, $gateway);
 
-    app(\App\Services\CartService::class)->addItem($this->user, $this->product->id, null, 1);
+    app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
     $cart = Cart::firstOrCreate(['user_id' => $this->user->id]);
     $cart->update(['shipping_method' => 'courier', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
 
@@ -143,7 +144,7 @@ it('skips shipping for digital products', function () {
         'price_grosze' => 999,
         'is_physical' => false,
     ]);
-    app(\App\Services\CartService::class)->addItem($this->user, $digitalProduct->id, null, 1);
+    app(CartService::class)->addItem($this->user, $digitalProduct->id, null, 1);
 
     $response = $this->actingAs($this->user)
         ->get(route('checkout.shipping'));

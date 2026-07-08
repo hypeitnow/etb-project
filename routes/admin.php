@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminMatchController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MatchSuggestionController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\UserSearchController;
@@ -33,6 +34,7 @@ Route::middleware(['auth', 'role:admin,employee'])->group(function () {
     Route::post('/admin/products/{product}/variants', [ProductController::class, 'addVariant'])->name('admin.products.variants.store');
     Route::delete('/admin/products/{product}/variants/{variant}', [ProductController::class, 'removeVariant'])->name('admin.products.variants.destroy');
     Route::resource('/admin/categories', CategoryController::class)->names('admin.categories');
+    Route::resource('/admin/orders', OrderController::class)->names('admin.orders')->only(['index', 'show']);
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
