@@ -26,27 +26,21 @@
                 <h2 class="text-xl font-semibold mb-4">{{ __('Metoda dostawy') }}</h2>
 
                 <div class="space-y-3">
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="shipping_method" value="courier" checked>
-                        <div>
-                            <span class="font-medium">{{ __('Kurier') }}</span>
-                            <span class="text-gray-500 ml-2">15,00 zł</span>
-                        </div>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="shipping_method" value="inpost">
-                        <div>
-                            <span class="font-medium">{{ __('Paczkomat InPost') }}</span>
-                            <span class="text-gray-500 ml-2">12,00 zł</span>
-                        </div>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="shipping_method" value="pickup">
-                        <div>
-                            <span class="font-medium">{{ __('Odbiór osobisty') }}</span>
-                            <span class="text-gray-500 ml-2">{{ __('Bezpłatna') }}</span>
-                        </div>
-                    </label>
+                    @foreach(config('shipping.methods', []) as $value => $method)
+                        <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="shipping_method" value="{{ $value }}" @checked($loop->first)>
+                            <div>
+                                <span class="font-medium">{{ $method['label'] }}</span>
+                                <span class="text-gray-500 ml-2">
+                                    @if($method['price_grosze'] > 0)
+                                        {{ number_format($method['price_grosze'] / 100, 2, ',', '') }} zł
+                                    @else
+                                        {{ __('Bezpłatna') }}
+                                    @endif
+                                </span>
+                            </div>
+                        </label>
+                    @endforeach
                 </div>
             </div>
 

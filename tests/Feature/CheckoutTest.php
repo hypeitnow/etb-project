@@ -48,7 +48,7 @@ it('stores shipping address and method', function () {
 
     $response = $this->actingAs($this->user)
         ->post(route('checkout.shipping'), [
-            'shipping_method' => 'courier',
+            'shipping_method' => 'inpost_locker',
             'address' => [
                 'street' => 'Testowa 1',
                 'city' => 'Łódź',
@@ -60,14 +60,14 @@ it('stores shipping address and method', function () {
     $response->assertRedirect(route('checkout.payment'));
 
     $cart = Cart::where('user_id', $this->user->id)->first();
-    expect($cart->shipping_method)->toBe('courier');
+    expect($cart->shipping_method)->toBe('inpost_locker');
     expect($cart->shipping_address['street'])->toBe('Testowa 1');
 });
 
 it('shows payment page with items', function () {
     app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
     $cart = Cart::firstOrCreate(['user_id' => $this->user->id]);
-    $cart->update(['shipping_method' => 'courier', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
+    $cart->update(['shipping_method' => 'inpost_locker', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
 
     $response = $this->actingAs($this->user)
         ->get(route('checkout.payment'));
@@ -83,7 +83,7 @@ it('creates order and redirects to payment gateway', function () {
 
     app(CartService::class)->addItem($this->user, $this->product->id, null, 1);
     $cart = Cart::firstOrCreate(['user_id' => $this->user->id]);
-    $cart->update(['shipping_method' => 'courier', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
+    $cart->update(['shipping_method' => 'inpost_locker', 'shipping_address' => ['street' => 'Testowa 1', 'city' => 'Łódź', 'postal_code' => '90-001', 'country' => 'Polska']]);
 
     $response = $this->actingAs($this->user)
         ->post(route('checkout.place'));

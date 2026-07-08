@@ -29,6 +29,9 @@
                                 <a href="{{ route('admin.orders.index') }}" class="text-gray-500 text-sm hover:underline px-2 py-2">Wyczyść</a>
                             @endif
                         </form>
+                        <a href="{{ route('admin.export.jpk', ['month' => now()->month, 'year' => now()->year]) }}" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded text-sm whitespace-nowrap">
+                            Eksport JPK ({{ now()->format('m/Y') }})
+                        </a>
                     </div>
 
                     <table class="w-full text-sm text-left">

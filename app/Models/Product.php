@@ -19,6 +19,7 @@ class Product extends Model
         'slug',
         'description',
         'price_grosze',
+        'vat_rate',
         'category_id',
         'stock_qty',
         'is_physical',
@@ -30,11 +31,17 @@ class Product extends Model
     {
         return [
             'price_grosze' => 'integer',
+            'vat_rate' => 'integer',
             'stock_qty' => 'integer',
             'is_physical' => 'boolean',
             'is_published' => 'boolean',
             'images' => 'array',
         ];
+    }
+
+    public function grossPriceGrosze(): int
+    {
+        return (int) round($this->price_grosze * (1 + $this->vat_rate / 100));
     }
 
     protected static function booted(): void

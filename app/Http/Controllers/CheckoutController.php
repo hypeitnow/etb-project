@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Contracts\ShippingProviderInterface;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Services\CartService;
+use App\Services\InvoiceService;
+use App\Services\OrderNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +21,9 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly CartService $cart,
         private readonly PaymentGatewayInterface $gateway,
+        private readonly ShippingProviderInterface $shipping,
+        private readonly OrderNotificationService $notifications,
+        private readonly InvoiceService $invoices,
     ) {}
 
     public function shipping(): View|RedirectResponse
@@ -42,7 +48,7 @@ class CheckoutController extends Controller
         $rules = [];
         if ($needsShipping) {
             $rules = [
-                'shipping_method' => ['required', 'string', 'in:courier,inpost,pickup'],
+                'shipping_method' => ['required', 'string', 'in:inpost_locker,inpost_courier,dpd_locker,dpd_courier,pickup'],
                 'address.street' => ['required', 'string', 'max:255'],
                 'address.city' => ['required', 'string', 'max:255'],
                 'address.postal_code' => ['required', 'string', 'max:20'],
@@ -84,30 +90,53 @@ class CheckoutController extends Controller
         }
 
         $cart = Cart::where('user_id', $user->id)->first();
-        $totalGrosze = $this->cart->totalGrosze($user);
         $shippingGrosze = $this->calculateShipping($items);
+        $address = $cart?->shipping_address ?? [];
+        $address['shipping_method'] = $cart?->shipping_method;
+        $totalNetGrosze = 0;
+        $totalVatGrosze = 0;
+
+        $orderItemsData = [];
+        foreach ($items as $item) {
+            $product = $item->product;
+            $vatRate = $product->vat_rate ?? 23;
+            $netPrice = $item->unit_price_grosze;
+            $vatAmount = (int) round($netPrice * $vatRate / 100);
+            $grossPrice = $netPrice + $vatAmount;
+            $totalNetGrosze += $netPrice * $item->qty;
+            $totalVatGrosze += $vatAmount * $item->qty;
+
+            $orderItemsData[] = [
+                'product_id' => $product->id,
+                'variant_size_id' => $item->variant?->id,
+                'qty' => $item->qty,
+                'unit_price_grosze' => $item->unit_price_grosze,
+                'vat_rate' => $vatRate,
+                'net_price_grosze' => $netPrice,
+                'gross_price_grosze' => $grossPrice,
+            ];
+        }
+
+        $totalGrosze = $totalNetGrosze + $totalVatGrosze;
 
         $idempotencyKey = (string) str()->uuid();
 
         try {
-            $order = DB::transaction(function () use ($user, $items, $cart, $totalGrosze, $shippingGrosze, $idempotencyKey) {
+            $order = DB::transaction(function () use ($user, $cart, $totalGrosze, $shippingGrosze, $idempotencyKey, $totalNetGrosze, $totalVatGrosze, $orderItemsData) {
                 $order = Order::create([
                     'user_id' => $user->id,
                     'status' => Order::STATUS_PENDING_PAYMENT,
                     'total_grosze' => $totalGrosze,
+                    'total_net_grosze' => $totalNetGrosze,
+                    'total_vat_grosze' => $totalVatGrosze,
                     'shipping_grosze' => $shippingGrosze,
                     'shipping_method' => $cart?->shipping_method,
                     'shipping_address' => $cart?->shipping_address,
                     'idempotency_key' => $idempotencyKey,
                 ]);
 
-                foreach ($items as $item) {
-                    $order->items()->create([
-                        'product_id' => $item->product->id,
-                        'variant_size_id' => $item->variant?->id,
-                        'qty' => $item->qty,
-                        'unit_price_grosze' => $item->unit_price_grosze,
-                    ]);
+                foreach ($orderItemsData as $itemData) {
+                    $order->items()->create($itemData);
                 }
 
                 return $order;
@@ -158,7 +187,13 @@ class CheckoutController extends Controller
                     'status' => Order::STATUS_PAID,
                     'paid_at' => now(),
                 ]);
+
+                if (! $order->hasInvoice()) {
+                    $this->invoices->generate($order);
+                }
             });
+
+            $this->notifications->sendConfirmation($order);
 
             Log::info("Order #{$order->id} paid via P24");
 
@@ -198,11 +233,16 @@ class CheckoutController extends Controller
         $cart = Cart::where('user_id', auth()->id())->first();
         $method = $cart?->shipping_method;
 
-        return match ($method) {
-            'courier' => 1500,
-            'inpost' => 1200,
-            'pickup' => 0,
-            default => 1500,
-        };
+        $methods = config('shipping.methods', []);
+
+        if ($method && isset($methods[$method])) {
+            return $methods[$method]['price_grosze'];
+        }
+
+        if (! empty($methods)) {
+            return collect($methods)->min('price_grosze');
+        }
+
+        return 0;
     }
 }

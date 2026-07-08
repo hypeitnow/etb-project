@@ -18,6 +18,9 @@ class OrderItem extends Model
         'variant_size_id',
         'qty',
         'unit_price_grosze',
+        'vat_rate',
+        'net_price_grosze',
+        'gross_price_grosze',
     ];
 
     protected function casts(): array
@@ -25,6 +28,9 @@ class OrderItem extends Model
         return [
             'qty' => 'integer',
             'unit_price_grosze' => 'integer',
+            'vat_rate' => 'integer',
+            'net_price_grosze' => 'integer',
+            'gross_price_grosze' => 'integer',
         ];
     }
 

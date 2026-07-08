@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Contracts\ShippingProviderInterface;
 use App\Models\Sponsor;
 use App\Models\User;
 use App\Rules\NotCommonPassword;
+use App\Services\DpdShippingProvider;
+use App\Services\InPostShippingProvider;
+use App\Services\OrderNotificationService;
 use App\Services\Przelewy24Gateway;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -17,6 +21,14 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PaymentGatewayInterface::class, Przelewy24Gateway::class);
+        $this->app->singleton(ShippingProviderInterface::class, function ($app) {
+            return match (config('shipping.provider')) {
+                'inpost' => new InPostShippingProvider,
+                'dpd' => new DpdShippingProvider,
+                default => new InPostShippingProvider,
+            };
+        });
+        $this->app->singleton(OrderNotificationService::class);
     }
 
     public function boot(): void

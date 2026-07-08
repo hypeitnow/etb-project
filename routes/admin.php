@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminMatchController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\MatchSuggestionController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
@@ -36,6 +37,9 @@ Route::middleware(['auth', 'role:admin,employee'])->group(function () {
     Route::resource('/admin/categories', CategoryController::class)->names('admin.categories');
     Route::resource('/admin/orders', OrderController::class)->names('admin.orders')->only(['index', 'show']);
     Route::patch('/admin/orders/{order}/transition', [OrderController::class, 'transition'])->name('admin.orders.transition');
+    Route::get('/admin/orders/{order}/invoice', [OrderController::class, 'downloadInvoice'])->name('admin.orders.invoice');
+    Route::post('/admin/orders/{order}/label', [OrderController::class, 'generateLabel'])->name('admin.orders.label');
+    Route::get('/admin/export/jpk', [ExportController::class, 'jpk'])->name('admin.export.jpk');
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 class Order extends Model
@@ -55,6 +56,8 @@ class Order extends Model
         'paid_at',
         'idempotency_key',
         'payment_session_id',
+        'total_net_grosze',
+        'total_vat_grosze',
     ];
 
     protected function casts(): array
@@ -63,6 +66,8 @@ class Order extends Model
             'shipping_address' => 'array',
             'total_grosze' => 'integer',
             'shipping_grosze' => 'integer',
+            'total_net_grosze' => 'integer',
+            'total_vat_grosze' => 'integer',
             'paid_at' => 'datetime',
         ];
     }
@@ -80,6 +85,16 @@ class Order extends Model
     public function statusLogs(): HasMany
     {
         return $this->hasMany(OrderStatusLog::class)->latest();
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
+    public function hasInvoice(): bool
+    {
+        return $this->invoice !== null;
     }
 
     public function isPaid(): bool
@@ -163,5 +178,15 @@ class Order extends Model
     public function displayTotal(): string
     {
         return number_format(($this->total_grosze + $this->shipping_grosze) / 100, 2, ',', '').' zł';
+    }
+
+    public function displayTotalNet(): string
+    {
+        return number_format(($this->total_net_grosze ?? 0) / 100, 2, ',', '').' zł';
+    }
+
+    public function displayTotalVat(): string
+    {
+        return number_format(($this->total_vat_grosze ?? 0) / 100, 2, ',', '').' zł';
     }
 }

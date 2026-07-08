@@ -171,11 +171,42 @@
                         <p>{{ $order->shipping_address['postal_code'] ?? '' }} {{ $order->shipping_address['city'] ?? '' }}</p>
                         <p>{{ $order->shipping_address['country'] ?? '' }}</p>
                         @if($order->shipping_method)
-                            <p class="mt-2 text-sm text-gray-600">Metoda: {{ $order->shipping_method }}</p>
+                            @php $shippingLabel = config('shipping.methods.' . $order->shipping_method . '.label', $order->shipping_method); @endphp
+                            <p class="mt-2 text-sm text-gray-600">Metoda: {{ $shippingLabel }}</p>
                         @endif
                         @if($order->tracking_number)
                             <p class="mt-1 text-sm text-gray-600">Numer przesyłki: {{ $order->tracking_number }}</p>
                         @endif
+                        @if(in_array($order->status, ['paid', 'shipped']))
+                            <form method="POST" action="{{ route('admin.orders.label', $order) }}" class="mt-3">
+                                @csrf
+                                <button type="submit" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-1.5 rounded">
+                                    Generuj etykietę
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            @if($order->invoice)
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold mb-3">Faktura</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-gray-500">Numer: <span class="font-medium text-gray-800">{{ $order->invoice->number }}</span></p>
+                                <p class="text-gray-500">Data wystawienia: <span class="font-medium text-gray-800">{{ $order->invoice->issued_at->format('d.m.Y') }}</span></p>
+                            </div>
+                            <div class="text-right">
+                                <p>Netto: <span class="font-medium">{{ $order->invoice->displayTotalNet() }}</span></p>
+                                <p>VAT: <span class="font-medium">{{ $order->invoice->displayTotalVat() }}</span></p>
+                                <p>Brutto: <span class="font-medium">{{ $order->invoice->displayTotalGross() }}</span></p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.orders.invoice', $order) }}" class="inline-block mt-3 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded">
+                            Pobierz PDF
+                        </a>
                     </div>
                 </div>
             @endif
