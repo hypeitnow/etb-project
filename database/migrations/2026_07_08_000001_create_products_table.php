@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->unsignedBigInteger('price_grosze');
-            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('category_id')->nullable();
             $table->unsignedInteger('stock_qty')->default(0);
             $table->boolean('is_physical')->default(true);
             $table->boolean('is_published')->default(false);
