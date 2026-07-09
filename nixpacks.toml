@@ -6,3 +6,6 @@ SESSION_SECURE_COOKIE = true
 QUEUE_CONNECTION = "sync"
 CACHE_STORE = "database"
 FILESYSTEM_DISK = "local"
+
+[phases.setup]
+nixPkgs = ["php82Extensions.pdo_pgsql"]
