@@ -9,3 +9,6 @@ FILESYSTEM_DISK = "local"
 
 [phases.setup]
 nixPkgs = ["php82Extensions.pdo_pgsql"]
+
+[phases.build]
+cmds = ["npm run build"]

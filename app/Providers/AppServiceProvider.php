@@ -12,6 +12,7 @@ use App\Services\InPostShippingProvider;
 use App\Services\OrderNotificationService;
 use App\Services\Przelewy24Gateway;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -33,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         Password::defaults(fn (): Password => Password::min((int) config('security.password.min_length', 15))
             ->max((int) config('security.password.max_length', 128))
             ->rules([new NotCommonPassword]));
