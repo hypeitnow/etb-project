@@ -3,6 +3,6 @@ APP_ENV = "production"
 APP_DEBUG = false
 SESSION_DRIVER = "database"
 SESSION_SECURE_COOKIE = true
-QUEUE_CONNECTION = "database"
+QUEUE_CONNECTION = "sync"
 CACHE_STORE = "database"
 FILESYSTEM_DISK = "local"
