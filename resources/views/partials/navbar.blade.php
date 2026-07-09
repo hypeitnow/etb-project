@@ -9,39 +9,39 @@
             <span>FB</span>
         </a>
 
-        <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+        <a href="https://www.instagram.com/eat_the_ball/" target="_blank" class="hover:text-yellow-400 flex items-center gap-1 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm5 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.9a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
             </svg>
             <span>IG</span>
         </a>
 
-        <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+        <a href="https://www.youtube.com/@EatTheBall3x3" target="_blank" class="hover:text-yellow-400 flex items-center gap-1 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.3-1C17.2 2.5 12 2.5 12 2.5h0s-5.2 0-8.3.3c-.4.1-1.4.1-2.3 1C.7 4.5.5 6.2.5 6.2S.2 8.1.2 10v2c0 1.9.3 3.8.3 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.6 1 1.9.2 8 .3 8 .3s5.2 0 8.3-.3c.4-.1 1.4-.1 2.3-1 .7-.7.9-2.4.9-2.4s.3-1.9.3-3.8v-2c0-1.9-.3-3.8-.3-3.8zM9.5 14.5v-5l5 2.5-5 2.5z"/>
             </svg>
             <span>YT</span>
         </a>
 
-        <a href="https://www.tiktok.com/@eattheball_lodz" target="_blank" class="hover:text-yellow-400 flex items-center gap-1">
+        <a href="https://www.tiktok.com/@eattheball_lodz" target="_blank" class="hover:text-yellow-400 flex items-center gap-1 transition-colors">
             <i data-lucide="music-2" class="w-4 h-4"></i><span>TT</span>
         </a>
 
-        <div class="w-px h-5 bg-zinc-400"></div>
+        <div class="w-px h-5 bg-zinc-700"></div>
 
-        <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(0.1)">A+</button>
-        <button class="px-2 py-1 border border-zinc-500 rounded text-zinc-700 hover:bg-yellow-400" onclick="adjustFontSize(-0.1)">A-</button>
+        <button class="px-2 py-1 border border-zinc-600 rounded text-zinc-400 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 transition-all" onclick="adjustFontSize(0.1)">A+</button>
+        <button class="px-2 py-1 border border-zinc-600 rounded text-zinc-400 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 transition-all" onclick="adjustFontSize(-0.1)">A-</button>
 
-        <div class="w-px h-5 bg-zinc-400"></div>
+        <div class="w-px h-5 bg-zinc-700"></div>
 
         @auth
-            <a href="{{ route('profile.edit') }}" class="hover:text-yellow-400">Konto</a>
+            <a href="{{ route('profile.edit') }}" class="hover:text-yellow-400 transition-colors">Konto</a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button class="hover:text-yellow-400 text-sm">Wyloguj</button>
+                <button class="hover:text-yellow-400 text-sm transition-colors">Wyloguj</button>
             </form>
         @else
-            <a href="{{ route('login') }}" class="hover:text-yellow-400">Zaloguj</a>
+            <a href="{{ route('login') }}" class="hover:text-yellow-400 transition-colors">Zaloguj</a>
         @endauth
     </div>
 </div>
@@ -74,11 +74,11 @@
 
         <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 text-base sm:text-lg lg:gap-6">
             <div class="relative" @mouseenter="open='news'" @mouseleave="open=null">
-                <a href="{{ route('news.index') }}" class="ajax-link hover:text-yellow-400">Aktualności</a>
+                <a href="{{ route('news.index') }}" class="ajax-link text-zinc-300 hover:text-yellow-400 transition-colors font-medium">Aktualności</a>
             </div>
 
             <div class="relative" @mouseenter="open='club'" @mouseleave="open=null">
-                <a href="{{ route('club') }}" class="ajax-link hover:text-yellow-400">Klub</a>
+                <a href="{{ route('club') }}" class="ajax-link text-zinc-300 hover:text-yellow-400 transition-colors font-medium">Klub</a>
                 <div x-show="open==='club'" x-transition class="dropdown-panel">
                     <a class="ajax-link" href="{{ route('club.history') }}">Historia</a>
                     <a class="ajax-link" href="{{ route('club.board') }}">Władze klubu</a>
@@ -91,7 +91,7 @@
             </div>
 
             <div class="relative" @mouseenter="open='schedule'" @mouseleave="open=null">
-                <a href="{{ route('schedule') }}" class="ajax-link hover:text-yellow-400">Rozgrywki</a>
+                <a href="{{ route('schedule') }}" class="ajax-link text-zinc-300 hover:text-yellow-400 transition-colors font-medium">Rozgrywki</a>
                 <div x-show="open==='schedule'" x-transition class="dropdown-panel">
                     <a class="ajax-link" href="{{ route('schedule') }}">Terminarz</a>
                     <a class="ajax-link" href="{{ route('schedule.third-league') }}">III liga mężczyzn ŁZKosz</a>
@@ -104,7 +104,7 @@
             </div>
 
             <div class="relative" @mouseenter="open='team'" @mouseleave="open=null">
-                <a href="{{ route('team') }}" class="ajax-link hover:text-yellow-400">Drużyna</a>
+                <a href="{{ route('team') }}" class="ajax-link text-zinc-300 hover:text-yellow-400 transition-colors font-medium">Drużyna</a>
                 <div x-show="open==='team'" x-transition class="dropdown-panel">
                     <a class="ajax-link" href="{{ route('team.players') }}">Zawodnicy</a>
                     <a class="ajax-link" href="{{ route('team.staff') }}">Sztab szkoleniowy</a>
@@ -112,7 +112,7 @@
                 </div>
             </div>
 
-            <a href="{{ route('contact') }}" class="ajax-link hover:text-yellow-400">Kontakt</a>
+            <a href="{{ route('contact') }}" class="ajax-link text-zinc-300 hover:text-yellow-400 transition-colors font-medium">Kontakt</a>
 
             <div class="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
                 <a href="{{ route('tickets') }}" class="ajax-link bg-yellow-400 border border-zinc-500 text-black px-4 py-2 rounded font-semibold inline-flex items-center gap-2">
@@ -123,7 +123,7 @@
                     Sklep
                     <span x-data="{ count: 0 }" x-init="fetch('{{ route('cart.badge') }}').then(r=>r.json()).then(d=>count=d.count); setInterval(()=>fetch('{{ route('cart.badge') }}').then(r=>r.json()).then(d=>count=d.count),30000)" x-show="count > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" x-text="count"></span>
                 </a>
-                <a href="{{ route('academy') }}" class="ajax-link border border-zinc-500 text-black px-4 py-2 rounded font-semibold inline-flex items-center gap-2 hover:bg-yellow-400">
+                <a href="{{ route('academy') }}" class="ajax-link border border-zinc-600 text-zinc-300 px-4 py-2.5 rounded-lg font-semibold inline-flex items-center gap-2 hover:bg-yellow-400 hover:text-black hover:border-yellow-400 transition-all">
                     <i data-lucide="graduation-cap" class="w-4 h-4"></i> Akademia
                 </a>
             </div>
