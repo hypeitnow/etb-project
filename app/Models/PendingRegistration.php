@@ -12,6 +12,7 @@ class PendingRegistration extends Model
         'password',
         'accepted_terms',
         'accepted_privacy',
+        'marketing_email_consent',
         'verification_code',
         'verification_attempts',
         'code_expires_at',
@@ -27,6 +28,7 @@ class PendingRegistration extends Model
         return [
             'accepted_terms' => 'boolean',
             'accepted_privacy' => 'boolean',
+            'marketing_email_consent' => 'boolean',
             'verification_attempts' => 'integer',
             'code_expires_at' => 'datetime',
         ];

@@ -4,6 +4,8 @@
 
     $tournament = $tournament ?? null;
     $selectedCategories = collect(old('categories', $tournament?->categories?->map(fn ($category) => $category->category->value)->all() ?? []));
+    $selectedType = old('type', $tournament?->type ?? ThreeXThreeTournament::TYPE_PARTICIPATING);
+    $selectedRegistrationMode = old('registration_mode', $tournament?->registration_mode ?? ThreeXThreeTournament::REGISTRATION_NONE);
 @endphp
 
 <div class="grid gap-4 md:grid-cols-2">
@@ -33,6 +35,38 @@
     <label class="block">
         <span class="text-sm font-medium text-gray-700">Organizator</span>
         <input name="organizer" value="{{ old('organizer', $tournament?->organizer) }}" class="mt-1 w-full rounded border-gray-300">
+    </label>
+
+    <label class="block">
+        <span class="text-sm font-medium text-gray-700">Typ turnieju</span>
+        <select name="type" required class="mt-1 w-full rounded border-gray-300">
+            <option value="{{ ThreeXThreeTournament::TYPE_PARTICIPATING }}" @selected($selectedType === ThreeXThreeTournament::TYPE_PARTICIPATING)>Turniej, w ktorym gramy</option>
+            <option value="{{ ThreeXThreeTournament::TYPE_ORGANIZED }}" @selected($selectedType === ThreeXThreeTournament::TYPE_ORGANIZED)>Turniej organizowany przez ETB</option>
+        </select>
+    </label>
+
+    <label class="block">
+        <span class="text-sm font-medium text-gray-700">Tryb zapisow</span>
+        <select name="registration_mode" required class="mt-1 w-full rounded border-gray-300">
+            <option value="{{ ThreeXThreeTournament::REGISTRATION_NONE }}" @selected($selectedRegistrationMode === ThreeXThreeTournament::REGISTRATION_NONE)>Brak zapisow</option>
+            <option value="{{ ThreeXThreeTournament::REGISTRATION_EXTERNAL }}" @selected($selectedRegistrationMode === ThreeXThreeTournament::REGISTRATION_EXTERNAL)>Zapisy pod linkiem</option>
+            <option value="{{ ThreeXThreeTournament::REGISTRATION_INTERNAL }}" @selected($selectedRegistrationMode === ThreeXThreeTournament::REGISTRATION_INTERNAL)>Zapisy na stronie ETB</option>
+        </select>
+    </label>
+
+    <label class="block">
+        <span class="text-sm font-medium text-gray-700">Link do zapisow</span>
+        <input name="registration_url" type="url" value="{{ old('registration_url', $tournament?->registration_url) }}" placeholder="https://play.fiba3x3.com/..." class="mt-1 w-full rounded border-gray-300">
+    </label>
+
+    <label class="block">
+        <span class="text-sm font-medium text-gray-700">Liczba zawodnikow w druzynie</span>
+        <input name="team_size" type="number" min="2" max="12" value="{{ old('team_size', $tournament?->team_size) }}" class="mt-1 w-full rounded border-gray-300">
+    </label>
+
+    <label class="flex items-center gap-2 rounded border border-gray-200 p-3">
+        <input name="registration_enabled" type="checkbox" value="1" class="rounded border-gray-300 text-yellow-500" @checked(old('registration_enabled', $tournament?->registration_enabled ?? false))>
+        <span class="text-sm font-medium text-gray-700">Udostepnij zapisy na stronie</span>
     </label>
 
     <label class="block">

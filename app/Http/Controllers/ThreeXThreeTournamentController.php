@@ -22,15 +22,43 @@ class ThreeXThreeTournamentController extends Controller
 
     public function index(): View
     {
-        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->upcoming()->orderBy('date')->get();
-        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->finished()->orderByDesc('date')->get();
+        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->organized()->upcoming()->orderBy('date')->get();
+        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->organized()->finished()->orderByDesc('date')->get();
 
-        return view('pages.schedule-3x3-tournaments', compact('upcomingTournaments', 'finishedTournaments'));
+        return view('pages.schedule-3x3-tournaments', [
+            'upcomingTournaments' => $upcomingTournaments,
+            'finishedTournaments' => $finishedTournaments,
+            'pageTitle' => 'Turnieje 3x3',
+            'pageEyebrow' => 'Organizowane przez ETB',
+            'emptyMessage' => 'Brak turniejow organizowanych przez ETB w tej sekcji.',
+        ]);
+    }
+
+    public function schedule(): View
+    {
+        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->participating()->upcoming()->orderBy('date')->get();
+        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->participating()->finished()->orderByDesc('date')->get();
+
+        return view('pages.schedule-3x3-tournaments', [
+            'upcomingTournaments' => $upcomingTournaments,
+            'finishedTournaments' => $finishedTournaments,
+            'pageTitle' => 'Terminarz turniejow 3x3',
+            'pageEyebrow' => 'Turnieje, w ktorych gramy',
+            'emptyMessage' => 'Brak turniejow w tej sekcji.',
+        ]);
     }
 
     public function show(ThreeXThreeTournament $tournament): View
     {
-        $tournament->load('categories');
+        $tournament->load([
+            'categories',
+            'teams.players',
+            'groups.matches.teamOne',
+            'groups.matches.teamTwo',
+            'matches.teamOne',
+            'matches.teamTwo',
+            'matches.group',
+        ]);
 
         return view('pages.schedule-3x3-tournament-show', compact('tournament'));
     }

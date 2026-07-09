@@ -1,4 +1,4 @@
-<article data-admin-search class="etb-admin-card rounded border border-gray-200 bg-white p-4 shadow-sm">
+<article data-admin-search x-show="!sectionQuery || $el.textContent.toLowerCase().includes(sectionQuery.toLowerCase())" class="etb-admin-card rounded border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex gap-4">
         <div class="flex items-center gap-2">
             @if ($match->home_logo)

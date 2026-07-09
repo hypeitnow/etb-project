@@ -38,8 +38,13 @@
                 <input type="checkbox" name="accepted_privacy" value="1" class="mt-1 rounded border-black text-black focus:ring-black" {{ old('accepted_privacy') ? 'checked' : '' }} required>
                 <span class="text-sm">Akceptuję politykę prywatności i przetwarzanie danych zgodnie z wymaganiami ETB.</span>
             </label>
+            <label class="flex items-start gap-2">
+                <input type="checkbox" name="marketing_email_consent" value="1" class="mt-1 rounded border-black text-black focus:ring-black" {{ old('marketing_email_consent') ? 'checked' : '' }}>
+                <span class="text-sm">Chcę otrzymywać informacje promocyjne, newsletter i wiadomości marketingowe ETB na podany adres e-mail.</span>
+            </label>
             <x-input-error :messages="$errors->get('accepted_terms')" class="text-red-700" />
             <x-input-error :messages="$errors->get('accepted_privacy')" class="text-red-700" />
+            <x-input-error :messages="$errors->get('marketing_email_consent')" class="text-red-700" />
         </div>
 
         <div class="flex items-center justify-end pt-2">

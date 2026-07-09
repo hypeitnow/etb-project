@@ -32,6 +32,7 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'accepted_terms' => ['accepted'],
             'accepted_privacy' => ['accepted'],
+            'marketing_email_consent' => ['nullable', 'boolean'],
         ]);
 
         $code = (string) random_int(100000, 999999);
@@ -46,6 +47,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($validated['password']),
             'accepted_terms' => (bool) $request->boolean('accepted_terms'),
             'accepted_privacy' => (bool) $request->boolean('accepted_privacy'),
+            'marketing_email_consent' => (bool) $request->boolean('marketing_email_consent'),
             'verification_code' => Hash::make($code),
             'code_expires_at' => now()->addMinutes($ttlMinutes),
         ]);
@@ -112,6 +114,7 @@ class RegisteredUserController extends Controller
         $user->fanProfile()->create([
             'can_buy_tickets' => true,
             'can_buy_merch' => true,
+            'marketing_email_consent' => $pending->marketing_email_consent,
         ]);
 
         $pending->delete();

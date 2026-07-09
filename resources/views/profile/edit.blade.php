@@ -9,6 +9,10 @@
     $scheduledNewsCount = $scheduledNews->count();
     $matchesCount = $upcomingMatches->count() + $finishedMatches->count();
     $usersCount = method_exists($users, 'total') ? $users->total() : $users->count();
+    $sectionUrl = fn (string $section): string => route('profile.edit', ['section' => $section]);
+    $sectionClasses = fn (string $section): string => $activeSection === $section
+        ? 'flex items-center gap-3 rounded-lg bg-yellow-400 px-3 py-2.5 font-black text-black'
+        : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black';
 @endphp
 
 @section('content')
@@ -32,7 +36,7 @@
 
                     <nav class="mt-8 space-y-6 text-sm">
                         <div>
-                            <a href="#dashboard" class="flex items-center gap-3 rounded-lg bg-yellow-400 px-4 py-3 font-black text-black">
+                            <a href="{{ $sectionUrl('dashboard') }}" class="{{ $activeSection === 'dashboard' ? 'flex items-center gap-3 rounded-lg bg-yellow-400 px-4 py-3 font-black text-black' : 'flex items-center gap-3 rounded-lg px-4 py-3 font-black text-slate-200 transition hover:bg-yellow-400 hover:text-black' }}">
                                 <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
                                 Pulpit
                             </a>
@@ -42,14 +46,16 @@
                             <p class="px-3 text-xs font-bold uppercase tracking-widest text-slate-400">Zarządzanie</p>
                             <div class="mt-3 space-y-1">
                                 @if ($isAdmin)
-                                    <a href="#users" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="users" class="h-4 w-4"></i>Użytkownicy</a>
+                                    <a href="{{ $sectionUrl('users') }}" class="{{ $sectionClasses('users') }}"><i data-lucide="users" class="h-4 w-4"></i>Użytkownicy</a>
                                 @endif
-                                <a href="#matches" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="calendar-days" class="h-4 w-4"></i>Mecze</a>
-                                <a href="#news" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="newspaper" class="h-4 w-4"></i>Aktualności</a>
-                                <a href="#players" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="user-round" class="h-4 w-4"></i>Zawodnicy</a>
-                                <a href="#staff" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="user-cog" class="h-4 w-4"></i>Sztab szkoleniowy</a>
-                                <a href="#three-x-three" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="circle-dot" class="h-4 w-4"></i>Drużyna 3x3</a>
-                                <a href="#tournaments" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="trophy" class="h-4 w-4"></i>Turnieje 3x3</a>
+                                <a href="{{ $sectionUrl('matches') }}" class="{{ $sectionClasses('matches') }}"><i data-lucide="calendar-days" class="h-4 w-4"></i>Mecze</a>
+                                <a href="{{ $sectionUrl('club-content') }}" class="{{ $sectionClasses('club-content') }}"><i data-lucide="building-2" class="h-4 w-4"></i>Klub</a>
+                                <a href="{{ $sectionUrl('academy') }}" class="{{ $sectionClasses('academy') }}"><i data-lucide="graduation-cap" class="h-4 w-4"></i>Akademia</a>
+                                <a href="{{ $sectionUrl('news') }}" class="{{ $sectionClasses('news') }}"><i data-lucide="newspaper" class="h-4 w-4"></i>Aktualności</a>
+                                <a href="{{ $sectionUrl('players') }}" class="{{ $sectionClasses('players') }}"><i data-lucide="user-round" class="h-4 w-4"></i>Zawodnicy</a>
+                                <a href="{{ $sectionUrl('staff') }}" class="{{ $sectionClasses('staff') }}"><i data-lucide="user-cog" class="h-4 w-4"></i>Sztab szkoleniowy</a>
+                                <a href="{{ $sectionUrl('three-x-three') }}" class="{{ $sectionClasses('three-x-three') }}"><i data-lucide="circle-dot" class="h-4 w-4"></i>Drużyna 3x3</a>
+                                <a href="{{ $sectionUrl('tournaments') }}" class="{{ $sectionClasses('tournaments') }}"><i data-lucide="trophy" class="h-4 w-4"></i>Turnieje 3x3</a>
                             </div>
                         </div>
 
@@ -57,14 +63,15 @@
                             <p class="px-3 text-xs font-bold uppercase tracking-widest text-slate-400">Terminarz</p>
                             <div class="mt-3 space-y-1">
                                 <a href="{{ route('schedule.lzkosz') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="calendar" class="h-4 w-4"></i>Terminarz ŁZKosz</a>
+                                <a href="{{ $sectionUrl('league-table') }}" class="{{ $sectionClasses('league-table') }}"><i data-lucide="table-2" class="h-4 w-4"></i>Tabela ligi</a>
                                 <a href="{{ route('schedule.3x3') }}" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="calendar-range" class="h-4 w-4"></i>Terminarz 3x3</a>
-                                <a href="#sponsors" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="handshake" class="h-4 w-4"></i>Sponsorzy</a>
+                                <a href="{{ $sectionUrl('sponsors') }}" class="{{ $sectionClasses('sponsors') }}"><i data-lucide="handshake" class="h-4 w-4"></i>Sponsorzy</a>
                             </div>
                         </div>
                     </nav>
 
                     <div class="mt-auto border-t border-white/10 pt-5">
-                        <a href="#account" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black"><i data-lucide="settings" class="h-4 w-4"></i>Profil</a>
+                        <a href="{{ $sectionUrl('account') }}" class="{{ $sectionClasses('account') }}"><i data-lucide="settings" class="h-4 w-4"></i>Profil</a>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-slate-200 transition hover:bg-yellow-400 hover:text-black">
@@ -204,12 +211,12 @@
                         </div>
                     @endif
 
-                    <section>
+                    <section class="{{ $activeSection === 'dashboard' ? '' : 'hidden' }}">
                         <h1 class="text-3xl font-black text-slate-950">Pulpit administratora</h1>
                         <p class="mt-1 text-sm text-slate-600">Witaj ponownie! Oto najważniejsze informacje z systemu.</p>
                     </section>
 
-                    <section class="overflow-hidden rounded-lg border border-yellow-300 bg-yellow-50 p-5 shadow-sm">
+                    <section class="{{ $activeSection === 'dashboard' ? '' : 'hidden' }} overflow-hidden rounded-lg border border-yellow-300 bg-yellow-50 p-5 shadow-sm">
                         <div class="grid gap-5 xl:grid-cols-[1.2fr_repeat(4,1fr)]">
                             <div class="flex items-center gap-5">
                                 <span class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-yellow-300 text-slate-950">
@@ -226,6 +233,7 @@
                                 ['icon' => 'calendar-days', 'value' => $matchesCount, 'label' => 'Mecze', 'hint' => 'W tym sezonie'],
                                 ['icon' => 'newspaper', 'value' => $publishedNewsCount, 'label' => 'Aktualności', 'hint' => 'Opublikowanych'],
                                 ['icon' => 'trophy', 'value' => $threeXThreeTournaments->count(), 'label' => 'Turnieje 3x3', 'hint' => 'Zaplanowanych i zakończonych'],
+                                ['icon' => 'graduation-cap', 'value' => $academyGroups->count(), 'label' => 'Akademia', 'hint' => 'Aktywnych i ukrytych sekcji'],
                                 ['icon' => 'handshake', 'value' => $sponsors->count(), 'label' => 'Sponsorzy', 'hint' => 'W bazie partnerow'],
                             ] as $stat)
                                 <article class="rounded-lg bg-white/80 p-5 shadow-sm">
@@ -243,21 +251,48 @@
                     </section>
 
                     @if ($isAdmin)
-                        <section id="users" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="adminUserSearch(@js(route('admin.users.search')))">
+                        <section id="users" class="{{ $activeSection === 'users' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="adminUserSearch(@js(route('admin.users.search')), {
+                            role: @js($userRoleFilter),
+                            marketingConsent: @js($marketingConsentFilter),
+                        })">
                             <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <h2 class="text-xl font-black">Zarządzanie użytkownikami</h2>
                                     <p class="text-sm text-slate-600">Ostatnio dodani użytkownicy w systemie.</p>
                                 </div>
-                                <div class="relative w-full sm:w-80">
-                                    <input type="search" x-model="query" @input.debounce.350ms="search" placeholder="Szukaj po nazwie lub e-mailu" class="w-full rounded-lg border-slate-300 pr-10 text-sm">
-                                    <div x-show="results.length" x-cloak class="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
-                                        <template x-for="user in results" :key="user.id">
-                                            <button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50" @click="focusUser(user)">
-                                                <span class="block font-semibold" x-text="user.name"></span>
-                                                <span class="block text-xs text-slate-500" x-text="user.email"></span>
-                                            </button>
-                                        </template>
+                                <div class="w-full space-y-3 sm:w-[34rem]">
+                                    <form method="GET" action="{{ route('profile.edit') }}" class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                                        <input type="hidden" name="section" value="users">
+                                        <select name="user_role" class="rounded-lg border-slate-300 text-sm">
+                                            <option value="all" @selected($userRoleFilter === 'all')>Wszystkie role</option>
+                                            @foreach ($availableRoles as $role)
+                                                <option value="{{ $role }}" @selected($userRoleFilter === $role)>{{ $role }}</option>
+                                            @endforeach
+                                        </select>
+                                        <select name="marketing_consent" class="rounded-lg border-slate-300 text-sm">
+                                            <option value="all" @selected($marketingConsentFilter === 'all')>Wszystkie zgody</option>
+                                            <option value="yes" @selected($marketingConsentFilter === 'yes')>Zgoda marketingowa</option>
+                                            <option value="no" @selected($marketingConsentFilter === 'no')>Brak zgody</option>
+                                        </select>
+                                        <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-black hover:bg-yellow-50">Filtruj</button>
+                                    </form>
+
+                                    <div class="flex flex-col gap-2 sm:flex-row">
+                                        <div class="relative flex-1">
+                                            <input type="search" x-model="query" @input.debounce.350ms="search" placeholder="Szukaj po nazwie lub e-mailu" class="w-full rounded-lg border-slate-300 pr-10 text-sm">
+                                            <div x-show="results.length" x-cloak class="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                                                <template x-for="user in results" :key="user.id">
+                                                    <button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50" @click="focusUser(user)">
+                                                        <span class="block font-semibold" x-text="user.name"></span>
+                                                        <span class="block text-xs text-slate-500" x-text="user.email"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('admin.users.emails.export', ['user_role' => $userRoleFilter, 'marketing_consent' => $marketingConsentFilter]) }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">
+                                            <i data-lucide="download" class="h-4 w-4"></i>
+                                            Pobierz e-maile
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -269,6 +304,7 @@
                                             <th class="px-3 py-3">Użytkownik</th>
                                             <th class="px-3 py-3">E-mail</th>
                                             <th class="px-3 py-3">Rola</th>
+                                            <th class="px-3 py-3">Marketing</th>
                                             <th class="px-3 py-3">Akcje</th>
                                         </tr>
                                     </thead>
@@ -293,6 +329,15 @@
                                                     </form>
                                                 </td>
                                                 <td class="px-3 py-3">
+                                                    @if ($managedUser->role === \App\Models\User::ROLE_FAN)
+                                                        <span class="rounded-full px-2.5 py-1 text-xs font-black {{ $managedUser->fanProfile?->marketing_email_consent ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600' }}">
+                                                            {{ $managedUser->fanProfile?->marketing_email_consent ? 'Tak' : 'Nie' }}
+                                                        </span>
+                                                    @else
+                                                        <span class="text-xs text-slate-400">Nie dotyczy</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-3 py-3">
                                                     <a href="#managed-user-{{ $managedUser->id }}" class="inline-flex rounded-lg border border-slate-200 bg-white p-2 hover:bg-yellow-50"><i data-lucide="eye" class="h-4 w-4"></i></a>
                                                 </td>
                                             </tr>
@@ -305,13 +350,14 @@
                         </section>
                     @endif
 
-                    <section id="matches" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                    <section id="matches" class="{{ $activeSection === 'matches' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="{ sectionQuery: '' }">
                         <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-black">Mecze</h2>
                                 <p class="text-sm text-slate-600">Nadchodzące i ostatnio zakończone mecze.</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
+                                <input type="search" x-model="sectionQuery" placeholder="Szukaj meczu" class="rounded-lg border-slate-300 text-sm">
                                 <select x-model="matchFilter" class="rounded-lg border-slate-300 text-sm">
                                     <option value="all">Wszystkie mecze</option>
                                     <option value="upcoming">Nadchodzące</option>
@@ -345,13 +391,144 @@
                         </div>
                     </section>
 
-                    <section id="news" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="newsLightbox()">
+                    <section id="club-content" class="{{ $activeSection === 'club-content' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 class="text-xl font-black">Klub</h2>
+                                <p class="text-sm text-slate-600">Edytuj treści i zdjęcia widoczne w zakładce Klub oraz na osobnych podstronach.</p>
+                            </div>
+                            <a href="{{ route('club') }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 hover:bg-yellow-50">
+                                <i data-lucide="external-link" class="h-4 w-4"></i>
+                                Podgląd
+                            </a>
+                        </div>
+
+                        <div class="space-y-4">
+                            @foreach ($clubSections as $clubSection)
+                                <article data-admin-search class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <form method="POST" action="{{ route('admin.club-sections.update', $clubSection->slug) }}" enctype="multipart/form-data" class="space-y-4">
+                                        @csrf
+                                        @method('PUT')
+
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <h3 class="font-black">{{ $clubSection->title }}</h3>
+                                                <a href="{{ route('club.'.$clubSection->slug) }}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-yellow-700 hover:text-yellow-900">Otwórz podstronę</a>
+                                            </div>
+                                            <button class="inline-flex items-center justify-center gap-2 rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">
+                                                <i data-lucide="save" class="h-4 w-4"></i>
+                                                Zapisz sekcję
+                                            </button>
+                                        </div>
+
+                                        <div>
+                                            <label for="club-section-body-{{ $clubSection->slug }}" class="text-sm font-black text-slate-700">Pole tekstowe</label>
+                                            <textarea id="club-section-body-{{ $clubSection->slug }}" name="body" rows="7" class="mt-2 w-full rounded-lg border-slate-300 text-sm" placeholder="Wpisz treść sekcji...">{{ old('body', $clubSection->body) }}</textarea>
+                                        </div>
+
+                                        <div>
+                                            <label for="club-section-photos-{{ $clubSection->slug }}" class="text-sm font-black text-slate-700">Zdjęcia</label>
+                                            <input id="club-section-photos-{{ $clubSection->slug }}" type="file" name="photos[]" multiple accept="image/*" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                                            <p class="mt-1 text-xs text-slate-500">Możesz dodać jedno lub kilka zdjęć naraz.</p>
+                                        </div>
+                                    </form>
+
+                                    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                        @forelse ($clubSection->images as $image)
+                                            <div class="rounded-lg border border-slate-200 bg-white p-2">
+                                                <img src="{{ asset('storage/'.$image->image_path) }}" alt="{{ $image->alt ?? $clubSection->title }}" class="h-32 w-full rounded object-cover">
+                                                <form method="POST" action="{{ route('admin.club-sections.images.update', [$clubSection, $image]) }}" class="mt-2 space-y-2">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <label for="club-image-caption-{{ $image->id }}" class="text-xs font-black text-slate-600">Podpis / źródło zdjęcia</label>
+                                                    <textarea id="club-image-caption-{{ $image->id }}" name="caption" rows="2" class="w-full rounded-lg border-slate-300 text-xs" placeholder="np. Fot. Jan Kowalski albo link do źródła">{{ old('caption', $image->caption) }}</textarea>
+                                                    <button class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-yellow-50">
+                                                        <i data-lucide="save" class="h-4 w-4"></i>
+                                                        Zapisz podpis
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{{ route('admin.club-sections.images.destroy', [$clubSection, $image]) }}" class="mt-2">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100">
+                                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                                        Usuń zdjęcie
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @empty
+                                            <div class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                                                Brak zdjęć w tej sekcji.
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </section>
+
+                    <section id="league-table" class="{{ $activeSection === 'league-table' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-xl font-black">Tabela ŁZKosz</h2>
+                                <p class="text-sm text-slate-600">Pobierz tabelę 3 Ligi Mężczyzn i przypisz logotypy do drużyn.</p>
+                            </div>
+                            <form method="POST" action="{{ route('admin.league-table.sync') }}">
+                                @csrf
+                                <button class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">Pobierz tabelę z ŁZKosz</button>
+                            </form>
+                        </div>
+
+                        @if ($defaultHomeLogo)
+                            <div class="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-950">
+                                Domyślne logo ETB jest ustawione.
+                                <img src="{{ asset('storage/'.$defaultHomeLogo) }}" alt="Logo ETB" class="mt-2 h-12 w-12 rounded bg-white object-contain p-1 ring-1 ring-yellow-200">
+                            </div>
+                        @endif
+
+                        <div class="admin-scroll-list space-y-3">
+                            @forelse ($leagueStandings as $standing)
+                                <article data-admin-search class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                        <div class="flex items-center gap-4">
+                                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">{{ $standing->position }}</span>
+                                            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white p-2 ring-1 ring-slate-200">
+                                                @if ($standing->opponent->logo_path)
+                                                    <img src="{{ asset('storage/'.$standing->opponent->logo_path) }}" alt="{{ $standing->opponent->name }}" class="max-h-full max-w-full object-contain">
+                                                @else
+                                                    <span class="text-xs font-black text-slate-400">LOGO</span>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <h3 class="font-black">{{ $standing->opponent->name }}</h3>
+                                                <p class="text-sm text-slate-600">{{ $standing->points }} pkt · {{ $standing->wins }}-{{ $standing->losses }} · kosze {{ $standing->points_for }}-{{ $standing->points_against }}</p>
+                                                @if ($standing->source_team_url)
+                                                    <a href="{{ $standing->source_team_url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-yellow-700 hover:text-yellow-900">Profil w ŁZKosz</a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <form method="POST" action="{{ route('admin.opponents.update', $standing->opponent) }}" enctype="multipart/form-data" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input name="logo" type="file" accept="image/*" class="w-full rounded border border-slate-300 bg-white text-sm file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-semibold sm:w-64">
+                                            <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-yellow-50">Zapisz logo</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @empty
+                                <p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600">Tabela nie została jeszcze pobrana. Kliknij „Pobierz tabelę z ŁZKosz”.</p>
+                            @endforelse
+                        </div>
+                    </section>
+
+                    <section id="news" class="{{ $activeSection === 'news' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="newsLightbox()">
                         <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-black">Aktualności</h2>
                                 <p class="text-sm text-slate-600">Publikuj od razu albo ustaw datę przyszłej publikacji.</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
+                                <input type="search" x-model="sectionQuery" placeholder="Szukaj aktualności" class="rounded-lg border-slate-300 text-sm">
                                 <select x-model="newsFilter" class="rounded-lg border-slate-300 text-sm">
                                     <option value="all">Wszystkie</option>
                                     <option value="published">Opublikowane</option>
@@ -367,14 +544,17 @@
                                     <h3 class="mb-3 font-black">{{ $group['title'] }}</h3>
                                     <div class="admin-scroll-list space-y-3">
                                         @forelse ($group['items'] as $item)
-                                            <article data-admin-search class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                            <article data-admin-search x-show="!sectionQuery || $el.textContent.toLowerCase().includes(sectionQuery.toLowerCase())" class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
                                                 <div class="flex gap-4">
-                                                    @if ($item->main_image_path)
-                                                        <img src="{{ asset('storage/'.$item->main_image_path) }}" alt="{{ $item->title }}" class="h-20 w-24 rounded-lg object-cover">
+                                                    @php($previewImage = $item->previewImagePath())
+                                                    @if ($previewImage)
+                                                        <img src="{{ asset('storage/'.$previewImage) }}" alt="{{ $item->title }}" class="h-20 w-24 rounded-lg object-cover">
+                                                    @else
+                                                        <div class="flex h-20 w-24 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-xs font-black uppercase text-slate-500">{{ $item->type === \App\Models\News::TYPE_VIDEO ? 'Wideo' : 'ETB' }}</div>
                                                     @endif
                                                     <div class="min-w-0 flex-1">
                                                         <h4 class="font-black">{{ $item->title }}</h4>
-                                                        <p class="text-sm text-slate-600">{{ $item->publish_at?->format('d.m.Y H:i') ?? 'Publikacja natychmiastowa' }}</p>
+                                                        <p class="text-sm text-slate-600">{{ $item->typeLabel() }} · {{ $item->publish_at?->format('d.m.Y H:i') ?? 'Publikacja natychmiastowa' }}</p>
                                                         <div class="mt-3 flex flex-wrap gap-2">
                                                             <a href="{{ route('admin.news.preview', $item) }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-yellow-50">Podgląd</a>
                                                             @if ($group['type'] === 'scheduled')
@@ -405,18 +585,21 @@
                         ['id' => 'three-x-three', 'title' => 'Drużyna 3x3', 'subtitle' => 'Osobne karty zawodników i trenera 3x3.', 'button' => 'Dodaj osobę', 'modal' => '3x3-member-create', 'items' => $threeXThreeMembers, 'type' => 'member'],
                         ['id' => 'tournaments', 'title' => 'Turnieje 3x3', 'subtitle' => 'Dodawanie, edycja, usuwanie i filtrowanie turniejów.', 'button' => 'Dodaj turniej', 'modal' => '3x3-tournament-create', 'items' => $threeXThreeTournaments, 'type' => 'tournament'],
                     ] as $section)
-                        <section id="{{ $section['id'] }}" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                        <section id="{{ $section['id'] }}" class="{{ $activeSection === $section['id'] ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm" x-data="{ sectionQuery: '' }">
                             <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h2 class="text-xl font-black">{{ $section['title'] }}</h2>
                                     <p class="text-sm text-slate-600">{{ $section['subtitle'] }}</p>
                                 </div>
-                                <button type="button" class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300" @click="openModal = '{{ $section['modal'] }}'">{{ $section['button'] }}</button>
+                                <div class="flex flex-wrap gap-2">
+                                    <input type="search" x-model="sectionQuery" placeholder="Szukaj" class="rounded-lg border-slate-300 text-sm">
+                                    <button type="button" class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300" @click="openModal = '{{ $section['modal'] }}'">{{ $section['button'] }}</button>
+                                </div>
                             </div>
 
                             <div class="admin-scroll-list grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 @forelse ($section['items'] as $item)
-                                    <article data-admin-search class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <article data-admin-search x-show="!sectionQuery || $el.textContent.toLowerCase().includes(sectionQuery.toLowerCase())" class="etb-admin-card rounded-lg border border-slate-200 bg-slate-50 p-4">
                                         @if ($section['type'] === 'player')
                                             <div class="flex gap-4">
                                                 @if ($item->photo_path)
@@ -442,6 +625,10 @@
                                             </div>
                                         @elseif ($section['type'] === 'tournament')
                                             <h3 class="font-black">{{ $item->name }}</h3>
+                                            <p class="mt-1 text-xs font-bold uppercase text-yellow-700">{{ $item->type === ThreeXThreeTournament::TYPE_ORGANIZED ? 'Organizowany przez ETB' : 'Turniej, w ktorym gramy' }}</p>
+                                            @if ($item->type === ThreeXThreeTournament::TYPE_ORGANIZED)
+                                                <p class="mt-2 text-sm text-slate-600">Druzyny: {{ $item->teams->count() }} / Grupy: {{ $item->groups->count() }} / Mecze: {{ $item->matches->count() }}</p>
+                                            @endif
                                             <p class="text-sm text-slate-600">{{ $item->date?->format('d.m.Y') }} · {{ $item->location }}</p>
                                             <p class="mt-1 text-xs font-bold uppercase text-slate-500">{{ $item->status === ThreeXThreeTournament::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</p>
                                             @if ($item->categories->isNotEmpty())
@@ -454,6 +641,9 @@
                                             <div class="mt-4 flex flex-wrap gap-2">
                                                 <a href="{{ route('three-x-three.tournaments.show', $item) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-yellow-50">Podgląd</a>
                                                 <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-yellow-50" @click="openModal = '3x3-tournament-edit-{{ $item->id }}'">Edytuj</button>
+                                                @if ($item->type === ThreeXThreeTournament::TYPE_ORGANIZED)
+                                                    <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-yellow-50" @click="openModal = '3x3-tournament-manage-{{ $item->id }}'">Przebieg</button>
+                                                @endif
                                                 <form method="POST" action="{{ route('tournaments.destroy', $item) }}" onsubmit="return confirm('Czy na pewno usunąć ten turniej?')">
                                                     @csrf
                                                     @method('DELETE')
@@ -492,7 +682,9 @@
                         </section>
                     @endforeach
 
-                    <section id="sponsors" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                    @include('profile.partials.academy-admin')
+
+                    <section id="sponsors" class="{{ $activeSection === 'sponsors' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-black">Sponsorzy</h2>
@@ -530,7 +722,7 @@
                         </div>
                     </section>
 
-                    <section id="account" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                    <section id="account" class="{{ $activeSection === 'account' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                         <h2 class="mb-4 text-xl font-black">Profil i konto</h2>
                         <div class="grid gap-6 xl:grid-cols-2">
                             @include('profile.partials.update-profile-information-form')
@@ -732,6 +924,94 @@
                     </form>
                 </div>
             </div>
+            @if ($tournament->type === ThreeXThreeTournament::TYPE_ORGANIZED)
+                <div x-show="openModal === '3x3-tournament-manage-{{ $tournament->id }}'" x-cloak x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div class="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-white p-6 text-slate-950 shadow-xl" @click.outside="openModal = null">
+                        <h4 class="text-lg font-black">Przebieg turnieju: {{ $tournament->name }}</h4>
+
+                        <div class="mt-5 grid gap-5 lg:grid-cols-2">
+                            <section class="rounded-lg border border-slate-200 p-4">
+                                <h5 class="font-black">Zgloszone druzyny</h5>
+                                <div class="mt-3 space-y-2">
+                                    @forelse ($tournament->teams as $team)
+                                        <div class="rounded border border-slate-200 bg-slate-50 p-3">
+                                            <p class="font-bold">{{ $team->name }} <span class="text-xs uppercase text-yellow-700">{{ $team->category->label() }}</span></p>
+                                            <p class="text-sm text-slate-600">{{ $team->players->pluck('name')->join(', ') }}</p>
+                                        </div>
+                                    @empty
+                                        <p class="text-sm text-slate-500">Brak zgloszonych druzyn.</p>
+                                    @endforelse
+                                </div>
+                            </section>
+
+                            <section class="rounded-lg border border-slate-200 p-4">
+                                <h5 class="font-black">Dodaj grupe</h5>
+                                <form method="POST" action="{{ route('admin.3x3.tournaments.groups.store', $tournament) }}" class="mt-3 grid gap-3 sm:grid-cols-[1fr_7rem_auto]">
+                                    @csrf
+                                    <input name="name" required placeholder="Grupa A" class="rounded border-gray-300">
+                                    <input name="sort_order" type="number" min="0" value="0" class="rounded border-gray-300">
+                                    <button class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">Dodaj</button>
+                                </form>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    @foreach ($tournament->groups as $group)
+                                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{{ $group->name }}</span>
+                                    @endforeach
+                                </div>
+                            </section>
+                        </div>
+
+                        <section class="mt-5 rounded-lg border border-slate-200 p-4">
+                            <h5 class="font-black">Dodaj mecz grupowy lub playoff</h5>
+                            <form method="POST" action="{{ route('admin.3x3.tournaments.matches.store', $tournament) }}" class="mt-3 grid gap-3 md:grid-cols-3">
+                                @csrf
+                                <select name="stage" required class="rounded border-gray-300">
+                                    <option value="group">Grupa</option>
+                                    <option value="playoff">Playoff</option>
+                                </select>
+                                <select name="group_id" class="rounded border-gray-300">
+                                    <option value="">Bez grupy</option>
+                                    @foreach ($tournament->groups as $group)
+                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                    @endforeach
+                                </select>
+                                <input name="round_label" placeholder="np. Polfinal" class="rounded border-gray-300">
+                                <select name="team_one_id" class="rounded border-gray-300">
+                                    <option value="">Druzyna 1</option>
+                                    @foreach ($tournament->teams as $team)
+                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                                <select name="team_two_id" class="rounded border-gray-300">
+                                    <option value="">Druzyna 2</option>
+                                    @foreach ($tournament->teams as $team)
+                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                                <input name="played_at" type="datetime-local" class="rounded border-gray-300">
+                                <input name="team_one_score" type="number" min="0" max="99" placeholder="Pkt 1" class="rounded border-gray-300">
+                                <input name="team_two_score" type="number" min="0" max="99" placeholder="Pkt 2" class="rounded border-gray-300">
+                                <input name="court" placeholder="Boisko" class="rounded border-gray-300">
+                                <div class="md:col-span-3">
+                                    <button class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">Dodaj mecz</button>
+                                </div>
+                            </form>
+
+                            <div class="mt-5 space-y-2">
+                                @forelse ($tournament->matches as $match)
+                                    <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+                                        <span class="font-bold">{{ $match->teamOne?->name ?? 'Druzyna 1' }}</span>
+                                        <span class="mx-2 font-black">{{ $match->team_one_score ?? '-' }}:{{ $match->team_two_score ?? '-' }}</span>
+                                        <span class="font-bold">{{ $match->teamTwo?->name ?? 'Druzyna 2' }}</span>
+                                        <span class="ml-2 text-slate-500">{{ $match->stage }} {{ $match->group?->name }}</span>
+                                    </div>
+                                @empty
+                                    <p class="text-sm text-slate-500">Brak meczow w przebiegu turnieju.</p>
+                                @endforelse
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            @endif
         @endforeach
 
         <div x-show="openModal === 'sponsor-create'" x-cloak x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

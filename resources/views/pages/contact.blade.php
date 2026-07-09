@@ -1,13 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <section class="max-w-7xl mx-auto px-6 py-12">
-        <h1 class="text-3xl font-bold text-yellow-400 mb-4">Kontakt</h1>
-        <p class="text-zinc-300 mb-6">Sekcja gotowa do dodawania treści, tekstu, zdjęć i materiałów wideo.</p>
+<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mb-10">
+        <p class="text-sm font-bold uppercase tracking-[0.25em] text-yellow-400">ETB Basket</p>
+        <h1 class="mt-2 text-4xl font-black text-white">Kontakt</h1>
+    </div>
 
-        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-6 min-h-[220px]">
-            <h2 class="font-semibold mb-2">Panel treści</h2>
-            <p class="text-sm text-zinc-400">Tutaj można osadzać artykuły, galerie, listy zawodników i inne moduły.</p>
-        </div>
-    </section>
+    @include('pages.partials.club-section-content', ['clubSection' => $clubSection, 'sectionId' => 'contact'])
+</section>
 @endsection

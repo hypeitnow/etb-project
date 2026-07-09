@@ -14,6 +14,7 @@ class FanProfile extends Model
         'user_id',
         'can_buy_tickets',
         'can_buy_merch',
+        'marketing_email_consent',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class FanProfile extends Model
         return [
             'can_buy_tickets' => 'boolean',
             'can_buy_merch' => 'boolean',
+            'marketing_email_consent' => 'boolean',
         ];
     }
 

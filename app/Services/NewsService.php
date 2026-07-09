@@ -14,9 +14,10 @@ class NewsService
      */
     public function create(array $data, int $authorId, ?UploadedFile $mainImage, array $gallery): News
     {
+        $data = $this->normalizeData($data);
         $data['is_visible'] = (bool) ($data['is_visible'] ?? true);
 
-        if ($mainImage) {
+        if ($mainImage && $data['type'] === News::TYPE_ARTICLE) {
             $data['main_image_path'] = $mainImage->store('news/main', 'public');
         }
 
@@ -36,9 +37,15 @@ class NewsService
      */
     public function update(News $news, array $data, ?UploadedFile $mainImage, array $gallery): News
     {
+        $data = $this->normalizeData($data);
         $data['is_visible'] = (bool) ($data['is_visible'] ?? false);
 
-        if ($mainImage) {
+        if ($data['type'] !== News::TYPE_ARTICLE && $news->main_image_path) {
+            Storage::disk('public')->delete($news->main_image_path);
+            $data['main_image_path'] = null;
+        }
+
+        if ($mainImage && $data['type'] === News::TYPE_ARTICLE) {
             if ($news->main_image_path) {
                 Storage::disk('public')->delete($news->main_image_path);
             }
@@ -81,12 +88,32 @@ class NewsService
     private function storeGallery(News $news, array $gallery): void
     {
         $existingCount = $news->images()->count();
+        $remainingSlots = max(0, 100 - $existingCount);
 
-        foreach (array_slice($gallery, 0, 15 - $existingCount) as $index => $image) {
+        foreach (array_slice($gallery, 0, $remainingSlots) as $index => $image) {
             $news->images()->create([
                 'path' => $image->store('news/gallery', 'public'),
                 'sort_order' => $existingCount + $index,
             ]);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeData(array $data): array
+    {
+        $data['type'] = $data['type'] ?? News::TYPE_ARTICLE;
+
+        if ($data['type'] !== News::TYPE_ARTICLE) {
+            $data['content'] = $data['excerpt'] ?? $data['content'] ?? $data['title'];
+        }
+
+        if ($data['type'] !== News::TYPE_VIDEO) {
+            $data['video_url'] = null;
+        }
+
+        return $data;
     }
 }

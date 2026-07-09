@@ -12,10 +12,16 @@ class News extends Model
 {
     use HasFactory;
 
+    public const TYPE_ARTICLE = 'article';
+    public const TYPE_GALLERY = 'gallery';
+    public const TYPE_VIDEO = 'video';
+
     protected $fillable = [
         'title',
+        'type',
         'content',
         'excerpt',
+        'video_url',
         'author_id',
         'publish_at',
         'is_visible',
@@ -38,6 +44,89 @@ class News extends Model
     public function images(): HasMany
     {
         return $this->hasMany(NewsImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function types(): array
+    {
+        return [
+            self::TYPE_ARTICLE,
+            self::TYPE_GALLERY,
+            self::TYPE_VIDEO,
+        ];
+    }
+
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            self::TYPE_GALLERY => 'Galeria zdjęć',
+            self::TYPE_VIDEO => 'Wideo',
+            default => 'News',
+        };
+    }
+
+    public function previewImagePath(): ?string
+    {
+        if ($this->type === self::TYPE_GALLERY) {
+            if ($this->relationLoaded('images')) {
+                return $this->images->first()?->path;
+            }
+
+            return $this->images()->value('path');
+        }
+
+        if ($this->main_image_path) {
+            return $this->main_image_path;
+        }
+
+        if ($this->relationLoaded('images')) {
+            return $this->images->first()?->path;
+        }
+
+        return $this->images()->value('path');
+    }
+
+    public function youtubeEmbedUrl(): ?string
+    {
+        if ($this->type !== self::TYPE_VIDEO || ! $this->video_url) {
+            return null;
+        }
+
+        $videoId = $this->youtubeVideoId();
+
+        return $videoId ? "https://www.youtube.com/embed/{$videoId}" : null;
+    }
+
+    private function youtubeVideoId(): ?string
+    {
+        $parts = parse_url($this->video_url);
+
+        if (! is_array($parts)) {
+            return null;
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = trim((string) ($parts['path'] ?? ''), '/');
+
+        if (str_contains($host, 'youtu.be')) {
+            $id = $path !== '' ? strtok($path, '/') : null;
+
+            return is_string($id) ? $id : null;
+        }
+
+        if (str_contains($host, 'youtube.com')) {
+            if (str_starts_with($path, 'embed/') || str_starts_with($path, 'shorts/')) {
+                return explode('/', $path)[1] ?? null;
+            }
+
+            parse_str((string) ($parts['query'] ?? ''), $query);
+
+            return isset($query['v']) && is_string($query['v']) ? $query['v'] : null;
+        }
+
+        return null;
     }
 
     public function isScheduled(): bool

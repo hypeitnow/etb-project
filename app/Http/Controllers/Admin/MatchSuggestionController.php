@@ -31,7 +31,7 @@ class MatchSuggestionController extends Controller
             Opponent::query()
                 ->when($query !== '', fn ($builder) => $builder->where('name', 'like', "%{$query}%"))
                 ->orderBy('name')
-                ->limit(8)
+                ->limit(12)
                 ->get(['id', 'name', 'logo_path'])
         );
     }

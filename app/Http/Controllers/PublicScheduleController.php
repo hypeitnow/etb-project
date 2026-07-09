@@ -3,12 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Models\MatchGame;
+use App\Models\LeagueStanding;
+use App\Models\ThreeXThreeTournament;
+use App\Services\LzkoszLeagueTableService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PublicScheduleController extends Controller
 {
     public function index(Request $request): View
+    {
+        $lzkoszMatches = $this->lzkoszMatches();
+
+        return view('pages.schedule', [
+            ...$this->scheduleData($request),
+            'roundOneMatches' => $lzkoszMatches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_ONE),
+            'roundTwoMatches' => $lzkoszMatches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_TWO),
+            'leagueStandings' => $this->leagueStandings(),
+            'participatingUpcomingTournaments' => ThreeXThreeTournament::query()->with('categories')->participating()->upcoming()->orderBy('date')->get(),
+            'participatingFinishedTournaments' => ThreeXThreeTournament::query()->with('categories')->participating()->finished()->orderByDesc('date')->get(),
+            'organizedUpcomingTournaments' => ThreeXThreeTournament::query()->with('categories')->organized()->upcoming()->orderBy('date')->get(),
+            'organizedFinishedTournaments' => ThreeXThreeTournament::query()->with('categories')->organized()->finished()->orderByDesc('date')->get(),
+        ]);
+    }
+
+    public function matches(Request $request): View
+    {
+        return view('pages.schedule-matches', $this->scheduleData($request));
+    }
+
+    public function show(MatchGame $match): View
+    {
+        abort_unless($match->isPublished(), 404);
+
+        $match->load(['opponent', 'sportsHall']);
+
+        return view('pages.schedule-show', compact('match'));
+    }
+
+    public function lzkosz(): View
+    {
+        $matches = $this->lzkoszMatches();
+
+        return view('pages.schedule-lzkosz', [
+            'roundOneMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_ONE),
+            'roundTwoMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_TWO),
+        ]);
+    }
+
+    public function table(): View
+    {
+        return view('pages.schedule-table', [
+            'leagueStandings' => $this->leagueStandings(),
+        ]);
+    }
+
+    private function scheduleData(Request $request): array
     {
         $season = $request->string('season')->toString();
         $view = $request->string('view', 'all')->toString();
@@ -36,7 +86,7 @@ class PublicScheduleController extends Controller
             ->orderByDesc('season')
             ->pluck('season');
 
-        return view('pages.schedule', [
+        return [
             'matches' => $matches,
             'upcomingMatches' => $matches->where('status', MatchGame::STATUS_UPCOMING),
             'finishedMatches' => $matches->where('status', MatchGame::STATUS_FINISHED),
@@ -44,21 +94,12 @@ class PublicScheduleController extends Controller
             'selectedSeason' => $season,
             'selectedView' => $view,
             'selectedSort' => $sort,
-        ]);
+        ];
     }
 
-    public function show(MatchGame $match): View
+    private function lzkoszMatches()
     {
-        abort_unless($match->isPublished(), 404);
-
-        $match->load(['opponent', 'sportsHall']);
-
-        return view('pages.schedule-show', compact('match'));
-    }
-
-    public function lzkosz(): View
-    {
-        $matches = MatchGame::query()
+        return MatchGame::query()
             ->with(['opponent', 'sportsHall'])
             ->where('include_in_lzkosz', true)
             ->where(function ($query): void {
@@ -66,10 +107,15 @@ class PublicScheduleController extends Controller
             })
             ->orderBy('match_date')
             ->get();
+    }
 
-        return view('pages.schedule-lzkosz', [
-            'roundOneMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_ONE),
-            'roundTwoMatches' => $matches->where('lzkosz_round', MatchGame::LZKOSZ_ROUND_TWO),
-        ]);
+    private function leagueStandings()
+    {
+        return LeagueStanding::query()
+            ->with('opponent')
+            ->where('league_id', LzkoszLeagueTableService::LEAGUE_ID)
+            ->where('season', LzkoszLeagueTableService::SEASON)
+            ->orderBy('position')
+            ->get();
     }
 }

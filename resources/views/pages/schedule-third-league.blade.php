@@ -1,13 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
-<section class="max-w-7xl mx-auto px-6 py-12">
-    <h1 class="text-3xl font-bold text-yellow-400 mb-4">Rozgrywki / III liga mężczyzn ŁZKosz</h1>
-    <p class="text-zinc-300 mb-6">Sekcja gotowa do dodawania treści, tekstu, zdjęć i materiałów wideo.</p>
-
-    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-6 min-h-[220px]">
-        <h2 class="font-semibold mb-2">Panel treści</h2>
-        <p class="text-sm text-zinc-400">Tutaj można osadzać artykuły, galerie, listy zawodników i inne moduły.</p>
-    </div>
+<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    @include('pages.partials.static-content-section', [
+        'sectionId' => 'third-league',
+        'eyebrow' => 'Rozgrywki',
+        'title' => 'III liga mężczyzn ŁZKosz',
+        'description' => 'Sekcja z informacją o rozgrywkach ligowych i przejściem do oficjalnej strony ŁZKosz.',
+        'panelText' => 'Po uzupełnieniu treści można tu dodać opis ligi, najważniejsze komunikaty i materiały dla kibiców.',
+        'actionUrl' => 'https://www.lzkosz.pl/liga/215.html',
+        'actionLabel' => 'Otwórz stronę ŁZKosz',
+    ])
 </section>
 @endsection

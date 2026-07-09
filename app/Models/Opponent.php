@@ -13,6 +13,12 @@ class Opponent extends Model
     protected $fillable = [
         'name',
         'logo_path',
+        'source_team_url',
+        'is_league_team',
+    ];
+
+    protected $casts = [
+        'is_league_team' => 'boolean',
     ];
 
     public function matches(): HasMany

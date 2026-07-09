@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\MatchGame;
 use App\Models\Opponent;
 use App\Models\SportsHall;
@@ -25,7 +26,7 @@ class MatchGameService
     {
         $prepared = $this->prepareData($data, $opponentLogo, $homeLogo, $match);
 
-        if ($opponentLogo && $match->opponent_logo) {
+        if ($opponentLogo && $match->opponent_logo && $match->opponent_logo !== $match->opponent?->logo_path) {
             Storage::disk('public')->delete($match->opponent_logo);
         }
 
@@ -40,7 +41,7 @@ class MatchGameService
 
     public function delete(MatchGame $match): void
     {
-        if ($match->opponent_logo) {
+        if ($match->opponent_logo && $match->opponent_logo !== $match->opponent?->logo_path) {
             Storage::disk('public')->delete($match->opponent_logo);
         }
 
@@ -67,16 +68,6 @@ class MatchGameService
         $opponent = $this->findOrCreateOpponent($opponentName);
         $sportsHall = $this->findOrCreateSportsHall($locationName);
 
-        if ($opponentLogo) {
-            if ($opponent->logo_path) {
-                Storage::disk('public')->delete($opponent->logo_path);
-            }
-
-            $opponent->update([
-                'logo_path' => $opponentLogo->store('opponents', 'public'),
-            ]);
-        }
-
         unset($data['opponent'], $data['opponent_logo'], $data['home_logo']);
 
         if ($status === MatchGame::STATUS_UPCOMING) {
@@ -96,12 +87,17 @@ class MatchGameService
         $data['location'] = $locationName;
         $data['opponent_id'] = $opponent->id;
         $data['sports_hall_id'] = $sportsHall->id;
-        $data['opponent_logo'] = $opponent->logo_path ?? $match?->opponent_logo;
+        $data['opponent_logo'] = $opponentLogo
+            ? $opponentLogo->store('match-opponents', 'public')
+            : ($match?->opponent_logo ?? $opponent->logo_path);
 
         if ($homeLogo) {
             $data['home_logo'] = $homeLogo->store('team-logos', 'public');
+            AppSetting::setValue('default_home_logo', $data['home_logo']);
         } elseif ($match) {
             $data['home_logo'] = $match->home_logo;
+        } else {
+            $data['home_logo'] = AppSetting::getValue('default_home_logo');
         }
 
         return $data;

@@ -22,6 +22,17 @@
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
         </div>
 
+        @if ($user->role === \App\Models\User::ROLE_FAN)
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <input type="checkbox" name="marketing_email_consent" value="1" class="mt-1 rounded border-slate-300 text-yellow-500 focus:ring-yellow-500" @checked(old('marketing_email_consent', $user->fanProfile?->marketing_email_consent))>
+                <span>
+                    <span class="block text-sm font-bold text-slate-900">Zgoda na wiadomości marketingowe</span>
+                    <span class="mt-1 block text-sm text-slate-600">Chcę otrzymywać informacje promocyjne, newsletter i wiadomości ETB na mój adres e-mail.</span>
+                </span>
+            </label>
+            <x-input-error class="mt-2" :messages="$errors->get('marketing_email_consent')" />
+        @endif
+
         <div class="flex items-center gap-4">
             <x-primary-button>Zapisz</x-primary-button>
         </div>

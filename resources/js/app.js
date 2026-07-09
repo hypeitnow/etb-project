@@ -4,10 +4,12 @@ import { createIcons, icons } from 'lucide';
 
 window.Alpine = Alpine;
 
-window.adminUserSearch = function adminUserSearch(searchUrl) {
+window.adminUserSearch = function adminUserSearch(searchUrl, filters = {}) {
     return {
         query: '',
         results: [],
+        role: filters.role || 'all',
+        marketingConsent: filters.marketingConsent || 'all',
         highlightedId: null,
         async search() {
             if (this.query.trim().length < 2) {
@@ -15,7 +17,12 @@ window.adminUserSearch = function adminUserSearch(searchUrl) {
                 return;
             }
 
-            const response = await fetch(`${searchUrl}?q=${encodeURIComponent(this.query)}`, {
+            const params = new URLSearchParams({
+                q: this.query,
+                role: this.role,
+                marketing_consent: this.marketingConsent,
+            });
+            const response = await fetch(`${searchUrl}?${params.toString()}`, {
                 headers: { Accept: 'application/json' },
             });
 
@@ -28,7 +35,14 @@ window.adminUserSearch = function adminUserSearch(searchUrl) {
 
             const element = document.getElementById(`managed-user-${user.id}`);
             if (!element) {
-                window.location.href = `${window.location.pathname}?page=${user.page}&focus_user=${user.id}#managed-user-${user.id}`;
+                const params = new URLSearchParams({
+                    section: 'users',
+                    page: user.page,
+                    focus_user: user.id,
+                    user_role: this.role,
+                    marketing_consent: this.marketingConsent,
+                });
+                window.location.href = `${window.location.pathname}?${params.toString()}#managed-user-${user.id}`;
                 return;
             }
 
@@ -96,14 +110,46 @@ window.matchForm = function matchForm(config) {
     };
 };
 
-window.newsLightbox = function newsLightbox() {
+window.newsLightbox = function newsLightbox(images = []) {
     return {
+        sectionQuery: '',
+        images,
+        activeIndex: null,
         image: null,
-        open(path) {
-            this.image = path;
+        get hasMultipleImages() {
+            return this.images.length > 1;
+        },
+        open(pathOrIndex) {
+            if (Number.isInteger(pathOrIndex)) {
+                this.openGallery(pathOrIndex);
+                return;
+            }
+
+            const index = this.images.indexOf(pathOrIndex);
+            this.activeIndex = index >= 0 ? index : null;
+            this.image = pathOrIndex;
+        },
+        openGallery(index) {
+            if (!this.images[index]) return;
+
+            this.activeIndex = index;
+            this.image = this.images[index];
+        },
+        previous() {
+            if (this.activeIndex === null || !this.hasMultipleImages) return;
+
+            this.activeIndex = (this.activeIndex - 1 + this.images.length) % this.images.length;
+            this.image = this.images[this.activeIndex];
+        },
+        next() {
+            if (this.activeIndex === null || !this.hasMultipleImages) return;
+
+            this.activeIndex = (this.activeIndex + 1) % this.images.length;
+            this.image = this.images[this.activeIndex];
         },
         close() {
             this.image = null;
+            this.activeIndex = null;
         },
     };
 };
@@ -164,6 +210,87 @@ window.adminPanel = function adminPanel(config) {
                     element.classList.remove('admin-highlight');
                 }
             });
+        },
+    };
+};
+
+window.academyTrainerForm = function academyTrainerForm(config) {
+    return {
+        name: config.initialName || '',
+        phone: config.initialPhone || '',
+        email: config.initialEmail || '',
+        role: config.initialRole || '',
+        suggestions: [],
+        suggestionsOpen: false,
+        noticeOpen: false,
+        noticeProgress: 100,
+        noticeTimer: null,
+        progressTimer: null,
+        async searchTrainers() {
+            const query = this.name.trim();
+            if (query.length < 2) {
+                this.suggestions = [];
+                this.suggestionsOpen = false;
+                return;
+            }
+
+            const params = new URLSearchParams({ q: query });
+            const response = await fetch(`${config.searchUrl}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                this.suggestions = [];
+                this.suggestionsOpen = false;
+                return;
+            }
+
+            this.suggestions = await response.json();
+            this.suggestionsOpen = this.suggestions.length > 0;
+        },
+        selectTrainer(trainer) {
+            this.name = trainer.name || '';
+            this.phone = trainer.phone || '';
+            this.email = trainer.email || '';
+            this.role = trainer.role || this.role;
+            this.suggestions = [];
+            this.suggestionsOpen = false;
+            this.showNotice();
+        },
+        showNotice() {
+            this.clearNoticeTimers();
+            this.noticeOpen = true;
+            this.noticeProgress = 100;
+            const startedAt = Date.now();
+
+            this.progressTimer = setInterval(() => {
+                const elapsed = Date.now() - startedAt;
+                this.noticeProgress = Math.max(0, 100 - (elapsed / 5000) * 100);
+            }, 50);
+
+            this.noticeTimer = setTimeout(() => {
+                this.closeNotice();
+            }, 5000);
+        },
+        closeNotice() {
+            this.noticeOpen = false;
+            this.noticeProgress = 0;
+            this.clearNoticeTimers();
+        },
+        closeNoticeOnKey(event) {
+            if (!this.noticeOpen) return;
+            event.preventDefault();
+            this.closeNotice();
+        },
+        clearNoticeTimers() {
+            if (this.noticeTimer) {
+                clearTimeout(this.noticeTimer);
+                this.noticeTimer = null;
+            }
+            if (this.progressTimer) {
+                clearInterval(this.progressTimer);
+                this.progressTimer = null;
+            }
         },
     };
 };
@@ -233,11 +360,12 @@ const searchIndex = [
     { label: 'Rozgrywki', url: '/schedule', keywords: ['rozgrywki', 'liga', 'terminarz'] },
     { label: 'Kontakt', url: '/contact', keywords: ['kontakt', 'email', 'telefon'] },
     { label: 'Drużyna', url: '/team', keywords: ['druzyna', 'zawodnicy'] },
-    { label: 'Zawodnicy 3x3', url: '/team-3x3/players', keywords: ['3x3', 'trzy na trzy', 'zawodnicy 3x3', 'druzyna 3x3'] },
+    { label: 'Zawodnicy 3x3', url: '/team/3x3', keywords: ['3x3', 'trzy na trzy', 'zawodnicy 3x3', 'druzyna 3x3'] },
     { label: 'Tabela', url: '/schedule/table', keywords: ['tabela'] },
     { label: 'Terminarz ŁZKosz', url: '/schedule/lzkosz', keywords: ['łzkosz', 'lzkosz', 'terminarz łzkosz'] },
     { label: 'III liga mężczyzn ŁZKosz', url: '/schedule/third-league', keywords: ['iii liga', '3 liga', 'elkosz', 'lzkosz'] },
     { label: 'Partnerzy', url: '/#partners', keywords: ['sponsorzy', 'sponsor', 'partner', 'partnerzy', 'partner strategiczny', 'partner technologiczny'] },
+    { label: 'Akademia', url: '/academy', keywords: ['akademia', 'treningi', 'grupy', 'u15', 'u17', 'u19'] },
 ];
 
 function populateSearchSuggestions() {

@@ -58,7 +58,7 @@ class NewsController extends Controller
         $news = $this->newsService->create($data, $request->user()->id, $request->file('main_image'), $gallery);
         $this->notificationService->record($request->user(), 'created', $news, "Aktualność: {$news->title}");
 
-        return redirect()->route('profile.edit')->with('success', 'Aktualność została zapisana.');
+        return redirect()->route('profile.edit', ['section' => 'news'])->with('success', 'Aktualność została zapisana.');
     }
 
     public function edit(News $news): View
@@ -76,7 +76,7 @@ class NewsController extends Controller
         $this->newsService->update($news, $data, $request->file('main_image'), $gallery);
         $this->notificationService->record($request->user(), 'updated', $news, "Aktualność: {$news->title}");
 
-        return redirect()->route('profile.edit')->with('success', 'Aktualność została zaktualizowana.');
+        return redirect()->route('profile.edit', ['section' => 'news'])->with('success', 'Aktualność została zaktualizowana.');
     }
 
     public function destroy(News $news): RedirectResponse
@@ -110,6 +110,6 @@ class NewsController extends Controller
         $this->newsService->publishNow($news);
         $this->notificationService->record(request()->user(), 'published', $news, "Aktualność: {$news->title}");
 
-        return redirect()->route('profile.edit')->with('success', 'Aktualność została opublikowana.');
+        return redirect()->route('profile.edit', ['section' => 'news'])->with('success', 'Aktualność została opublikowana.');
     }
 }

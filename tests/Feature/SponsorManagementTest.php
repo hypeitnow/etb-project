@@ -65,3 +65,32 @@ it('lets an admin create and delete sponsors with logo and link', function () {
     $this->assertDatabaseMissing('sponsors', ['id' => $sponsor->id]);
     Storage::disk('public')->assertMissing($sponsor->logo_path);
 });
+
+it('shows active sponsors on the club sponsors page with large white logo tiles', function () {
+    Sponsor::query()->create([
+        'name' => 'White Tile Partner',
+        'type' => Sponsor::TYPE_TECHNOLOGY,
+        'url' => 'https://technology.example.com',
+        'logo_path' => 'sponsors/technology.png',
+        'sort_order' => 1,
+        'is_active' => true,
+    ]);
+
+    Sponsor::query()->create([
+        'name' => 'Inactive Tile Partner',
+        'type' => Sponsor::TYPE_PARTNER,
+        'url' => 'https://inactive.example.com',
+        'logo_path' => 'sponsors/inactive.png',
+        'sort_order' => 1,
+        'is_active' => false,
+    ]);
+
+    $response = $this->get(route('club.sponsors'));
+
+    $response->assertOk();
+    $response->assertSee('Partner technologiczny');
+    $response->assertSee('White Tile Partner');
+    $response->assertSee('bg-white');
+    $response->assertSee('max-h-24');
+    $response->assertDontSee('Inactive Tile Partner');
+});
