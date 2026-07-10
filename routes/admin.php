@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminMatchController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AcademyCalendarNoteController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\ThreeXThreeTournamentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:admin,employee'])->group(function () {
+    Route::get('/admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::middleware('can:manage-matches')->group(function () {
         Route::get('/admin/matches/create', [AdminMatchController::class, 'create'])->name('admin.matches.create');
         Route::post('/admin/matches', [AdminMatchController::class, 'store'])->name('admin.matches.store');
