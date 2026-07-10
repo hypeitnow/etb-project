@@ -10,11 +10,12 @@ RUN npm run build
 
 FROM php:8.3-cli-alpine
 
-RUN install-php-extensions \
-    pdo_pgsql \
-    intl \
-    bcmath \
-    opcache
+RUN apk add --no-cache \
+    libpq-dev \
+    icu-dev \
+    libzip-dev \
+    oniguruma-dev \
+    && docker-php-ext-install pdo_pgsql intl bcmath opcache mbstring zip
 
 COPY . /app
 
