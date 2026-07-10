@@ -27,6 +27,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 RUN composer install --no-dev --no-interaction --optimize-autoloader
 
+COPY docker-entrypoint.sh /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 8080
@@ -35,4 +39,4 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_LEVEL=warning
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
+ENTRYPOINT ["docker-entrypoint.sh"]
