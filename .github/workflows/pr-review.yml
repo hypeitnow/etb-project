@@ -1,10 +1,8 @@
-name: PR Review
+name: CI
 
 on:
   pull_request:
     branches: [main]
-  pull_request_target:
-    types: [closed]
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
@@ -51,51 +49,18 @@ jobs:
           APP_ENV: testing
           APP_KEY: ${{ secrets.APP_KEY }}
 
-  preview:
+  build:
     needs: test
-    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: curl -fsSL https://railway.app/install.sh | sh
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Link and deploy preview to Railway
-        run: |
-          railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment ${{ secrets.RAILWAY_ENVIRONMENT_ID }}
-          railway up --detach --service etb-project
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Comment preview URL on PR
-        uses: actions/github-script@v7
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
-          script: |
-            const { data: deployments } = await github.rest.deployments.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              per_page: 1
-            });
-            const url = deployments[0]?.payload?.url || 'Deployment started';
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 Preview deployment: ${url}\n\nOnce ready, the preview will be available on Railway.`
-            });
-
-  cleanup:
-    if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Install Railway CLI
-        run: curl -fsSL https://railway.app/install.sh | sh
-
-      - name: Remove Railway preview
-        run: railway down --service etb-project
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          context: .
+          push: false
+          tags: etb-project:ci

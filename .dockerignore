@@ -1,0 +1,13 @@
+.git/
+.gitattributes
+.gitignore
+.github/
+.env*
+node_modules/
+vendor/
+tests/
+docs/
+changes/
+.opencode/
+*.md
+composer.phar
