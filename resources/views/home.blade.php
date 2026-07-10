@@ -154,8 +154,60 @@
         </div>
     </section>
 
-    <section class="bg-yellow-400 py-12 text-black">
-        <a href="{{ route('academy') }}" class="academy-cta-link group mx-auto flex max-w-7xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
+    @if($shopProducts->isNotEmpty())
+        <section class="bg-black py-16 border-t border-zinc-800/50">
+            <div class="mx-auto max-w-7xl px-6">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.28em] text-yellow-400">Sklep</p>
+                        <h2 class="mt-2 text-4xl font-black uppercase">Kupuj ETB</h2>
+                    </div>
+                    <a href="{{ route('shop.index') }}" class="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-6 py-3 text-sm font-black uppercase text-black hover:bg-white transition-all shadow-lg shadow-yellow-400/20">Zobacz wszystkie <span aria-hidden="true">→</span></a>
+                </div>
+                <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach($shopProducts as $product)
+                        <a href="{{ route('shop.show', $product) }}" class="group overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 transition-all hover:-translate-y-1 hover:border-yellow-400/50 hover:shadow-xl hover:shadow-yellow-400/5">
+                            <div class="aspect-square bg-zinc-800 overflow-hidden flex items-center justify-center">
+                                @if($product->images && $img = $product->images[0] ?? null)
+                                    <img src="{{ asset('storage/'.$img) }}" alt="{{ $product->name }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                @else
+                                    <span class="text-4xl font-black text-zinc-700">{{ strtoupper(substr($product->name, 0, 2)) }}</span>
+                                @endif
+                            </div>
+                            <div class="p-5">
+                                <p class="text-xs font-black uppercase tracking-wider text-yellow-400">{{ $product->category?->name }}</p>
+                                <h3 class="mt-2 text-lg font-black">{{ $product->name }}</h3>
+                                <p class="mt-4 text-xl font-black text-yellow-400">{{ $product->displayPrice() }}</p>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if($sponsors->isNotEmpty())
+        <section class="bg-zinc-950 py-12 border-t border-zinc-800/50">
+            <div class="mx-auto max-w-7xl px-6">
+                <p class="text-center text-xs font-black uppercase tracking-[0.28em] text-yellow-400 mb-8">Partnerzy i sponsorzy</p>
+                <div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-8">
+                    @foreach($sponsors as $sponsor)
+                        <a href="{{ $sponsor->url ?: '#' }}" target="_blank" rel="noopener noreferrer" class="group flex items-center justify-center" title="{{ $sponsor->name }}">
+                            @if($sponsor->logo_path)
+                                <img src="{{ asset('storage/'.$sponsor->logo_path) }}" alt="{{ $sponsor->name }}" class="max-h-12 opacity-60 grayscale transition-all duration-300 group-hover:opacity-100 group-hover:grayscale-0">
+                            @else
+                                <span class="text-sm font-bold text-zinc-500 transition-colors group-hover:text-yellow-400">{{ $sponsor->name }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    <section class="relative overflow-hidden bg-gradient-to-br from-yellow-400 to-yellow-500 py-16 text-black">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.3)_0%,transparent_50%)]"></div>
+        <a href="{{ route('academy') }}" class="relative mx-auto flex max-w-7xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
             <div>
                 <p class="text-xs font-black uppercase tracking-[0.28em] text-black/60">Akademia ETB</p>
                 <h2 class="mt-2 text-4xl font-black uppercase md:text-5xl">Kochasz koszykowke? Dołącz do nas</h2>

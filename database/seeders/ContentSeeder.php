@@ -4,9 +4,12 @@ namespace Database\Seeders;
 
 use App\Enums\BasketballPosition;
 use App\Models\AppSetting;
+use App\Models\Category;
 use App\Models\News;
 use App\Models\Opponent;
 use App\Models\Player;
+use App\Models\Product;
+use App\Models\ProductVariantSize;
 use App\Models\Sponsor;
 use App\Models\SportsHall;
 use App\Models\TeamMatch;
@@ -31,6 +34,7 @@ class ContentSeeder extends Seeder
         $this->seedMatches();
         $this->seedNews($admin);
         $this->seedSponsors();
+        $this->seedProducts();
     }
 
     private function seedSettings(): void
@@ -437,6 +441,140 @@ class ContentSeeder extends Seeder
                 ['name' => $sponsor['name']],
                 $sponsor,
             );
+        }
+    }
+
+    private function seedProducts(): void
+    {
+        $categoryKoszulki = Category::firstOrCreate(
+            ['slug' => 'koszulki'],
+            ['name' => 'Koszulki', 'description' => 'Oficjalne koszulki meczowe i treningowe ETB Łódź'],
+        );
+        $categoryAkcesoria = Category::firstOrCreate(
+            ['slug' => 'akcesoria'],
+            ['name' => 'Akcesoria', 'description' => 'Czapki, opaski, bidony i inne akcesoria klubowe'],
+        );
+        $categoryGadzety = Category::firstOrCreate(
+            ['slug' => 'gadzety'],
+            ['name' => 'Gadżety', 'description' => 'Pamiątki i gadżety kibica ETB Łódź'],
+        );
+
+        $products = [
+            [
+                'name' => 'Koszulka meczowa ETB 2025/2026',
+                'description' => 'Oficjalna koszulka meczowa ETB Łódź na sezon 2025/2026. Wykonana z oddychającego materiału Dri-FIT, zapewniającego komfort podczas gry. Nadruk numeru i nazwiska z tyłu.',
+                'price_grosze' => 14999,
+                'vat_rate' => 23,
+                'category_id' => $categoryKoszulki->id,
+                'stock_qty' => 50,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [
+                    ['size_label' => 'S', 'stock_qty' => 10, 'extra_price_grosze' => 0],
+                    ['size_label' => 'M', 'stock_qty' => 15, 'extra_price_grosze' => 0],
+                    ['size_label' => 'L', 'stock_qty' => 15, 'extra_price_grosze' => 0],
+                    ['size_label' => 'XL', 'stock_qty' => 10, 'extra_price_grosze' => 500],
+                ],
+            ],
+            [
+                'name' => 'Koszulka treningowa ETB',
+                'description' => 'Lekka koszulka treningowa z logo ETB Łódź z przodu. Idealna na trening i na co dzień.',
+                'price_grosze' => 8999,
+                'vat_rate' => 23,
+                'category_id' => $categoryKoszulki->id,
+                'stock_qty' => 30,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [
+                    ['size_label' => 'M', 'stock_qty' => 10, 'extra_price_grosze' => 0],
+                    ['size_label' => 'L', 'stock_qty' => 15, 'extra_price_grosze' => 0],
+                    ['size_label' => 'XL', 'stock_qty' => 5, 'extra_price_grosze' => 500],
+                ],
+            ],
+            [
+                'name' => 'Czapka z daszkiem ETB',
+                'description' => 'Klubowa czapka z daszkiem z haftowanym logo ETB Łódź z przodu. Regulowane zapięcie z tyłu.',
+                'price_grosze' => 5999,
+                'vat_rate' => 23,
+                'category_id' => $categoryAkcesoria->id,
+                'stock_qty' => 40,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+            [
+                'name' => 'Opaska sportowa ETB',
+                'description' => 'Opaska na nadgarstek z nadrukiem ETB Łódź. Chłonie pot i świetnie sprawdza się podczas gry.',
+                'price_grosze' => 1999,
+                'vat_rate' => 23,
+                'category_id' => $categoryAkcesoria->id,
+                'stock_qty' => 100,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+            [
+                'name' => 'Bidon ETB Łódź',
+                'description' => 'Metalowy bidon termiczny z grawerem logo ETB. Pojemność 500 ml. Idealny na trening i mecz.',
+                'price_grosze' => 4499,
+                'vat_rate' => 23,
+                'category_id' => $categoryAkcesoria->id,
+                'stock_qty' => 35,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+            [
+                'name' => 'Szalik kibica ETB',
+                'description' => 'Gruby, dziany szalik w barwach ETB Łódź z nadrukowanym logo. Idealny na mecze wyjazdowe.',
+                'price_grosze' => 3999,
+                'vat_rate' => 23,
+                'category_id' => $categoryGadzety->id,
+                'stock_qty' => 60,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+            [
+                'name' => 'Naklejka ETB Łódź',
+                'description' => 'Zestaw 5 naklejek z logo ETB Łódź. Naklej na laptopa, zeszyt lub telefon.',
+                'price_grosze' => 999,
+                'vat_rate' => 23,
+                'category_id' => $categoryGadzety->id,
+                'stock_qty' => 200,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+            [
+                'name' => 'Brelok ETB Łódź',
+                'description' => 'Metalowy brelok do kluczy z grawerem logo ETB Łódź. Mały upominek dla każdego kibica.',
+                'price_grosze' => 1499,
+                'vat_rate' => 23,
+                'category_id' => $categoryGadzety->id,
+                'stock_qty' => 150,
+                'is_physical' => true,
+                'is_published' => true,
+                'variants' => [],
+            ],
+        ];
+
+        foreach ($products as $data) {
+            $variants = $data['variants'];
+            unset($data['variants']);
+
+            $product = Product::updateOrCreate(
+                ['slug' => \Illuminate\Support\Str::slug($data['name'])],
+                $data,
+            );
+
+            if (! empty($variants)) {
+                $product->variantSizes()->delete();
+
+                foreach ($variants as $variant) {
+                    $product->variantSizes()->create($variant);
+                }
+            }
         }
     }
 }

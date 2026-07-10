@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\News;
 use App\Models\Player;
+use App\Models\Product;
+use App\Models\Sponsor;
 use App\Models\TeamMatch;
 use Illuminate\View\View;
 
@@ -48,6 +50,18 @@ class HomeController extends Controller
             ->take(5)
             ->values();
 
+        $sponsors = Sponsor::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        $shopProducts = Product::query()
+            ->with('category')
+            ->where('is_published', true)
+            ->inRandomOrder()
+            ->take(4)
+            ->get();
+
         return view('home', [
             'heroNews' => $latestNews->take(5),
             'featuredArticles' => $latestNews->slice(5, 2),
@@ -55,6 +69,8 @@ class HomeController extends Controller
             'lastFinishedMatch' => $lastFinishedMatch,
             'upcomingMatches' => $upcomingMatches,
             'startingFive' => $startingFive,
+            'sponsors' => $sponsors,
+            'shopProducts' => $shopProducts,
         ]);
     }
 }
