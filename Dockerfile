@@ -8,7 +8,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM dunglas/frankenphp:1-php8.3-alpine
+FROM php:8.3-cli-alpine
 
 RUN install-php-extensions \
     pdo_pgsql \
@@ -34,4 +34,4 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_LEVEL=warning
 
-CMD ["frankenphp", "run", "--config", "/app/Caddyfile"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
