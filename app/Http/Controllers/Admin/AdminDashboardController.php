@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Match;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\TeamMatch;
 use App\Models\User;
 use Illuminate\View\View;
 
@@ -18,7 +18,7 @@ class AdminDashboardController extends Controller
             'orders' => Order::count(),
             'revenue' => Order::whereIn('status', ['paid', 'shipped', 'delivered'])->sum('total_grosze'),
             'products' => Product::count(),
-            'matches' => Match::count(),
+            'matches' => TeamMatch::count(),
             'ordersPending' => Order::where('status', 'pending_payment')->count(),
             'ordersShipped' => Order::where('status', 'shipped')->count(),
         ];
@@ -28,7 +28,7 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get();
 
-        $recentMatches = Match::latest()
+        $recentMatches = TeamMatch::latest()
             ->take(5)
             ->get();
 
