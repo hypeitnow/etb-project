@@ -17,7 +17,7 @@
                             @if ($previewImage)
                                 <img src="{{ asset('storage/'.$previewImage) }}" alt="{{ $item->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                             @else
-                                <div class="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-zinc-600">ETB News</div>
+                                <div class="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-zinc-600">ETB Aktualności</div>
                             @endif
                         </div>
                         <div class="p-5">
@@ -39,7 +39,7 @@
                     @if ($previewImage)
                         <img src="{{ asset('storage/'.$previewImage) }}" alt="{{ $item->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                     @else
-                        <div class="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-zinc-600">{{ $item->type === \App\Models\News::TYPE_VIDEO ? 'ETB Wideo' : 'ETB News' }}</div>
+                        <div class="flex h-full items-center justify-center text-sm font-bold uppercase tracking-widest text-zinc-600">{{ $item->type === \App\Models\News::TYPE_VIDEO ? 'ETB Wideo' : 'ETB Aktualności' }}</div>
                     @endif
                 </div>
                 <div class="p-5">

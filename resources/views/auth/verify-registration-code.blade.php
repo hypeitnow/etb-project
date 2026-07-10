@@ -8,7 +8,7 @@
         @csrf
 
         <div>
-            <x-input-label for="email" class="text-black font-semibold" value="Email" />
+            <x-input-label for="email" class="text-black font-semibold" value="Adres e-mail" />
             <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email', $email)" required autocomplete="email" />
             <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-700" />
         </div>

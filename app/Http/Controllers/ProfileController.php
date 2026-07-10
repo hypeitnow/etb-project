@@ -20,6 +20,7 @@ use App\Models\ThreeXThreeTournament;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
@@ -29,6 +30,9 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
+        $isAdmin = $user->role === User::ROLE_ADMIN;
+        $isEmployee = $user->role === User::ROLE_EMPLOYEE;
+        $isPanelUser = $isAdmin || $isEmployee;
         $adminSections = [
             'dashboard',
             'users',
@@ -42,9 +46,10 @@ class ProfileController extends Controller
             'three-x-three',
             'tournaments',
             'sponsors',
+            'notifications-history',
             'account',
         ];
-        $activeSection = in_array($request->query('section'), $adminSections, true)
+        $activeSection = $isPanelUser && in_array($request->query('section'), $adminSections, true)
             ? (string) $request->query('section')
             : 'dashboard';
         $userRoleFilter = in_array($request->query('user_role'), User::roles(), true)
@@ -92,7 +97,10 @@ class ProfileController extends Controller
             ->with([
                 'categories',
                 'teams.players',
-                'groups',
+                'teams.group',
+                'groups.teams.players',
+                'groups.matches.teamOne',
+                'groups.matches.teamTwo',
                 'matches.teamOne',
                 'matches.teamTwo',
                 'matches.group',
@@ -125,16 +133,31 @@ class ProfileController extends Controller
             ->whereIn('slug', array_keys(ClubSection::SECTIONS))
             ->orderBy('sort_order')
             ->get();
-        $adminNotifications = AdminNotification::query()
-            ->with(['actor', 'acceptedBy'])
-            ->latest()
-            ->get();
-        $unreadNotificationsCount = $adminNotifications->whereNull('read_at')->count();
+        $adminNotifications = collect();
+        $notificationHistory = new LengthAwarePaginator([], 0, 25);
+        $unreadNotificationsCount = 0;
+
+        if ($isPanelUser) {
+            $adminNotifications = AdminNotification::query()
+                ->with(['actor', 'acceptedBy'])
+                ->latest()
+                ->take(20)
+                ->get();
+            $notificationHistory = AdminNotification::query()
+                ->withTrashed()
+                ->with(['actor', 'acceptedBy'])
+                ->latest()
+                ->paginate(25, ['*'], 'notifications_page')
+                ->withQueryString();
+            $unreadNotificationsCount = AdminNotification::query()
+                ->whereNull('read_at')
+                ->count();
+        }
 
         return view('profile.edit', [
             'user' => $user,
-            'isAdmin' => $user->role === User::ROLE_ADMIN,
-            'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
+            'isAdmin' => $isAdmin,
+            'isEmployee' => $isEmployee,
             'isAthlete' => $user->role === User::ROLE_ATHLETE,
             'users' => $user->role === User::ROLE_ADMIN
                 ? User::query()
@@ -172,6 +195,7 @@ class ProfileController extends Controller
             'defaultHomeLogo' => AppSetting::getValue('default_home_logo'),
             'clubSections' => $clubSections,
             'adminNotifications' => $adminNotifications,
+            'notificationHistory' => $notificationHistory,
             'unreadNotificationsCount' => $unreadNotificationsCount,
         ]);
     }

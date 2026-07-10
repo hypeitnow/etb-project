@@ -14,15 +14,14 @@ class SponsorController extends Controller
     public function __construct(
         private readonly SponsorService $sponsorService,
         private readonly AdminNotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     public function store(StoreSponsorRequest $request): RedirectResponse
     {
         $sponsor = $this->sponsorService->create($request->safe()->except('logo'), $request->file('logo'));
         $this->notificationService->record($request->user(), 'created', $sponsor, "Sponsor: {$sponsor->name}");
 
-        return redirect()->route('profile.edit')->with('success', 'Sponsor zostal zapisany.');
+        return redirect()->route('profile.edit')->with('success', 'Sponsor został zapisany.');
     }
 
     public function update(UpdateSponsorRequest $request, Sponsor $sponsor): RedirectResponse
@@ -30,7 +29,7 @@ class SponsorController extends Controller
         $this->sponsorService->update($sponsor, $request->safe()->except('logo'), $request->file('logo'));
         $this->notificationService->record($request->user(), 'updated', $sponsor, "Sponsor: {$sponsor->name}");
 
-        return redirect()->route('profile.edit')->with('success', 'Sponsor zostal zaktualizowany.');
+        return redirect()->route('profile.edit')->with('success', 'Sponsor został zaktualizowany.');
     }
 
     public function destroy(Sponsor $sponsor): RedirectResponse
@@ -40,6 +39,6 @@ class SponsorController extends Controller
         $this->sponsorService->delete($sponsor);
         $this->notificationService->recordDeleted(request()->user(), Sponsor::class, $id, $label);
 
-        return back()->with('success', 'Sponsor zostal usuniety.');
+        return back()->with('success', 'Sponsor został usunięty.');
     }
 }

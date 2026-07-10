@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\ClubSectionController;
 use App\Http\Controllers\Admin\LeagueTableController;
 use App\Http\Controllers\Admin\ThreeXThreeTournamentGroupController;
+use App\Http\Controllers\Admin\ThreeXThreeTournamentDrawController;
 use App\Http\Controllers\Admin\ThreeXThreeTournamentMatchController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MatchController;
@@ -144,7 +145,7 @@ Route::get('/schedule/table', [PublicScheduleController::class, 'table'])->name(
 Route::get('/schedule/3x3', [ThreeXThreeTournamentController::class, 'schedule'])->name('schedule.3x3');
 Route::redirect('/schedule/3x3-tournaments', '/schedule/3x3/tournaments')->name('schedule.3x3.tournaments.old');
 Route::get('/schedule/3x3/tournaments', [ThreeXThreeTournamentController::class, 'index'])->name('schedule.3x3.tournaments');
-Route::view('/schedule/3x3/team', 'pages.schedule-3x3-team')->name('schedule.3x3.team');
+Route::redirect('/schedule/3x3/team', '/team/3x3')->name('schedule.3x3.team');
 
 /* Drużyna */
 Route::get('/team/players', [PublicTeamController::class, 'players'])->name('team.players');
@@ -154,6 +155,7 @@ Route::get('/team/3x3', [PublicTeamController::class, 'threeXThree'])->name('tea
 Route::redirect('/team-3x3/players', '/team/3x3')->name('team3x3.players');
 Route::get('/3x3/tournaments', [ThreeXThreeTournamentController::class, 'index'])->name('three-x-three.tournaments.index');
 Route::get('/3x3/tournaments/{tournament}', [ThreeXThreeTournamentController::class, 'show'])->name('three-x-three.tournaments.show');
+Route::get('/3x3/teams/{team}', [ThreeXThreeTournamentController::class, 'team'])->name('three-x-three.teams.show');
 Route::post('/3x3/tournaments/{tournament}/teams', [ThreeXThreeTournamentTeamController::class, 'store'])->middleware('auth')->name('three-x-three.tournaments.teams.store');
 
 /* CTA */
@@ -236,12 +238,15 @@ Route::middleware(['auth', 'role:admin,employee'])->group(function () {
     Route::put('/admin/club-sections/{section}', [ClubSectionController::class, 'update'])->name('admin.club-sections.update');
     Route::patch('/admin/club-sections/{section}/images/{image}', [ClubSectionController::class, 'updateImage'])->name('admin.club-sections.images.update');
     Route::delete('/admin/club-sections/{section}/images/{image}', [ClubSectionController::class, 'destroyImage'])->name('admin.club-sections.images.destroy');
+    Route::patch('/admin/notifications/read-all', [AdminNotificationController::class, 'readAll'])->name('admin.notifications.read-all');
     Route::patch('/admin/notifications/{notification}/read', [AdminNotificationController::class, 'read'])->name('admin.notifications.read');
     Route::patch('/admin/notifications/{notification}/accept', [AdminNotificationController::class, 'accept'])->name('admin.notifications.accept');
     Route::delete('/admin/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('admin.notifications.destroy');
     Route::resource('/admin/staff', TeamStaffController::class)->only(['store', 'update', 'destroy'])->parameters(['staff' => 'staff']);
     Route::resource('/admin/3x3/members', ThreeXThreeMemberController::class)->only(['store', 'update', 'destroy'])->parameters(['members' => 'member']);
     Route::resource('/admin/3x3/tournaments', ThreeXThreeTournamentController::class)->only(['store', 'update', 'destroy'])->parameters(['tournaments' => 'tournament']);
+    Route::post('/admin/3x3/tournaments/{tournament}/draw', [ThreeXThreeTournamentDrawController::class, 'draw'])->name('admin.3x3.tournaments.draw');
+    Route::post('/admin/3x3/tournaments/{tournament}/playoff/refresh', [ThreeXThreeTournamentDrawController::class, 'refreshPlayoff'])->name('admin.3x3.tournaments.playoff.refresh');
     Route::post('/admin/3x3/tournaments/{tournament}/groups', [ThreeXThreeTournamentGroupController::class, 'store'])->name('admin.3x3.tournaments.groups.store');
     Route::put('/admin/3x3/tournaments/{tournament}/groups/{group}', [ThreeXThreeTournamentGroupController::class, 'update'])->name('admin.3x3.tournaments.groups.update');
     Route::delete('/admin/3x3/tournaments/{tournament}/groups/{group}', [ThreeXThreeTournamentGroupController::class, 'destroy'])->name('admin.3x3.tournaments.groups.destroy');

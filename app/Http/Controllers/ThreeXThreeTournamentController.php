@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreThreeXThreeTournamentRequest;
 use App\Http\Requests\UpdateThreeXThreeTournamentRequest;
 use App\Models\ThreeXThreeTournament;
+use App\Models\ThreeXThreeTournamentTeam;
 use App\Models\User;
 use App\Services\AdminNotificationService;
+use App\Services\ThreeXThreeTournamentFlowService;
 use App\Services\ThreeXThreeTournamentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -15,10 +17,9 @@ class ThreeXThreeTournamentController extends Controller
 {
     public function __construct(
         private readonly ThreeXThreeTournamentService $tournamentService,
-        private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+        private readonly AdminNotificationService $notificationService,
+        private readonly ThreeXThreeTournamentFlowService $flowService,
+    ) {}
 
     public function index(): View
     {
@@ -30,7 +31,7 @@ class ThreeXThreeTournamentController extends Controller
             'finishedTournaments' => $finishedTournaments,
             'pageTitle' => 'Turnieje 3x3',
             'pageEyebrow' => 'Organizowane przez ETB',
-            'emptyMessage' => 'Brak turniejow organizowanych przez ETB w tej sekcji.',
+            'emptyMessage' => 'Brak turniejów organizowanych przez ETB w tej sekcji.',
         ]);
     }
 
@@ -42,9 +43,9 @@ class ThreeXThreeTournamentController extends Controller
         return view('pages.schedule-3x3-tournaments', [
             'upcomingTournaments' => $upcomingTournaments,
             'finishedTournaments' => $finishedTournaments,
-            'pageTitle' => 'Terminarz turniejow 3x3',
-            'pageEyebrow' => 'Turnieje, w ktorych gramy',
-            'emptyMessage' => 'Brak turniejow w tej sekcji.',
+            'pageTitle' => 'Terminarz turniejów 3x3',
+            'pageEyebrow' => 'Turnieje, w których gramy',
+            'emptyMessage' => 'Brak turniejów w tej sekcji.',
         ]);
     }
 
@@ -53,6 +54,8 @@ class ThreeXThreeTournamentController extends Controller
         $tournament->load([
             'categories',
             'teams.players',
+            'teams.group',
+            'groups.teams.players',
             'groups.matches.teamOne',
             'groups.matches.teamTwo',
             'matches.teamOne',
@@ -60,7 +63,21 @@ class ThreeXThreeTournamentController extends Controller
             'matches.group',
         ]);
 
-        return view('pages.schedule-3x3-tournament-show', compact('tournament'));
+        $groupTables = $tournament->groups
+            ->mapWithKeys(fn ($group) => [$group->id => $this->flowService->groupTable($group)])
+            ->all();
+
+        return view('pages.schedule-3x3-tournament-show', compact('tournament', 'groupTables'));
+    }
+
+    public function team(ThreeXThreeTournamentTeam $team): View
+    {
+        $stats = $this->flowService->tournamentTeamStats($team->name);
+
+        return view('pages.schedule-3x3-team', [
+            'team' => $team->load(['tournament', 'players']),
+            ...$stats,
+        ]);
     }
 
     public function store(StoreThreeXThreeTournamentRequest $request): RedirectResponse

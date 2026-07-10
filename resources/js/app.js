@@ -354,7 +354,7 @@ window.adjustFontSize = function adjustFontSize(change) {
     root.style.fontSize = `${next}px`;
 };
 
-const searchIndex = [
+const legacySearchIndex = [
     { label: 'Aktualności', url: '/news', keywords: ['aktualnosci', 'news'] },
     { label: 'Klub', url: '/club', keywords: ['klub'] },
     { label: 'Rozgrywki', url: '/schedule', keywords: ['rozgrywki', 'liga', 'terminarz'] },
@@ -399,6 +399,231 @@ window.etbSearch = function etbSearch() {
 
     const main = document.getElementById('app-main');
     if (main && main.innerText.toLowerCase().includes(query)) {
+        window.find(input.value);
+        return;
+    }
+
+    alert('Brak wyników dla podanej frazy.');
+};
+
+const searchIndex = [
+    { label: 'Strona główna', url: '/', keywords: ['home', 'start', 'glowna', 'główna', 'etb'] },
+    { label: 'Aktualności', url: '/news', keywords: ['aktualnosci', 'aktualności', 'news', 'artykuly', 'artykuły', 'wieści'] },
+    { label: 'Klub', url: '/club', keywords: ['klub', 'o klubie', 'eat the ball'] },
+    { label: 'Historia', url: '/club/history', keywords: ['historia', 'dzieje klubu'] },
+    { label: 'Władze klubu', url: '/club/board', keywords: ['wladze', 'władze', 'zarzad', 'zarząd'] },
+    { label: 'Obiekt', url: '/club/venue', keywords: ['obiekt', 'hala', 'arena', 'miejsce'] },
+    { label: 'Oferta biznesowa', url: '/club/business', keywords: ['biznes', 'oferta', 'wspolpraca', 'współpraca'] },
+    { label: 'Sukcesy', url: '/club/success', keywords: ['sukcesy', 'osiagniecia', 'osiągnięcia'] },
+    { label: 'Sponsorzy', url: '/club/sponsors', keywords: ['sponsorzy', 'sponsor', 'partnerzy', 'partner', 'partner strategiczny', 'partner technologiczny'] },
+    { label: 'Kontakt', url: '/contact', keywords: ['kontakt', 'email', 'telefon', 'biuro'] },
+    { label: 'Rozgrywki', url: '/schedule', keywords: ['rozgrywki', 'liga', 'mecze'] },
+    { label: 'Terminarz', url: '/schedule/matches', keywords: ['terminarz', 'kalendarz', 'najblizszy mecz', 'najbliższy mecz', 'mecz'] },
+    { label: 'III liga mężczyzn ŁZKosz', url: '/schedule/third-league', keywords: ['iii liga', '3 liga', 'trzecia liga', 'lzkosz', 'łzkosz'] },
+    { label: 'Terminarz ŁZKosz', url: '/schedule/lzkosz', keywords: ['lzkosz', 'łzkosz', 'terminarz lzkosz', 'terminarz łzkosz'] },
+    { label: 'Tabela', url: '/schedule/table', keywords: ['tabela', 'ranking', 'pozycja'] },
+    { label: 'Terminarz 3x3', url: '/schedule/3x3', keywords: ['3x3', 'trzy na trzy', 'koszykowka 3x3', 'koszykówka 3x3'] },
+    { label: 'Turnieje 3x3', url: '/schedule/3x3/tournaments', keywords: ['turnieje 3x3', 'turniej 3x3', 'zawody 3x3'] },
+    { label: 'Zespół 3x3', url: '/schedule/3x3/team', keywords: ['zespol 3x3', 'zespół 3x3', 'team 3x3'] },
+    { label: 'Drużyna', url: '/team', keywords: ['druzyna', 'drużyna', 'team', 'sklad', 'skład'] },
+    { label: 'Zawodnicy', url: '/team/players', keywords: ['zawodnicy', 'koszykarze', 'gracze', 'pierwsza piatka', 'pierwsza piątka'] },
+    { label: 'Sztab szkoleniowy', url: '/team/staff', keywords: ['sztab', 'trenerzy', 'trener', 'szkoleniowy'] },
+    { label: 'Zawodnicy 3x3', url: '/team/3x3', keywords: ['zawodnicy 3x3', 'gracze 3x3'] },
+    { label: 'Bilety', url: '/tickets', keywords: ['bilety', 'ticket', 'wejsciowki', 'wejściówki'] },
+    { label: 'Sklep', url: '/shop', keywords: ['sklep', 'shop', 'merch', 'koszulki'] },
+    { label: 'Akademia', url: '/academy', keywords: ['akademia', 'treningi', 'grupy', 'u15', 'u17', 'u19', 'dzieci', 'mlodziez', 'młodzież'] },
+];
+
+const normalizeSearchText = (value) => value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .trim();
+
+function escapeHtml(value) {
+    return value.replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    }[character]));
+}
+
+function scoreSearchItem(item, normalizedQuery) {
+    const normalizedLabel = normalizeSearchText(item.label);
+    const normalizedKeywords = item.keywords.map(normalizeSearchText);
+
+    if (normalizedLabel === normalizedQuery) return 100;
+    if (normalizedLabel.startsWith(normalizedQuery)) return 90;
+    if (normalizedKeywords.some((keyword) => keyword === normalizedQuery)) return 80;
+    if (normalizedKeywords.some((keyword) => keyword.startsWith(normalizedQuery))) return 70;
+    if (normalizedLabel.includes(normalizedQuery)) return 60;
+    if (normalizedKeywords.some((keyword) => keyword.includes(normalizedQuery))) return 50;
+
+    return 0;
+}
+
+function getSearchMatches(query) {
+    const normalizedQuery = normalizeSearchText(query);
+    if (!normalizedQuery) return [];
+
+    const seen = new Set();
+
+    return searchIndex
+        .map((item) => ({ ...item, score: scoreSearchItem(item, normalizedQuery) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label, 'pl'))
+        .filter((item) => {
+            if (seen.has(item.label)) return false;
+            seen.add(item.label);
+            return true;
+        })
+        .slice(0, 7);
+}
+
+function getInlineCompletion(query, matches) {
+    if (!query || matches.length === 0) return '';
+
+    const typed = normalizeSearchText(query);
+    const match = matches.find((item) => normalizeSearchText(item.label).startsWith(typed));
+    return match ? match.label : '';
+}
+
+function renderSearchGhost(input, ghost, matches) {
+    const completion = getInlineCompletion(input.value, matches);
+
+    if (!completion || normalizeSearchText(completion) === normalizeSearchText(input.value)) {
+        ghost.innerHTML = '';
+        return;
+    }
+
+    ghost.innerHTML = `<span class="text-transparent">${escapeHtml(input.value)}</span><span>${escapeHtml(completion.slice(input.value.length))}</span>`;
+}
+
+function renderSearchPanel(input, panel, matches, activeIndex = -1) {
+    input.setAttribute('aria-expanded', matches.length > 0 ? 'true' : 'false');
+
+    if (matches.length === 0) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+
+    panel.classList.remove('hidden');
+    panel.innerHTML = matches
+        .map((item, index) => `
+            <button
+                type="button"
+                class="etb-search-option flex w-full items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-left font-semibold transition last:border-b-0 hover:bg-yellow-400 hover:text-black ${index === activeIndex ? 'bg-yellow-400 text-black' : 'text-white'}"
+                role="option"
+                aria-selected="${index === activeIndex ? 'true' : 'false'}"
+                data-search-url="${escapeHtml(item.url)}"
+                data-search-label="${escapeHtml(item.label)}"
+            >
+                <span>${escapeHtml(item.label)}</span>
+            </button>
+        `)
+        .join('');
+}
+
+function initializeSiteSearch() {
+    const input = document.getElementById('etb-search');
+    const panel = document.getElementById('etb-search-panel');
+    const ghost = document.getElementById('etb-search-ghost');
+    if (!input || !panel || !ghost || input.dataset.etbSearchReady === 'true') return;
+
+    input.dataset.etbSearchReady = 'true';
+    let matches = [];
+    let activeIndex = -1;
+
+    const sync = () => {
+        matches = getSearchMatches(input.value);
+        activeIndex = -1;
+        renderSearchGhost(input, ghost, matches);
+        renderSearchPanel(input, panel, matches, activeIndex);
+    };
+
+    const goTo = (item) => {
+        if (!item) return;
+        input.value = item.label;
+        window.location.href = item.url;
+    };
+
+    input.addEventListener('input', sync);
+    input.addEventListener('focus', sync);
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            panel.classList.add('hidden');
+            input.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        if ((event.key === 'Tab' || event.key === 'ArrowRight') && ghost.textContent.trim()) {
+            event.preventDefault();
+            input.value = getInlineCompletion(input.value, matches);
+            sync();
+            return;
+        }
+
+        if (event.key === 'ArrowDown' && matches.length > 0) {
+            event.preventDefault();
+            activeIndex = (activeIndex + 1) % matches.length;
+            renderSearchPanel(input, panel, matches, activeIndex);
+            return;
+        }
+
+        if (event.key === 'ArrowUp' && matches.length > 0) {
+            event.preventDefault();
+            activeIndex = (activeIndex - 1 + matches.length) % matches.length;
+            renderSearchPanel(input, panel, matches, activeIndex);
+            return;
+        }
+
+        if (event.key === 'Enter' && activeIndex >= 0) {
+            event.preventDefault();
+            goTo(matches[activeIndex]);
+        }
+    });
+
+    panel.addEventListener('mousedown', (event) => {
+        const option = event.target.closest('[data-search-url]');
+        if (!option) return;
+
+        event.preventDefault();
+        goTo({
+            label: option.dataset.searchLabel,
+            url: option.dataset.searchUrl,
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('#etb-site-search')) return;
+        panel.classList.add('hidden');
+        input.setAttribute('aria-expanded', 'false');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initializeSiteSearch);
+
+window.etbSearch = function etbSearch() {
+    const input = document.getElementById('etb-search');
+    if (!input) return;
+
+    const query = input.value.trim();
+    if (!query) return;
+
+    const result = getSearchMatches(query)[0];
+
+    if (result) {
+        window.location.href = result.url;
+        return;
+    }
+
+    const main = document.getElementById('app-main');
+    if (main && normalizeSearchText(main.innerText).includes(normalizeSearchText(query))) {
         window.find(input.value);
         return;
     }

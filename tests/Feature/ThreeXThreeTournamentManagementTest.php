@@ -159,3 +159,81 @@ it('lets admins manage groups and matches for an organized tournament', function
         'stage' => 'group',
     ]);
 });
+
+it('draws teams into groups and creates a FIBA style tournament flow', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $tournament = ThreeXThreeTournament::query()->create([
+        'name' => 'FIBA Style 3x3',
+        'date' => now()->addMonth()->toDateString(),
+        'location' => 'Lodz',
+        'status' => ThreeXThreeTournament::STATUS_UPCOMING,
+        'type' => ThreeXThreeTournament::TYPE_ORGANIZED,
+        'registration_mode' => ThreeXThreeTournament::REGISTRATION_INTERNAL,
+        'team_size' => 3,
+    ]);
+
+    foreach (['Alpha', 'Bravo', 'Charlie', 'Delta'] as $name) {
+        $tournament->teams()->create([
+            'user_id' => $admin->id,
+            'name' => $name,
+            'category' => ThreeXThreeCategory::OpenM->value,
+        ]);
+    }
+
+    $response = $this->actingAs($admin)->post(route('admin.3x3.tournaments.draw', $tournament), [
+        'groups_count' => 2,
+        'teams_per_group' => 2,
+        'qualifiers_per_group' => 1,
+        'generate_group_matches' => 1,
+        'generate_playoff' => 1,
+    ]);
+
+    $response->assertRedirect();
+    expect($tournament->fresh()->groups)->toHaveCount(2);
+    expect($tournament->fresh()->teams()->whereNotNull('group_id')->count())->toBe(4);
+    expect($tournament->fresh()->matches()->where('stage', 'group')->count())->toBe(2);
+    expect($tournament->fresh()->matches()->where('stage', 'playoff')->where('round_label', 'Finał')->count())->toBe(1);
+});
+
+it('shows team history with wins losses win rate and latest roster', function () {
+    $fan = User::factory()->create(['role' => User::ROLE_FAN]);
+    $tournament = ThreeXThreeTournament::query()->create([
+        'name' => 'Letnie Granie 3x3 ETB',
+        'date' => now()->subWeek()->toDateString(),
+        'location' => 'Lodz',
+        'status' => ThreeXThreeTournament::STATUS_FINISHED,
+        'type' => ThreeXThreeTournament::TYPE_ORGANIZED,
+        'team_size' => 3,
+    ]);
+
+    $teamA = $tournament->teams()->create([
+        'user_id' => $fan->id,
+        'name' => 'Lodz Ballers',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+    $teamB = $tournament->teams()->create([
+        'user_id' => $fan->id,
+        'name' => 'City Hoopers',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+    foreach (['Jan Kowalski', 'Adam Nowak', 'Piotr Zielinski'] as $index => $name) {
+        $teamA->players()->create(['name' => $name, 'sort_order' => $index]);
+    }
+
+    $tournament->matches()->create([
+        'stage' => 'group',
+        'team_one_id' => $teamA->id,
+        'team_two_id' => $teamB->id,
+        'team_one_score' => 21,
+        'team_two_score' => 14,
+        'played_at' => now()->subDays(3),
+    ]);
+
+    $response = $this->get(route('three-x-three.teams.show', $teamA));
+
+    $response->assertOk();
+    $response->assertSee('Lodz Ballers');
+    $response->assertSee('21:14');
+    $response->assertSee('100%');
+    $response->assertSee('Jan Kowalski');
+});

@@ -25,4 +25,9 @@ class ThreeXThreeTournamentGroup extends Model
     {
         return $this->hasMany(ThreeXThreeTournamentMatch::class, 'group_id');
     }
+
+    public function teams(): HasMany
+    {
+        return $this->hasMany(ThreeXThreeTournamentTeam::class, 'group_id');
+    }
 }

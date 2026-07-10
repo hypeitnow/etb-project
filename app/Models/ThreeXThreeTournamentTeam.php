@@ -23,6 +23,7 @@ class ThreeXThreeTournamentTeam extends Model
         'category',
         'logo_path',
         'status',
+        'group_id',
     ];
 
     protected function casts(): array
@@ -35,6 +36,11 @@ class ThreeXThreeTournamentTeam extends Model
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(ThreeXThreeTournament::class, 'three_x_three_tournament_id');
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(ThreeXThreeTournamentGroup::class, 'group_id');
     }
 
     public function user(): BelongsTo

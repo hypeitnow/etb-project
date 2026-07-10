@@ -1,7 +1,7 @@
 @php($message = $message ?? null)
 
 <div>
-    <label class="text-sm font-bold text-slate-700">Tytul</label>
+    <label class="text-sm font-bold text-slate-700">Tytuł</label>
     <input name="title" required value="{{ old('title', $message?->title) }}" class="mt-1 w-full rounded-lg border-slate-300">
 </div>
 

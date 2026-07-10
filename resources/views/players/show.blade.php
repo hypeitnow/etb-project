@@ -21,7 +21,7 @@
                         <dl class="mt-6 grid gap-4 text-lg">
                             <div>
                                 <dt class="text-sm font-semibold uppercase text-gray-500">Pozycja</dt>
-                                <dd>{{ $player->position }}</dd>
+                                <dd>{{ $player->positionLabel() }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-semibold uppercase text-gray-500">Wzrost</dt>

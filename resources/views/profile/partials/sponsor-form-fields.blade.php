@@ -17,13 +17,13 @@
         </select>
     </div>
     <div>
-        <label class="mb-1 block text-sm font-semibold text-slate-700" for="sponsor-sort-{{ $sponsor?->id ?? 'new' }}">Kolejnosc</label>
+        <label class="mb-1 block text-sm font-semibold text-slate-700" for="sponsor-sort-{{ $sponsor?->id ?? 'new' }}">Kolejność</label>
         <input id="sponsor-sort-{{ $sponsor?->id ?? 'new' }}" type="number" min="0" max="9999" name="sort_order" value="{{ old('sort_order', $sponsor?->sort_order ?? 0) }}" class="w-full rounded-lg border-slate-300 text-sm">
     </div>
 </div>
 
 <div>
-    <label class="mb-1 block text-sm font-semibold text-slate-700" for="sponsor-url-{{ $sponsor?->id ?? 'new' }}">Link po kliknieciu w logo</label>
+    <label class="mb-1 block text-sm font-semibold text-slate-700" for="sponsor-url-{{ $sponsor?->id ?? 'new' }}">Link po kliknięciu w logo</label>
     <input id="sponsor-url-{{ $sponsor?->id ?? 'new' }}" type="url" name="url" value="{{ old('url', $sponsor?->url) }}" required placeholder="https://example.com" class="w-full rounded-lg border-slate-300 text-sm">
 </div>
 
@@ -32,7 +32,7 @@
     @if ($sponsor?->logo_path)
         <div class="mb-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <img src="{{ asset('storage/'.$sponsor->logo_path) }}" alt="{{ $sponsor->name }}" class="h-12 w-28 object-contain">
-            <span class="text-xs text-slate-500">Wgraj nowe logo tylko wtedy, gdy chcesz je podmienic.</span>
+            <span class="text-xs text-slate-500">Wgraj nowe logo tylko wtedy, gdy chcesz je podmienić.</span>
         </div>
     @endif
     <input id="sponsor-logo-{{ $sponsor?->id ?? 'new' }}" type="file" name="logo" accept="image/*" @required(! $sponsor) class="w-full rounded-lg border border-slate-300 p-2 text-sm">

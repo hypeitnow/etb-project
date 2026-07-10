@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +13,9 @@ class News extends Model
     use HasFactory;
 
     public const TYPE_ARTICLE = 'article';
+
     public const TYPE_GALLERY = 'gallery';
+
     public const TYPE_VIDEO = 'video';
 
     protected $fillable = [
@@ -63,7 +65,7 @@ class News extends Model
         return match ($this->type) {
             self::TYPE_GALLERY => 'Galeria zdjęć',
             self::TYPE_VIDEO => 'Wideo',
-            default => 'News',
+            default => 'Artykuł',
         };
     }
 

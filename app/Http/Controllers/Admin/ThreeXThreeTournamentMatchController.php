@@ -14,7 +14,7 @@ class ThreeXThreeTournamentMatchController extends Controller
     {
         $tournament->matches()->create($request->validated());
 
-        return back()->with('success', 'Mecz turnieju zostal dodany.');
+        return back()->with('success', 'Mecz turnieju został dodany.');
     }
 
     public function update(StoreThreeXThreeTournamentMatchRequest $request, ThreeXThreeTournament $tournament, ThreeXThreeTournamentMatch $match): RedirectResponse
@@ -23,7 +23,7 @@ class ThreeXThreeTournamentMatchController extends Controller
 
         $match->update($request->validated());
 
-        return back()->with('success', 'Mecz turnieju zostal zaktualizowany.');
+        return back()->with('success', 'Mecz turnieju został zaktualizowany.');
     }
 
     public function destroy(ThreeXThreeTournament $tournament, ThreeXThreeTournamentMatch $match): RedirectResponse
@@ -32,6 +32,6 @@ class ThreeXThreeTournamentMatchController extends Controller
 
         $match->delete();
 
-        return back()->with('success', 'Mecz turnieju zostal usuniety.');
+        return back()->with('success', 'Mecz turnieju został usunięty.');
     }
 }

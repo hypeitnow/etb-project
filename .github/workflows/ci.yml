@@ -25,11 +25,22 @@ jobs:
           extensions: mbstring, bcmath, pdo, pdo_sqlite, sqlite3
           coverage: none
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Copy .env
         run: cp .env.example .env
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
 
       - name: Generate app key
         run: php artisan key:generate

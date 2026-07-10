@@ -14,7 +14,7 @@ class ThreeXThreeTournamentGroupController extends Controller
     {
         $tournament->groups()->create($request->validated());
 
-        return back()->with('success', 'Grupa turnieju zostala dodana.');
+        return back()->with('success', 'Grupa turnieju została dodana.');
     }
 
     public function update(StoreThreeXThreeTournamentGroupRequest $request, ThreeXThreeTournament $tournament, ThreeXThreeTournamentGroup $group): RedirectResponse
@@ -23,7 +23,7 @@ class ThreeXThreeTournamentGroupController extends Controller
 
         $group->update($request->validated());
 
-        return back()->with('success', 'Grupa turnieju zostala zaktualizowana.');
+        return back()->with('success', 'Grupa turnieju została zaktualizowana.');
     }
 
     public function destroy(ThreeXThreeTournament $tournament, ThreeXThreeTournamentGroup $group): RedirectResponse
@@ -32,6 +32,6 @@ class ThreeXThreeTournamentGroupController extends Controller
 
         $group->delete();
 
-        return back()->with('success', 'Grupa turnieju zostala usunieta.');
+        return back()->with('success', 'Grupa turnieju została usunięta.');
     }
 }

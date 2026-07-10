@@ -43,7 +43,7 @@
 
             <!-- MECZ -->
             <h1 class="text-4xl md:text-6xl font-extrabold mb-4">
-                ETB <span class="text-yellow-400">vs</span>
+                ETB <span class="text-yellow-400">-</span>
                 {{ $nextMatch->opponent }}
             </h1>
 

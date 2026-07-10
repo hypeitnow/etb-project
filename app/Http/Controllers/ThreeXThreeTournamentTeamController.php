@@ -24,6 +24,6 @@ class ThreeXThreeTournamentTeamController extends Controller
 
         return redirect()
             ->route('three-x-three.tournaments.show', $tournament)
-            ->with('success', 'Druzyna zostala zgloszona do turnieju.');
+            ->with('success', 'Drużyna została zgłoszona do turnieju.');
     }
 }

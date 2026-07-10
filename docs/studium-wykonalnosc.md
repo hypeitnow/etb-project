@@ -5,7 +5,7 @@ Aplikacja webowa w technologii Laravel
 Zlecajacy: ETB (Jakub Borowski)
 Wykonanie: Filip Kijewski w ramach organizacji Eat The Ball
 Technologie: Laravel, Blade, Tailwind, Alpine.js, Vite, MySQL
-Zakres: zarzadzanie druzyna, tresciami, uzytkownikami i komunikacja
+Zakres: zarządzanie drużyną, treściami, użytkownikami i komunikacją
 
 
 Dokument przygotowany jako kompletna baza do dalszego opracowania projektu.
@@ -17,10 +17,10 @@ Spis tresci
    1.3 Cel studium
    1.4 Zakres raportu
 2. Opis projektu
-   2.1 Glowne cele systemu
-   2.2 Uzytkownicy systemu
-3. Stan obecny i problem do rozwiazania
-   3.1 Glowne problemy
+   2.1 Główne cele systemu
+   2.2 Użytkownicy systemu
+3. Stan obecny i problem do rozwiązania
+   3.1 Główne problemy
    3.2 Wniosek
 4. Wymagania systemowe
    4.1 Wymagania funkcjonalne
@@ -45,58 +45,58 @@ Spis tresci
 1. Zalozenia realizacji
 
 1.1 Zlecajacy
-Zlecajacym projektu jest organizacja sportowa ETB, reprezentowana przez wlasciciela projektu Jakuba Borowskiego. System tworzony jest w ramach prac inzynierskich i ma sluzyc do zarzadzania druzyna sportowa oraz komunikacja z uzytkownikami.
+Zlecającym projektu jest organizacja sportowa ETB, reprezentowana przez właściciela projektu Jakuba Borowskiego. System tworzony jest w ramach prac inżynierskich i ma służyć do zarządzania drużyną sportową oraz komunikacją z użytkownikami.
 
 1.2 Podstawa opracowania
-- wymagania zlecajacego i biezace ustalenia z rozmowy projektowej,
-- analiza podobnych stron klubow i druzyn sportowych,
-- stan obecny kodu, ktory wymaga uporzadkowania i podzialu na moduly,
-- wybor technologii webowych: Laravel, Blade, Tailwind, Alpine.js, Vite oraz MySQL.
+- wymagania zlecającego i bieżące ustalenia z rozmowy projektowej,
+- analiza podobnych stron klubów i drużyn sportowych,
+- stan obecny kodu, który wymaga uporządkowania i podziału na moduły,
+- wybór technologii webowych: Laravel, Blade, Tailwind, Alpine.js, Vite oraz MySQL.
 
 1.3 Cel studium
-Celem studium jest ocena wykonalnosci systemu od strony technicznej, organizacyjnej i czasowej, a takze wskazanie zakresu funkcji, ktore powinny wejsc do wersji podstawowej oraz ktore mozna pozostawic jako rozwoj w przyszlosci.
+Celem studium jest ocena wykonalności systemu od strony technicznej, organizacyjnej i czasowej, a także wskazanie zakresu funkcji, które powinny wejść do wersji podstawowej oraz które można pozostawić jako rozwój w przyszłości.
 
 1.4 Zakres raportu
-Raport obejmuje opis systemu, wymagania, architekture, zakres funkcjonalny, plan wdrozenia, ryzyka, testy oraz propozycje dalszego rozwoju.
+Raport obejmuje opis systemu, wymagania, architekturę, zakres funkcjonalny, plan wdrożenia, ryzyka, testy oraz propozycje dalszego rozwoju.
 
 2. Opis projektu
 
-Projekt zaklada stworzenie internetowej platformy dla druzyny sportowej ETB. System bedzie pelnil jednoczesnie funkcje strony publicznej, zaplecza administracyjnego oraz wewnetrznego narzedzia do organizacji pracy druzyny.
+Projekt zakłada stworzenie internetowej platformy dla drużyny sportowej ETB. System będzie pełnił jednocześnie funkcję strony publicznej, zaplecza administracyjnego oraz wewnętrznego narzędzia do organizacji pracy drużyny.
 
-2.1 Glowne cele systemu
-- uporzadkowanie informacji o druzynie w jednym miejscu,
-- ulatwienie zarzadzania zawodnikami, meczami, treningami i tresciami,
-- poprawa komunikacji miedzy klubem, trenerem, zawodnikami i fanami,
+2.1 Główne cele systemu
+- uporządkowanie informacji o drużynie w jednym miejscu,
+- ułatwienie zarządzania zawodnikami, meczami, treningami i treściami,
+- poprawa komunikacji między klubem, trenerem, zawodnikami i fanami,
 - stworzenie nowoczesnej i skalowalnej platformy,
 - przygotowanie projektu do dalszego rozwoju.
 
-2.2 Uzytkownicy systemu
+2.2 Użytkownicy systemu
 - Administrator
 - Trener
 - Pracownik klubu
 - Zawodnik
-- Fan / gosc
+- Fan / gość
 
-3. Stan obecny i problem do rozwiazania
+3. Stan obecny i problem do rozwiązania
 
-Obecnie problemem jest brak jednego spojnego systemu oraz nieuporzadkowany kod.
+Obecnie problemem jest brak jednego spójnego systemu oraz nieuporządkowany kod.
 
-3.1 Glowne problemy
+3.1 Główne problemy
 - brak centralnego systemu,
 - brak panelu admina,
 - chaotyczna struktura kodu,
-- trudnosci w rozwoju projektu.
+- trudności w rozwoju projektu.
 
 3.2 Wniosek
-Najwiekszym wyzwaniem jest uporzadkowanie architektury systemu.
+Największym wyzwaniem jest uporządkowanie architektury systemu.
 
 4. Wymagania systemowe
 
 4.1 Wymagania funkcjonalne
-- przegladanie strony,
-- zarzadzanie trescia,
-- CRUD zawodnikow, meczow, treningow,
-- zarzadzanie uzytkownikami,
+- przeglądanie strony,
+- zarządzanie treścią,
+- CRUD zawodników, meczów, treningów,
+- zarządzanie użytkownikami,
 - formularze,
 - powiadomienia,
 - prosty AI chat,
@@ -180,7 +180,7 @@ System klient-serwer.
 - utrzymanie
 
 12. Podsumowanie
-    Projekt jest wykonalny, kluczowe jest uporzadkowanie architektury.
+    Projekt jest wykonalny, kluczowe jest uporządkowanie architektury.
 
 13. Zalacznik
     Encje:

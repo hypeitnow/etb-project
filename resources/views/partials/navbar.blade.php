@@ -51,9 +51,21 @@
         <div class="flex items-center justify-between gap-4 flex-wrap">
             <a href="{{ route('home') }}" class="text-3xl font-extrabold text-zinc-800 ajax-link">ETB</a>
 
-            <form class="relative flex w-full min-w-0 items-center gap-2 sm:w-auto" role="search" onsubmit="event.preventDefault(); etbSearch()">
-                <input id="etb-search" list="etb-search-suggestions" type="search" placeholder="Szukaj na stronie..." class="min-w-0 flex-1 rounded border border-zinc-300 bg-white px-3 py-2 text-sm sm:w-64 sm:flex-none">
-                <datalist id="etb-search-suggestions"></datalist>
+            <form id="etb-site-search" class="relative flex w-full min-w-0 items-center gap-2 sm:w-auto" role="search" autocomplete="off" onsubmit="event.preventDefault(); etbSearch()">
+                <div class="relative min-w-0 flex-1 rounded border border-zinc-300 bg-white text-sm shadow-sm transition focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-400/70 sm:w-72 sm:flex-none">
+                    <div id="etb-search-ghost" class="etb-search-ghost pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre px-3 text-zinc-400" aria-hidden="true"></div>
+                    <input
+                        id="etb-search"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="Szukaj na stronie..."
+                        aria-autocomplete="list"
+                        aria-controls="etb-search-panel"
+                        aria-expanded="false"
+                        class="relative z-10 w-full rounded border-0 bg-transparent px-3 py-2 text-sm text-zinc-950 placeholder:text-zinc-500 focus:outline-none focus:ring-0"
+                    >
+                </div>
+                <div id="etb-search-panel" class="etb-search-panel absolute left-0 top-full z-50 mt-2 hidden w-full overflow-hidden rounded border border-zinc-800 bg-zinc-950 text-sm text-white shadow-xl sm:w-72" role="listbox"></div>
                 <button type="submit" class="inline-flex shrink-0 items-center gap-2 rounded border border-zinc-500 px-3 py-1.5 font-semibold text-black hover:bg-yellow-400">
                     <i data-lucide="search" class="w-4 h-4"></i> Szukaj
                 </button>

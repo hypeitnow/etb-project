@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademyGroup;
 use App\Models\AcademyCalendarNote;
+use App\Models\AcademyGroup;
 use App\Models\AcademyTraining;
+use App\Services\PolishHolidayService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PublicAcademyController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, PolishHolidayService $holidayService): View
     {
         $month = $request->date('month')?->startOfMonth() ?? now()->startOfMonth();
+        $calendarStart = $month->copy()->startOfMonth()->startOfWeek();
+        $calendarEnd = $month->copy()->endOfMonth()->endOfWeek();
         $groups = AcademyGroup::query()
             ->active()
             ->with('trainers')
@@ -30,6 +33,7 @@ class PublicAcademyController extends Controller
             ->whereDate('ends_on', '>=', $month->copy()->startOfMonth())
             ->orderBy('starts_on')
             ->get();
+        $publicHolidays = $holidayService->between($calendarStart, $calendarEnd);
         $upcomingTrainings = AcademyTraining::query()
             ->with('group')
             ->whereHas('group', fn ($query) => $query->active())
@@ -41,6 +45,8 @@ class PublicAcademyController extends Controller
             'groups' => $groups,
             'trainings' => $trainings,
             'calendarNotes' => $calendarNotes,
+            'publicHolidays' => $publicHolidays,
+            'holidaySourceUrl' => config('services.nager_date.base_url', 'https://date.nager.at'),
             'upcomingTrainings' => $upcomingTrainings,
             'month' => $month,
         ]);

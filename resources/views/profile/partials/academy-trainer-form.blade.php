@@ -40,7 +40,7 @@
             <input name="role" x-model="role" placeholder="Trener główny" class="mt-1 w-full rounded-lg border-slate-300">
         </div>
         <div>
-            <label class="text-sm font-bold text-slate-700">Email</label>
+            <label class="text-sm font-bold text-slate-700">Adres e-mail</label>
             <input name="email" type="email" x-model="email" class="mt-1 w-full rounded-lg border-slate-300">
         </div>
         <div>

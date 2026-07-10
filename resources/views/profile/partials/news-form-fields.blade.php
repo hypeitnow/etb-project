@@ -8,7 +8,7 @@
         <p class="text-sm font-black text-gray-800">Typ aktualności</p>
         <div class="mt-2 grid gap-3 md:grid-cols-3">
             @foreach ([
-                \App\Models\News::TYPE_ARTICLE => ['icon' => 'newspaper', 'title' => 'News', 'hint' => 'Pełny artykuł, zdjęcie główne i treść.'],
+                \App\Models\News::TYPE_ARTICLE => ['icon' => 'newspaper', 'title' => 'Artykuł', 'hint' => 'Pełny artykuł, zdjęcie główne i treść.'],
                 \App\Models\News::TYPE_GALLERY => ['icon' => 'images', 'title' => 'Galeria zdjęć', 'hint' => 'Tytuł, krótki opis i do 100 zdjęć.'],
                 \App\Models\News::TYPE_VIDEO => ['icon' => 'youtube', 'title' => 'Film YouTube', 'hint' => 'Tytuł, opis i osadzony film.'],
             ] as $type => $option)

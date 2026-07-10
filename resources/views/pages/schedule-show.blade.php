@@ -17,7 +17,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-bold uppercase tracking-[0.25em] text-yellow-400">{{ $match->is_home ? 'Mecz domowy' : 'Mecz wyjazdowy' }}</p>
-                    <h1 class="mt-2 text-4xl font-black text-white">ETB vs {{ $match->opponent_name }}</h1>
+                    <h1 class="mt-2 text-4xl font-black text-white">ETB - {{ $match->opponent_name }}</h1>
                 </div>
             </div>
 

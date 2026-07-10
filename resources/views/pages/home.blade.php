@@ -35,7 +35,7 @@
                         <p class="text-xs font-semibold uppercase mb-1 {{ $index === 0 ? 'text-black' : 'text-yellow-400' }}">
                             {{ $index === 0 ? 'Najbliższy mecz' : 'Mecz' }}
                         </p>
-                        <h3 class="font-semibold">ETB vs {{ $game->opponent }}</h3>
+                        <h3 class="font-semibold">ETB - {{ $game->opponent }}</h3>
                         <p class="text-sm {{ $index === 0 ? 'text-black/80' : 'text-zinc-400' }}">{{ \Carbon\Carbon::parse($game->match_date)->format('d.m.Y H:i') }}</p>
                         <p class="text-sm {{ $index === 0 ? 'text-black/80' : 'text-zinc-300' }}">{{ $game->location }}</p>
                     </div>

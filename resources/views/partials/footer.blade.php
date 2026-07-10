@@ -23,7 +23,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <p class="rounded-lg border border-dashed border-white/15 p-4 text-sm text-zinc-400">Ta sekcja zostanie uzupelniona po dodaniu partnerow w panelu admina.</p>
+                            <p class="rounded-lg border border-dashed border-white/15 p-4 text-sm text-zinc-400">Ta sekcja zostanie uzupełniona po dodaniu partnerów w panelu admina.</p>
                         @endif
                     </div>
                 @endforeach

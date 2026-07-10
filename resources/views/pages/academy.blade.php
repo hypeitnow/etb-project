@@ -8,6 +8,8 @@
     $days = collect(CarbonPeriod::create($calendarStart, $calendarEnd));
     $trainingsByDay = $trainings->groupBy(fn ($training) => $training->starts_at->format('Y-m-d'));
     $calendarNotes = $calendarNotes ?? collect();
+    $publicHolidaysByDay = ($publicHolidays ?? collect())->keyBy('date');
+    $holidaySourceUrl = $holidaySourceUrl ?? 'https://date.nager.at';
     $polishMonths = [
         1 => 'styczeń',
         2 => 'luty',
@@ -78,6 +80,10 @@
                         @foreach ($days as $day)
                             @php($dayTrainings = $trainingsByDay->get($day->format('Y-m-d'), collect()))
                             @php($dayNotes = $calendarNotes->filter(fn ($note) => $note->starts_on->lte($day) && $note->ends_on->gte($day))->values())
+                            @php($dayHoliday = $publicHolidaysByDay->get($day->format('Y-m-d')))
+                            @php($isRedCalendarDay = $day->isSunday() || $dayHoliday)
+                            @php($dayBaseClasses = $isRedCalendarDay ? 'bg-red-50 text-red-500' : ($day->month === $month->month ? 'bg-white' : 'bg-yellow-50 text-slate-500'))
+                            @php($dayItemCount = $dayTrainings->count() + $dayNotes->count() + ($dayHoliday ? 1 : 0))
                             @php($dayPayload = [
                                 'date' => $day->format('d.m.Y'),
                                 'trainings' => $dayTrainings->map(fn ($training) => [
@@ -98,16 +104,25 @@
                                     'body' => $note->body,
                                     'range' => $note->starts_on->format('d.m.Y').' - '.$note->ends_on->format('d.m.Y'),
                                 ])->values(),
+                                'holidays' => $dayHoliday ? [[
+                                    'title' => $dayHoliday['name'],
+                                    'source' => 'Nager.Date',
+                                ]] : [],
                             ])
-                            <div class="min-h-32 border-b border-r border-black p-2 last:border-r-0 {{ $day->month === $month->month ? 'bg-white' : 'bg-yellow-50 text-slate-500' }}">
+                            <div data-academy-calendar-day="{{ $day->format('Y-m-d') }}" data-academy-holiday="{{ $dayHoliday ? '1' : '0' }}" class="min-h-32 border-b border-r border-black p-2 last:border-r-0 {{ $dayBaseClasses }}">
                                 <div class="mb-2 flex items-center justify-between">
                                     <span class="text-sm font-black">{{ $day->format('j') }}</span>
-                                    @if ($dayTrainings->isNotEmpty() || $dayNotes->isNotEmpty())
-                                        <span class="text-[11px] font-bold text-slate-500">{{ $dayTrainings->count() + $dayNotes->count() }}</span>
+                                    @if ($dayItemCount > 0)
+                                        <span class="text-[11px] font-bold {{ $isRedCalendarDay ? 'text-red-400' : 'text-slate-500' }}">{{ $dayItemCount }}</span>
                                     @endif
                                 </div>
 
                                 <div class="space-y-1.5">
+                                    @if ($dayHoliday)
+                                        <button type="button" title="Święto publiczne" class="block w-full rounded bg-red-100 px-2 py-1.5 text-left text-xs font-black text-red-700 shadow-sm transition hover:bg-red-200" @click="day = {{ Js::from($dayPayload) }}">
+                                            {{ $dayHoliday['name'] }}
+                                        </button>
+                                    @endif
                                     @foreach ($dayTrainings->take(3) as $training)
                                         @php($payload = [
                                             'group' => $training->group?->name,
@@ -141,7 +156,7 @@
                                             @endforeach
                                         </div>
                                     @endif
-                                    @if ($dayTrainings->isNotEmpty() || $dayNotes->isNotEmpty())
+                                    @if ($dayTrainings->isNotEmpty() || $dayNotes->isNotEmpty() || $dayHoliday)
                                         <button type="button" data-academy-day-preview class="mt-1 w-full rounded border border-black px-2 py-1 text-[11px] font-black uppercase text-black hover:bg-yellow-200" @click="day = {{ Js::from($dayPayload) }}">Podgląd dnia</button>
                                     @endif
                                 </div>
@@ -183,6 +198,18 @@
                             </div>
 
                             <div class="mt-5 space-y-4">
+                                <template x-if="day?.holidays?.length">
+                                    <div class="space-y-2">
+                                        <h4 class="font-black text-yellow-200">Święta publiczne</h4>
+                                        <template x-for="holiday in day.holidays" :key="holiday.title">
+                                            <article class="rounded-lg bg-red-100 p-4 text-red-800">
+                                                <h5 class="font-black" x-text="holiday.title"></h5>
+                                                <p class="mt-1 text-xs font-bold" x-text="`Źródło: ${holiday.source}`"></p>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </template>
+
                                 <template x-if="day?.notes?.length">
                                     <div class="space-y-2">
                                         <h4 class="font-black text-yellow-200">Wpisy w kalendarzu</h4>
@@ -223,6 +250,11 @@
                             </div>
                         </div>
                     </div>
+
+                    <p class="mt-3 text-xs font-semibold text-slate-600">
+                        Święta publiczne są synchronizowane z Nager.Date Holiday API:
+                        <a href="{{ $holidaySourceUrl }}" target="_blank" rel="noopener noreferrer" class="font-black text-slate-900 underline hover:text-red-600">{{ $holidaySourceUrl }}</a>.
+                    </p>
                 </section>
 
                 <section>

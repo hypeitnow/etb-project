@@ -3,6 +3,7 @@
 @php
     use App\Models\MatchGame;
     use App\Models\ThreeXThreeTournament;
+    use App\Services\ThreeXThreeTournamentFlowService;
 
     $isPanelUser = $isAdmin || $isEmployee;
     $publishedNewsCount = $publishedNews->count();
@@ -13,6 +14,19 @@
     $sectionClasses = fn (string $section): string => $activeSection === $section
         ? 'flex items-center gap-3 rounded-lg bg-yellow-400 px-3 py-2.5 font-black text-black'
         : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition hover:bg-yellow-400 hover:text-black';
+    $notificationActionLabels = [
+        'created' => 'Dodano',
+        'updated' => 'Zmieniono',
+        'deleted' => 'Usunięto',
+        'published' => 'Opublikowano',
+    ];
+    $roleLabels = [
+        \App\Models\User::ROLE_ADMIN => 'Administrator',
+        \App\Models\User::ROLE_ATHLETE => 'Zawodnik',
+        \App\Models\User::ROLE_FAN => 'Kibic',
+        \App\Models\User::ROLE_EMPLOYEE => 'Pracownik',
+    ];
+    $tournamentFlow = app(ThreeXThreeTournamentFlowService::class);
 @endphp
 
 @section('content')
@@ -56,6 +70,7 @@
                                 <a href="{{ $sectionUrl('staff') }}" class="{{ $sectionClasses('staff') }}"><i data-lucide="user-cog" class="h-4 w-4"></i>Sztab szkoleniowy</a>
                                 <a href="{{ $sectionUrl('three-x-three') }}" class="{{ $sectionClasses('three-x-three') }}"><i data-lucide="circle-dot" class="h-4 w-4"></i>Drużyna 3x3</a>
                                 <a href="{{ $sectionUrl('tournaments') }}" class="{{ $sectionClasses('tournaments') }}"><i data-lucide="trophy" class="h-4 w-4"></i>Turnieje 3x3</a>
+                                <a href="{{ $sectionUrl('notifications-history') }}" class="{{ $sectionClasses('notifications-history') }}"><i data-lucide="history" class="h-4 w-4"></i>Historia zmian</a>
                             </div>
                         </div>
 
@@ -103,7 +118,21 @@
                                             <h3 class="font-black">Powiadomienia</h3>
                                             <p class="text-xs text-slate-500">Globalny dziennik zmian pracowników.</p>
                                         </div>
-                                        <span class="rounded-full bg-yellow-100 px-2 py-1 text-xs font-black text-yellow-900" x-text="notificationBadge"></span>
+                                        <div class="flex shrink-0 items-center gap-1.5">
+                                            <span class="rounded-full bg-yellow-100 px-2 py-1 text-xs font-black text-yellow-900" x-text="notificationBadge"></span>
+                                            <form method="POST" action="{{ route('admin.notifications.read-all') }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button title="Oznacz wszystkie jako przeczytane" @disabled($unreadNotificationsCount === 0) class="{{ $unreadNotificationsCount > 0 ? 'text-emerald-700 hover:bg-emerald-50' : 'cursor-not-allowed text-slate-300' }} rounded-lg border border-slate-200 bg-white p-2">
+                                                    <i data-lucide="mail-check" class="h-4 w-4"></i>
+                                                    <span class="sr-only">Oznacz wszystkie jako przeczytane</span>
+                                                </button>
+                                            </form>
+                                            <a href="{{ $sectionUrl('notifications-history') }}" title="Historia zmian" class="rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-50">
+                                                <i data-lucide="history" class="h-4 w-4"></i>
+                                                <span class="sr-only">Historia zmian</span>
+                                            </a>
+                                        </div>
                                     </div>
 
                                     <div class="max-h-[28rem] divide-y divide-slate-100 overflow-y-auto">
@@ -234,7 +263,7 @@
                                 ['icon' => 'newspaper', 'value' => $publishedNewsCount, 'label' => 'Aktualności', 'hint' => 'Opublikowanych'],
                                 ['icon' => 'trophy', 'value' => $threeXThreeTournaments->count(), 'label' => 'Turnieje 3x3', 'hint' => 'Zaplanowanych i zakończonych'],
                                 ['icon' => 'graduation-cap', 'value' => $academyGroups->count(), 'label' => 'Akademia', 'hint' => 'Aktywnych i ukrytych sekcji'],
-                                ['icon' => 'handshake', 'value' => $sponsors->count(), 'label' => 'Sponsorzy', 'hint' => 'W bazie partnerow'],
+                                ['icon' => 'handshake', 'value' => $sponsors->count(), 'label' => 'Sponsorzy', 'hint' => 'W bazie partnerów'],
                             ] as $stat)
                                 <article class="rounded-lg bg-white/80 p-5 shadow-sm">
                                     <div class="flex items-start gap-3">
@@ -266,7 +295,7 @@
                                         <select name="user_role" class="rounded-lg border-slate-300 text-sm">
                                             <option value="all" @selected($userRoleFilter === 'all')>Wszystkie role</option>
                                             @foreach ($availableRoles as $role)
-                                                <option value="{{ $role }}" @selected($userRoleFilter === $role)>{{ $role }}</option>
+                                                <option value="{{ $role }}" @selected($userRoleFilter === $role)>{{ $roleLabels[$role] ?? $role }}</option>
                                             @endforeach
                                         </select>
                                         <select name="marketing_consent" class="rounded-lg border-slate-300 text-sm">
@@ -322,7 +351,7 @@
                                                         @method('PATCH')
                                                         <select name="role" class="rounded-lg border-slate-300 text-sm">
                                                             @foreach ($availableRoles as $role)
-                                                                <option value="{{ $role }}" @selected($managedUser->role === $role)>{{ $role }}</option>
+                                                                <option value="{{ $role }}" @selected($managedUser->role === $role)>{{ $roleLabels[$role] ?? $role }}</option>
                                                             @endforeach
                                                         </select>
                                                         <button class="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black hover:bg-yellow-300">Zapisz</button>
@@ -625,9 +654,9 @@
                                             </div>
                                         @elseif ($section['type'] === 'tournament')
                                             <h3 class="font-black">{{ $item->name }}</h3>
-                                            <p class="mt-1 text-xs font-bold uppercase text-yellow-700">{{ $item->type === ThreeXThreeTournament::TYPE_ORGANIZED ? 'Organizowany przez ETB' : 'Turniej, w ktorym gramy' }}</p>
+                                            <p class="mt-1 text-xs font-bold uppercase text-yellow-700">{{ $item->type === ThreeXThreeTournament::TYPE_ORGANIZED ? 'Organizowany przez ETB' : 'Turniej, w którym gramy' }}</p>
                                             @if ($item->type === ThreeXThreeTournament::TYPE_ORGANIZED)
-                                                <p class="mt-2 text-sm text-slate-600">Druzyny: {{ $item->teams->count() }} / Grupy: {{ $item->groups->count() }} / Mecze: {{ $item->matches->count() }}</p>
+                                                <p class="mt-2 text-sm text-slate-600">Drużyny: {{ $item->teams->count() }} / Grupy: {{ $item->groups->count() }} / Mecze: {{ $item->matches->count() }}</p>
                                             @endif
                                             <p class="text-sm text-slate-600">{{ $item->date?->format('d.m.Y') }} · {{ $item->location }}</p>
                                             <p class="mt-1 text-xs font-bold uppercase text-slate-500">{{ $item->status === ThreeXThreeTournament::STATUS_FINISHED ? 'Zakończony' : 'Nadchodzący' }}</p>
@@ -688,7 +717,7 @@
                         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-xl font-black">Sponsorzy</h2>
-                                <p class="text-sm text-slate-600">Logo, linki i typy partnerow widoczne w stopce kazdej strony.</p>
+                                <p class="text-sm text-slate-600">Logo, linki i typy partnerów widoczne w stopce każdej strony.</p>
                             </div>
                             <button type="button" class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300" @click="openModal = 'sponsor-create'">Dodaj sponsora</button>
                         </div>
@@ -709,17 +738,88 @@
                                     </div>
                                     <div class="mt-4 flex flex-wrap gap-2">
                                         <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold hover:bg-yellow-50" @click="openModal = 'sponsor-edit-{{ $sponsor->id }}'">Edytuj</button>
-                                        <form method="POST" action="{{ route('sponsors.destroy', $sponsor) }}" onsubmit="return confirm('Czy na pewno usunac tego sponsora?')">
+                                        <form method="POST" action="{{ route('sponsors.destroy', $sponsor) }}" onsubmit="return confirm('Czy na pewno usunąć tego sponsora?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50">Usun</button>
+                                            <button class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50">Usuń</button>
                                         </form>
                                     </div>
                                 </article>
                             @empty
-                                <p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 md:col-span-2 xl:col-span-3">Brak sponsorow. Dodaj pierwszego partnera, aby pojawil sie w stopce strony.</p>
+                                <p class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 md:col-span-2 xl:col-span-3">Brak sponsorów. Dodaj pierwszego partnera, aby pojawił się w stopce strony.</p>
                             @endforelse
                         </div>
+                    </section>
+
+                    <section id="notifications-history" class="{{ $activeSection === 'notifications-history' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-xl font-black">Historia zmian</h2>
+                                <p class="text-sm text-slate-600">Wszystkie zapisane operacje w systemie.</p>
+                            </div>
+                            <form method="POST" action="{{ route('admin.notifications.read-all') }}">
+                                @csrf
+                                @method('PATCH')
+                                <button class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">
+                                    <i data-lucide="mail-check" class="h-4 w-4"></i>
+                                    Oznacz wszystkie jako przeczytane
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="admin-scroll-list overflow-x-auto">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-3 py-3">Data</th>
+                                        <th class="px-3 py-3">Zmiana</th>
+                                        <th class="px-3 py-3">Opis</th>
+                                        <th class="px-3 py-3">Autor</th>
+                                        <th class="px-3 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @forelse ($notificationHistory as $notification)
+                                        <tr data-admin-search class="align-top">
+                                            <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ $notification->created_at?->format('d.m.Y H:i') }}</td>
+                                            <td class="px-3 py-3">
+                                                <p class="font-black text-slate-950">{{ $notification->subject_label }}</p>
+                                                <span class="mt-1 inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-black text-yellow-900">
+                                                    {{ $notificationActionLabels[$notification->action] ?? 'Zmieniono' }}
+                                                </span>
+                                            </td>
+                                            <td class="max-w-xl px-3 py-3 text-slate-600">{{ $notification->description }}</td>
+                                            <td class="whitespace-nowrap px-3 py-3 font-semibold text-slate-700">{{ $notification->actor?->name ?? 'System' }}</td>
+                                            <td class="px-3 py-3">
+                                                <div class="flex flex-wrap gap-2">
+                                                    <span class="rounded-full px-2.5 py-1 text-xs font-black {{ $notification->isRead() ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700' }}">
+                                                        {{ $notification->isRead() ? 'Przeczytane' : 'Nowe' }}
+                                                    </span>
+                                                    @if ($notification->isAccepted())
+                                                        <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-black text-blue-800">
+                                                            Zaakceptowane
+                                                        </span>
+                                                    @endif
+                                                    @if ($notification->trashed())
+                                                        <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-black text-red-800">
+                                                            Usunięte z listy
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="px-3 py-6 text-center text-sm text-slate-500">Brak zapisanych zmian.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if ($notificationHistory->hasPages())
+                            <div class="mt-5">{{ $notificationHistory->links() }}</div>
+                        @endif
                     </section>
 
                     <section id="account" class="{{ $activeSection === 'account' ? '' : 'hidden' }} rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -926,89 +1026,193 @@
             </div>
             @if ($tournament->type === ThreeXThreeTournament::TYPE_ORGANIZED)
                 <div x-show="openModal === '3x3-tournament-manage-{{ $tournament->id }}'" x-cloak x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div class="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-white p-6 text-slate-950 shadow-xl" @click.outside="openModal = null">
-                        <h4 class="text-lg font-black">Przebieg turnieju: {{ $tournament->name }}</h4>
-
-                        <div class="mt-5 grid gap-5 lg:grid-cols-2">
-                            <section class="rounded-lg border border-slate-200 p-4">
-                                <h5 class="font-black">Zgloszone druzyny</h5>
-                                <div class="mt-3 space-y-2">
-                                    @forelse ($tournament->teams as $team)
-                                        <div class="rounded border border-slate-200 bg-slate-50 p-3">
-                                            <p class="font-bold">{{ $team->name }} <span class="text-xs uppercase text-yellow-700">{{ $team->category->label() }}</span></p>
-                                            <p class="text-sm text-slate-600">{{ $team->players->pluck('name')->join(', ') }}</p>
-                                        </div>
-                                    @empty
-                                        <p class="text-sm text-slate-500">Brak zgloszonych druzyn.</p>
-                                    @endforelse
-                                </div>
-                            </section>
-
-                            <section class="rounded-lg border border-slate-200 p-4">
-                                <h5 class="font-black">Dodaj grupe</h5>
-                                <form method="POST" action="{{ route('admin.3x3.tournaments.groups.store', $tournament) }}" class="mt-3 grid gap-3 sm:grid-cols-[1fr_7rem_auto]">
-                                    @csrf
-                                    <input name="name" required placeholder="Grupa A" class="rounded border-gray-300">
-                                    <input name="sort_order" type="number" min="0" value="0" class="rounded border-gray-300">
-                                    <button class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">Dodaj</button>
-                                </form>
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    @foreach ($tournament->groups as $group)
-                                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{{ $group->name }}</span>
-                                    @endforeach
-                                </div>
-                            </section>
+                    <div class="max-h-[92vh] w-full max-w-7xl overflow-y-auto rounded-lg bg-white p-6 text-slate-950 shadow-xl" @click.outside="openModal = null">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-widest text-yellow-700">Faza grupowa i drabinka</p>
+                                <h4 class="mt-1 text-2xl font-black">Przebieg turnieju: {{ $tournament->name }}</h4>
+                                <p class="mt-1 text-sm text-slate-600">Punkty FIBA: wygrana 2, porażka 1, walkower 0. Tabela sortuje po punktach, zwycięstwach, bilansie i koszach zdobytych.</p>
+                            </div>
+                            <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50" @click="openModal = null">Zamknij</button>
                         </div>
 
-                        <section class="mt-5 rounded-lg border border-slate-200 p-4">
-                            <h5 class="font-black">Dodaj mecz grupowy lub playoff</h5>
-                            <form method="POST" action="{{ route('admin.3x3.tournaments.matches.store', $tournament) }}" class="mt-3 grid gap-3 md:grid-cols-3">
-                                @csrf
-                                <select name="stage" required class="rounded border-gray-300">
-                                    <option value="group">Grupa</option>
-                                    <option value="playoff">Playoff</option>
-                                </select>
-                                <select name="group_id" class="rounded border-gray-300">
-                                    <option value="">Bez grupy</option>
-                                    @foreach ($tournament->groups as $group)
-                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
-                                    @endforeach
-                                </select>
-                                <input name="round_label" placeholder="np. Polfinal" class="rounded border-gray-300">
-                                <select name="team_one_id" class="rounded border-gray-300">
-                                    <option value="">Druzyna 1</option>
-                                    @foreach ($tournament->teams as $team)
-                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                    @endforeach
-                                </select>
-                                <select name="team_two_id" class="rounded border-gray-300">
-                                    <option value="">Druzyna 2</option>
-                                    @foreach ($tournament->teams as $team)
-                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                    @endforeach
-                                </select>
-                                <input name="played_at" type="datetime-local" class="rounded border-gray-300">
-                                <input name="team_one_score" type="number" min="0" max="99" placeholder="Pkt 1" class="rounded border-gray-300">
-                                <input name="team_two_score" type="number" min="0" max="99" placeholder="Pkt 2" class="rounded border-gray-300">
-                                <input name="court" placeholder="Boisko" class="rounded border-gray-300">
-                                <div class="md:col-span-3">
-                                    <button class="rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300">Dodaj mecz</button>
-                                </div>
-                            </form>
+                        <div class="mt-5 grid gap-4 xl:grid-cols-[22rem_1fr]">
+                            <aside class="space-y-4">
+                                <section class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <h5 class="font-black">Losowanie automatyczne</h5>
+                                    <form method="POST" action="{{ route('admin.3x3.tournaments.draw', $tournament) }}" class="mt-3 space-y-3" onsubmit="return confirm('Losowanie usunie obecne grupy i niewynikowe mecze tego turnieju. Kontynuować?')">
+                                        @csrf
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <label class="block">
+                                                <span class="text-xs font-bold text-slate-600">Grupy</span>
+                                                <input name="groups_count" type="number" min="1" max="12" value="{{ max(1, $tournament->groups->count() ?: 4) }}" class="mt-1 w-full rounded border-gray-300 text-sm">
+                                            </label>
+                                            <label class="block">
+                                                <span class="text-xs font-bold text-slate-600">Drużyn</span>
+                                                <input name="teams_per_group" type="number" min="2" max="8" value="4" class="mt-1 w-full rounded border-gray-300 text-sm">
+                                            </label>
+                                            <label class="block">
+                                                <span class="text-xs font-bold text-slate-600">Awans</span>
+                                                <input name="qualifiers_per_group" type="number" min="1" max="4" value="2" class="mt-1 w-full rounded border-gray-300 text-sm">
+                                            </label>
+                                        </div>
+                                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <input name="generate_group_matches" type="checkbox" value="1" checked class="rounded border-gray-300 text-yellow-500">
+                                            Utwórz mecze każdy z każdym
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <input name="generate_playoff" type="checkbox" value="1" checked class="rounded border-gray-300 text-yellow-500">
+                                            Przygotuj drabinkę fazy pucharowej
+                                        </label>
+                                        <button class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-400 px-4 py-2 text-sm font-black text-black hover:bg-yellow-300"><i data-lucide="shuffle" class="h-4 w-4"></i>Losuj grupy i mecze</button>
+                                    </form>
+                                </section>
 
-                            <div class="mt-5 space-y-2">
-                                @forelse ($tournament->matches as $match)
-                                    <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-                                        <span class="font-bold">{{ $match->teamOne?->name ?? 'Druzyna 1' }}</span>
-                                        <span class="mx-2 font-black">{{ $match->team_one_score ?? '-' }}:{{ $match->team_two_score ?? '-' }}</span>
-                                        <span class="font-bold">{{ $match->teamTwo?->name ?? 'Druzyna 2' }}</span>
-                                        <span class="ml-2 text-slate-500">{{ $match->stage }} {{ $match->group?->name }}</span>
+                                <section class="rounded-lg border border-slate-200 p-4">
+                                    <h5 class="flex items-center gap-2 font-black"><i data-lucide="users" class="h-4 w-4 text-yellow-600"></i>Zgłoszone drużyny</h5>
+                                    <div class="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
+                                        @forelse ($tournament->teams->sortBy('name') as $team)
+                                            <a href="{{ route('three-x-three.teams.show', $team) }}" class="block rounded border border-slate-200 bg-slate-50 p-3 transition hover:border-yellow-400 hover:bg-yellow-50">
+                                                <p class="font-bold">{{ $team->name }} <span class="text-xs uppercase text-yellow-700">{{ $team->category->label() }}</span></p>
+                                                <p class="text-xs font-semibold text-slate-500">{{ $team->group?->name ?? 'Bez grupy' }}</p>
+                                                <p class="mt-1 text-sm text-slate-600">{{ $team->players->pluck('name')->join(', ') }}</p>
+                                            </a>
+                                        @empty
+                                            <p class="text-sm text-slate-500">Brak zgłoszonych drużyn.</p>
+                                        @endforelse
                                     </div>
+                                </section>
+                            </aside>
+
+                            <div class="space-y-5">
+                                @forelse ($tournament->groups->sortBy('sort_order') as $group)
+                                    @php($tableRows = $tournamentFlow->groupTable($group))
+                                    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+                                            <h5 class="font-black">{{ $group->name }}</h5>
+                                            <span class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ $group->teams->count() }} drużyn / {{ $group->matches->count() }} meczów</span>
+                                        </div>
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full text-sm">
+                                                <thead class="bg-white text-xs uppercase tracking-wide text-slate-500">
+                                                    <tr>
+                                                        <th class="px-3 py-2 text-left">#</th>
+                                                        <th class="px-3 py-2 text-left">Drużyna</th>
+                                                        <th class="px-3 py-2 text-center">M</th>
+                                                        <th class="px-3 py-2 text-center">W</th>
+                                                        <th class="px-3 py-2 text-center">P</th>
+                                                        <th class="px-3 py-2 text-center">KZ</th>
+                                                        <th class="px-3 py-2 text-center">KS</th>
+                                                        <th class="px-3 py-2 text-center">Bilans</th>
+                                                        <th class="px-3 py-2 text-center">Pkt</th>
+                                                        <th class="px-3 py-2 text-left">Forma</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-100">
+                                                    @forelse ($tableRows as $index => $row)
+                                                        <tr class="{{ $index < 2 ? 'bg-emerald-50/60' : '' }}">
+                                                            <td class="border-l-4 {{ $index < 2 ? 'border-emerald-500' : 'border-slate-300' }} px-3 py-2 font-black">{{ $index + 1 }}</td>
+                                                            <td class="px-3 py-2 font-bold"><a href="{{ route('three-x-three.teams.show', $row['team']) }}" class="hover:text-yellow-700">{{ $row['team']->name }}</a></td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['played'] }}</td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['wins'] }}</td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['losses'] }}</td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['points_for'] }}</td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['points_against'] }}</td>
+                                                            <td class="px-3 py-2 text-center">{{ $row['point_diff'] }}</td>
+                                                            <td class="px-3 py-2 text-center font-black">{{ $row['fiba_points'] }}</td>
+                                                            <td class="px-3 py-2">
+                                                                <span class="inline-flex gap-1">
+                                                                    @forelse ($row['form'] as $form)
+                                                                        <span class="h-2 w-2 rounded-full {{ $form === 'W' ? 'bg-emerald-500' : 'bg-rose-400' }}"></span>
+                                                                    @empty
+                                                                        <span class="text-xs text-slate-400">-</span>
+                                                                    @endforelse
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr><td colspan="10" class="px-3 py-4 text-sm text-slate-500">Brak drużyn w grupie.</td></tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="space-y-2 border-t border-slate-200 bg-slate-50 p-3">
+                                            @forelse ($group->matches->sortBy('sort_order') as $match)
+                                                <form method="POST" action="{{ route('admin.3x3.tournaments.matches.update', [$tournament, $match]) }}" class="grid gap-2 rounded border border-slate-200 bg-white p-2 text-sm lg:grid-cols-[1fr_4rem_4rem_10rem_8rem_auto] lg:items-center">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <input type="hidden" name="stage" value="{{ $match->stage }}">
+                                                    <input type="hidden" name="group_id" value="{{ $group->id }}">
+                                                    <input type="hidden" name="team_one_id" value="{{ $match->team_one_id }}">
+                                                    <input type="hidden" name="team_two_id" value="{{ $match->team_two_id }}">
+                                                    <div class="font-bold">{{ $match->teamOne?->name ?? $match->team_one_placeholder }} <span class="text-slate-400">-</span> {{ $match->teamTwo?->name ?? $match->team_two_placeholder }}</div>
+                                                    <input name="team_one_score" type="number" min="0" max="99" value="{{ $match->team_one_score }}" placeholder="Pkt 1" class="rounded border-gray-300 text-sm">
+                                                    <input name="team_two_score" type="number" min="0" max="99" value="{{ $match->team_two_score }}" placeholder="Pkt 2" class="rounded border-gray-300 text-sm">
+                                                    <input name="played_at" type="datetime-local" value="{{ $match->played_at?->format('Y-m-d\TH:i') }}" class="rounded border-gray-300 text-sm">
+                                                    <input name="court" value="{{ $match->court }}" placeholder="Boisko" class="rounded border-gray-300 text-sm">
+                                                    <button class="rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white hover:bg-yellow-400 hover:text-black">Zapisz</button>
+                                                </form>
+                                            @empty
+                                                <p class="text-sm text-slate-500">Brak meczów w tej grupie.</p>
+                                            @endforelse
+                                        </div>
+                                    </section>
                                 @empty
-                                    <p class="text-sm text-slate-500">Brak meczow w przebiegu turnieju.</p>
+                                    <section class="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">Nie ma jeszcze grup. Użyj losowania albo dodaj grupę ręcznie.</section>
                                 @endforelse
+
+                                <section class="rounded-lg border border-slate-200 p-4">
+                                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                        <div>
+                                            <h5 class="font-black">Drabinka fazy pucharowej</h5>
+                                            <p class="text-sm text-slate-600">Po wpisaniu wyników grup odśwież drabinkę, aby podstawić aktualne miejsca z grup.</p>
+                                        </div>
+                                        <form method="POST" action="{{ route('admin.3x3.tournaments.playoff.refresh', $tournament) }}" class="flex gap-2">
+                                            @csrf
+                                            <input name="qualifiers_per_group" type="number" min="1" max="4" value="2" class="w-24 rounded border-gray-300 text-sm">
+                                            <button class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-yellow-50"><i data-lucide="refresh-cw" class="h-4 w-4"></i>Odśwież fazę pucharową</button>
+                                        </form>
+                                    </div>
+                                    <div class="mt-4 grid gap-3 lg:grid-cols-4">
+                                        @forelse ($tournament->matches->where('stage', 'playoff')->sortBy('sort_order')->groupBy('round_label') as $round => $matches)
+                                            <div class="rounded border border-slate-200 bg-slate-50 p-3">
+                                                <p class="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">{{ $round ?: 'Faza pucharowa' }}</p>
+                                                <div class="space-y-2">
+                                                    @foreach ($matches as $match)
+                                                        <form method="POST" action="{{ route('admin.3x3.tournaments.matches.update', [$tournament, $match]) }}" class="rounded border border-slate-200 bg-white p-2">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <input type="hidden" name="stage" value="playoff">
+                                                            <input type="hidden" name="round_label" value="{{ $match->round_label }}">
+                                                            <input type="hidden" name="bracket_round_order" value="{{ $match->bracket_round_order }}">
+                                                            <input type="hidden" name="bracket_position" value="{{ $match->bracket_position }}">
+                                                            <input type="hidden" name="team_one_id" value="{{ $match->team_one_id }}">
+                                                            <input type="hidden" name="team_two_id" value="{{ $match->team_two_id }}">
+                                                            <input type="hidden" name="team_one_placeholder" value="{{ $match->team_one_placeholder }}">
+                                                            <input type="hidden" name="team_two_placeholder" value="{{ $match->team_two_placeholder }}">
+                                                            <div class="grid grid-cols-[1fr_3.5rem] gap-2">
+                                                                <span class="truncate font-bold">{{ $match->teamOne?->name ?? $match->team_one_placeholder }}</span>
+                                                                <input name="team_one_score" type="number" min="0" max="99" value="{{ $match->team_one_score }}" class="rounded border-gray-300 text-sm">
+                                                                <span class="truncate font-bold">{{ $match->teamTwo?->name ?? $match->team_two_placeholder }}</span>
+                                                                <input name="team_two_score" type="number" min="0" max="99" value="{{ $match->team_two_score }}" class="rounded border-gray-300 text-sm">
+                                                            </div>
+                                                            <div class="mt-2 grid grid-cols-2 gap-2">
+                                                                <input name="played_at" type="datetime-local" value="{{ $match->played_at?->format('Y-m-d\TH:i') }}" class="rounded border-gray-300 text-xs">
+                                                                <input name="court" value="{{ $match->court }}" placeholder="Boisko" class="rounded border-gray-300 text-xs">
+                                                            </div>
+                                                            <button class="mt-2 w-full rounded bg-slate-950 px-2 py-1.5 text-xs font-black text-white hover:bg-yellow-400 hover:text-black">Zapisz</button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-sm text-slate-500">Brak drabinki fazy pucharowej.</p>
+                                        @endforelse
+                                    </div>
+                                </section>
                             </div>
-                        </section>
+                        </div>
                     </div>
                 </div>
             @endif

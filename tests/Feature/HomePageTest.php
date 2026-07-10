@@ -14,7 +14,7 @@ it('shows homepage sections from published news, visible matches, and starting f
     collect(range(1, 6))->each(function (int $index) use ($author): void {
         News::query()->create([
             'title' => "Aktualnosc {$index}",
-            'content' => "Tresc aktualnosci {$index}",
+            'content' => "Treść aktualności {$index}",
             'excerpt' => "Zajawka {$index}",
             'author_id' => $author->id,
             'publish_at' => now()->subDays($index),
@@ -89,4 +89,13 @@ it('shows homepage sections from published news, visible matches, and starting f
     $response->assertSee('Jan Kowalski');
     $response->assertDontSee('Adam Rezerwowy');
     $response->assertSee('Kochasz koszykowke');
+    $response->assertSee('academy-cta-link');
+    $response->assertSee('academy-cta-arrow');
+    $response->assertSee('group-hover:bg-white');
+    $response->assertSee('group-hover:text-black');
+    $response->assertSee('stroke-width="3.4"', false);
+    $response->assertSee('etb-search-panel');
+    $response->assertSee('etb-search-ghost');
+    $response->assertSee('focus-within:ring-yellow-400');
+    $response->assertDontSee('<datalist', false);
 });

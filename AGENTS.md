@@ -1,0 +1,1 @@
+Wszystkie teksty widoczne dla użytkownika końcowego muszą być pisane po polsku, z poprawnymi polskimi znakami. Nie wolno dodawać nowych angielskich etykiet, przycisków, komunikatów, placeholderów, alertów ani tekstów interfejsu, chyba że jest to nazwa własna, skrót techniczny albo termin powszechnie używany bez tłumaczenia. Elementów technicznych kodu nie należy tłumaczyć.

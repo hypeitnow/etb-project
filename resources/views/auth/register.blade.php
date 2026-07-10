@@ -6,25 +6,25 @@
         @csrf
 
         <div>
-            <x-input-label for="name" class="text-black font-semibold" :value="__('Name')" />
+            <x-input-label for="name" class="text-black font-semibold" value="Imię i nazwisko" />
             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
             <x-input-error :messages="$errors->get('name')" class="mt-2 text-red-700" />
         </div>
 
         <div>
-            <x-input-label for="email" class="text-black font-semibold" :value="__('Email')" />
+            <x-input-label for="email" class="text-black font-semibold" value="Adres e-mail" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-700" />
         </div>
 
         <div>
-            <x-input-label for="password" class="text-black font-semibold" :value="__('Password')" />
+            <x-input-label for="password" class="text-black font-semibold" value="Hasło" />
             <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2 text-red-700" />
         </div>
 
         <div>
-            <x-input-label for="password_confirmation" class="text-black font-semibold" :value="__('Confirm Password')" />
+            <x-input-label for="password_confirmation" class="text-black font-semibold" value="Potwierdź hasło" />
             <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2 text-red-700" />
         </div>
@@ -49,7 +49,7 @@
 
         <div class="flex items-center justify-end pt-2">
             <x-primary-button>
-                {{ __('Register') }}
+                Zarejestruj się
             </x-primary-button>
         </div>
     </form>

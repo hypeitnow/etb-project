@@ -40,7 +40,7 @@ class ProfanityFree implements ValidationRule
 
         foreach ($this->blockedFragments as $fragment) {
             if (str_contains($normalized, $fragment)) {
-                $fail('Ta nazwa jest wulgarna. Zmien ja na mniej wulgarna.');
+                $fail('Ta nazwa jest wulgarna. Zmień ją na mniej wulgarną.');
 
                 return;
             }

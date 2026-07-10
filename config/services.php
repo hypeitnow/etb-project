@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'nager_date' => [
+        'enabled' => env('POLISH_HOLIDAYS_ENABLED', env('APP_ENV') !== 'testing'),
+        'base_url' => env('NAGER_DATE_BASE_URL', 'https://date.nager.at'),
+    ],
+
 ];

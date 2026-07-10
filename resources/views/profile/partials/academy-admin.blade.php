@@ -135,7 +135,7 @@
                                 <form method="POST" action="{{ route('admin.academy.trainings.restore', $training) }}">
                                     @csrf
                                     @method('PATCH')
-                                    <button class="rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">Przywroc</button>
+                                    <button class="rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">Przywróć</button>
                                 </form>
                             @else
                                 <button type="button" class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50" @click="openModal = 'academy-training-cancel-{{ $training->id }}'">Odwołaj</button>

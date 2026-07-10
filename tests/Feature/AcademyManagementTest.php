@@ -1,9 +1,10 @@
 <?php
 
 use App\Models\AcademyGroup;
-use App\Models\AcademyCalendarNote;
 use App\Models\AcademyTraining;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 it('shows academy groups and trainings on the public academy page', function () {
     $group = AcademyGroup::query()->create([
@@ -16,7 +17,7 @@ it('shows academy groups and trainings on the public academy page', function () 
 
     $group->trainers()->create([
         'name' => 'Jan Trener',
-        'role' => 'Trener glowny',
+        'role' => 'Trener główny',
         'email' => 'jan@example.com',
         'phone' => '500 100 200',
         'sort_order' => 1,
@@ -339,6 +340,81 @@ it('shows global academy calendar notes in the public calendar day preview', fun
         'starts_on' => '2026-07-10 00:00:00',
         'ends_on' => '2026-07-12 00:00:00',
     ]);
+});
+
+it('marks Sundays and synchronized Polish public holidays in the academy calendar', function () {
+    config([
+        'services.nager_date.enabled' => true,
+        'services.nager_date.base_url' => 'https://date.nager.at',
+    ]);
+
+    Http::fake([
+        'date.nager.at/api/v4/Holidays/PL/2026' => Http::response([
+            [
+                'date' => '2026-05-03',
+                'name' => 'Constitution Day',
+                'countryCode' => 'PL',
+                'nationalHoliday' => true,
+                'holidayTypes' => ['Public'],
+            ],
+        ]),
+    ]);
+
+    $response = $this->get(route('academy', ['month' => '2026-05-01']));
+
+    $response->assertOk();
+    $response->assertSee('data-academy-calendar-day="2026-05-03"', false);
+    $response->assertSee('data-academy-holiday="1"', false);
+    $response->assertSee('bg-red-50', false);
+    $response->assertSee('text-red-500', false);
+    $response->assertSee('Święto Konstytucji 3 Maja');
+    $response->assertDontSee('Constitution Day');
+    $response->assertSee('Święta publiczne są synchronizowane z Nager.Date', false);
+    $response->assertSee('https://date.nager.at', false);
+});
+
+it('uses Polish holiday names even when older English API data is cached', function () {
+    config(['services.nager_date.enabled' => true]);
+
+    Cache::put('polish_public_holidays:v2:2026', [
+        [
+            'date' => '2026-08-15',
+            'name' => 'Assumption Day',
+        ],
+    ], now()->addDay());
+
+    $response = $this->get(route('academy', ['month' => '2026-08-01']));
+
+    $response->assertOk();
+    $response->assertSee('Wniebowzięcie Najświętszej Maryi Panny');
+    $response->assertDontSee('Assumption Day');
+});
+
+it('uses Polish display names from the public holidays reference style', function () {
+    config(['services.nager_date.enabled' => true]);
+
+    Cache::put('polish_public_holidays:v2:2026', [
+        [
+            'date' => '2026-04-06',
+            'name' => 'Easter Monday',
+        ],
+        [
+            'date' => '2026-05-24',
+            'name' => 'Pentecost',
+        ],
+    ], now()->addDay());
+
+    $response = $this->get(route('academy', ['month' => '2026-04-01']));
+
+    $response->assertOk();
+    $response->assertSee('Drugi Dzień Wielkanocy');
+    $response->assertDontSee('Easter Monday');
+
+    $response = $this->get(route('academy', ['month' => '2026-05-01']));
+
+    $response->assertOk();
+    $response->assertSee('Zielone Świątki');
+    $response->assertDontSee('Pentecost');
 });
 
 it('suggests existing academy trainers and reuses their contact number for admins', function () {

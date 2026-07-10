@@ -9,6 +9,15 @@ use Illuminate\Http\RedirectResponse;
 
 class AdminNotificationController extends Controller
 {
+    public function readAll(): RedirectResponse
+    {
+        AdminNotification::query()
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return back()->with('success', 'Wszystkie powiadomienia oznaczono jako przeczytane.');
+    }
+
     public function read(AdminNotification $notification): RedirectResponse
     {
         $notification->update(['read_at' => now()]);

@@ -17,7 +17,7 @@ enum BasketballPosition: string
             self::ShootingGuard => 'Rzucający obrońca',
             self::SmallForward => 'Niski skrzydłowy',
             self::PowerForward => 'Silny skrzydłowy',
-            self::Center => 'Center',
+            self::Center => 'Środkowy',
         };
     }
 
