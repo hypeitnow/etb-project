@@ -1,9 +1,7 @@
 @php
-    use App\Models\AppSetting;
     use App\Models\MatchGame;
 
     $match = $match ?? null;
-    $defaultHomeLogo = $defaultHomeLogo ?? AppSetting::getValue('default_home_logo');
     $currentStatus = old('status', $match?->status ?? MatchGame::STATUS_UPCOMING);
     $isHome = filter_var(old('is_home', $match?->is_home ?? true), FILTER_VALIDATE_BOOLEAN);
     $includeInLzkosz = filter_var(old('include_in_lzkosz', $match?->include_in_lzkosz ?? false), FILTER_VALIDATE_BOOLEAN);
@@ -41,17 +39,9 @@
         <label class="relative block">
             <span class="text-sm font-medium text-gray-700">Przeciwnik</span>
             <input name="opponent_name" type="text" required autocomplete="off" value="{{ old('opponent_name', $match?->opponent_name) }}" class="mt-1 w-full rounded border-gray-300" @input.debounce.300ms="loadOpponents($event.target.value)" @focus="loadOpponents($event.target.value)">
-            <div x-show="opponents.length" x-cloak class="absolute z-30 mt-1 max-h-36 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
+            <div x-show="opponents.length" x-cloak class="absolute z-30 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-white shadow-lg">
                 <template x-for="opponent in opponents" :key="opponent.id">
-                    <button type="button" class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-yellow-50" @click="selectOpponent(opponent)">
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gray-100 p-1">
-                            <template x-if="opponent.logo_path">
-                                <img :src="`/storage/${opponent.logo_path}`" alt="" class="max-h-full max-w-full object-contain">
-                            </template>
-                            <template x-if="!opponent.logo_path">
-                                <span class="text-[10px] font-black text-gray-400">LOGO</span>
-                            </template>
-                        </span>
+                    <button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-yellow-50" @click="selectOpponent(opponent)">
                         <span class="font-medium" x-text="opponent.name"></span>
                     </button>
                 </template>
@@ -138,8 +128,6 @@
             <input name="home_logo" type="file" accept="image/*" class="mt-1 w-full rounded border border-gray-300 bg-white text-sm file:mr-4 file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-semibold">
             @if ($match?->home_logo)
                 <img src="{{ asset('storage/'.$match->home_logo) }}" alt="Logo ETB" class="mt-3 h-14 w-14 rounded object-contain ring-1 ring-gray-200">
-            @elseif ($defaultHomeLogo)
-                <img src="{{ asset('storage/'.$defaultHomeLogo) }}" alt="Domyślne logo ETB" class="mt-3 h-14 w-14 rounded object-contain ring-1 ring-gray-200">
             @endif
         </label>
 

@@ -2,6 +2,4 @@
 
 namespace App\Http\Requests;
 
-class UpdateTeamStaffRequest extends StoreTeamStaffRequest
-{
-}
+class UpdateTeamStaffRequest extends StoreTeamStaffRequest {}

@@ -11,9 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserRoleController extends Controller
 {
-    public function __construct(private readonly AdminNotificationService $notificationService)
-    {
-    }
+    public function __construct(private readonly AdminNotificationService $notificationService) {}
 
     public function update(Request $request, User $user): RedirectResponse
     {

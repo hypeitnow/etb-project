@@ -6,18 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class MatchGame extends Model
+class TeamMatch extends Model
 {
     use HasFactory;
 
+    protected $table = 'matches';
+
     public const STATUS_UPCOMING = 'upcoming';
+
     public const STATUS_FINISHED = 'finished';
+
     public const LZKOSZ_ROUND_ONE = 'round_1';
+
     public const LZKOSZ_ROUND_TWO = 'round_2';
 
-    /**
-     * @var list<string>
-     */
     protected $fillable = [
         'opponent_name',
         'opponent_id',
@@ -29,6 +31,8 @@ class MatchGame extends Model
         'opponent_score',
         'opponent_logo',
         'home_logo',
+        'image',
+        'stream_link',
         'status',
         'season',
         'include_in_lzkosz',
@@ -39,9 +43,6 @@ class MatchGame extends Model
         'ticket_url',
     ];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [

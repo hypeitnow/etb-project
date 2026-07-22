@@ -5,10 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreThreeXThreeTournamentRequest;
 use App\Http\Requests\UpdateThreeXThreeTournamentRequest;
 use App\Models\ThreeXThreeTournament;
-use App\Models\ThreeXThreeTournamentTeam;
 use App\Models\User;
 use App\Services\AdminNotificationService;
-use App\Services\ThreeXThreeTournamentFlowService;
 use App\Services\ThreeXThreeTournamentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -17,67 +15,22 @@ class ThreeXThreeTournamentController extends Controller
 {
     public function __construct(
         private readonly ThreeXThreeTournamentService $tournamentService,
-        private readonly AdminNotificationService $notificationService,
-        private readonly ThreeXThreeTournamentFlowService $flowService,
+        private readonly AdminNotificationService $notificationService
     ) {}
 
     public function index(): View
     {
-        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->organized()->upcoming()->orderBy('date')->get();
-        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->organized()->finished()->orderByDesc('date')->get();
+        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->upcoming()->orderBy('date')->get();
+        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->finished()->orderByDesc('date')->get();
 
-        return view('pages.schedule-3x3-tournaments', [
-            'upcomingTournaments' => $upcomingTournaments,
-            'finishedTournaments' => $finishedTournaments,
-            'pageTitle' => 'Turnieje 3x3',
-            'pageEyebrow' => 'Organizowane przez ETB',
-            'emptyMessage' => 'Brak turniejów organizowanych przez ETB w tej sekcji.',
-        ]);
-    }
-
-    public function schedule(): View
-    {
-        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->participating()->upcoming()->orderBy('date')->get();
-        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->participating()->finished()->orderByDesc('date')->get();
-
-        return view('pages.schedule-3x3-tournaments', [
-            'upcomingTournaments' => $upcomingTournaments,
-            'finishedTournaments' => $finishedTournaments,
-            'pageTitle' => 'Terminarz turniejów 3x3',
-            'pageEyebrow' => 'Turnieje, w których gramy',
-            'emptyMessage' => 'Brak turniejów w tej sekcji.',
-        ]);
+        return view('pages.schedule-3x3-tournaments', compact('upcomingTournaments', 'finishedTournaments'));
     }
 
     public function show(ThreeXThreeTournament $tournament): View
     {
-        $tournament->load([
-            'categories',
-            'teams.players',
-            'teams.group',
-            'groups.teams.players',
-            'groups.matches.teamOne',
-            'groups.matches.teamTwo',
-            'matches.teamOne',
-            'matches.teamTwo',
-            'matches.group',
-        ]);
+        $tournament->load('categories');
 
-        $groupTables = $tournament->groups
-            ->mapWithKeys(fn ($group) => [$group->id => $this->flowService->groupTable($group)])
-            ->all();
-
-        return view('pages.schedule-3x3-tournament-show', compact('tournament', 'groupTables'));
-    }
-
-    public function team(ThreeXThreeTournamentTeam $team): View
-    {
-        $stats = $this->flowService->tournamentTeamStats($team->name);
-
-        return view('pages.schedule-3x3-team', [
-            'team' => $team->load(['tournament', 'players']),
-            ...$stats,
-        ]);
+        return view('pages.schedule-3x3-tournament-show', compact('tournament'));
     }
 
     public function store(StoreThreeXThreeTournamentRequest $request): RedirectResponse

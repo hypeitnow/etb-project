@@ -11,8 +11,11 @@ class Sponsor extends Model
     use HasFactory;
 
     public const TYPE_STRATEGIC = 'strategic';
+
     public const TYPE_PARTNER = 'partner';
+
     public const TYPE_SPONSOR = 'sponsor';
+
     public const TYPE_TECHNOLOGY = 'technology';
 
     protected $fillable = [

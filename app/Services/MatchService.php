@@ -2,31 +2,24 @@
 
 namespace App\Services;
 
-use App\Models\AppSetting;
-use App\Models\MatchGame;
 use App\Models\Opponent;
 use App\Models\SportsHall;
+use App\Models\TeamMatch;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
-class MatchGameService
+class MatchService
 {
-    /**
-     * @param array<string, mixed> $data
-     */
-    public function create(array $data, ?UploadedFile $opponentLogo, ?UploadedFile $homeLogo): MatchGame
+    public function create(array $data, ?UploadedFile $opponentLogo, ?UploadedFile $homeLogo): TeamMatch
     {
-        return MatchGame::query()->create($this->prepareData($data, $opponentLogo, $homeLogo));
+        return TeamMatch::query()->create($this->prepareData($data, $opponentLogo, $homeLogo));
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
-    public function update(MatchGame $match, array $data, ?UploadedFile $opponentLogo, ?UploadedFile $homeLogo): MatchGame
+    public function update(TeamMatch $match, array $data, ?UploadedFile $opponentLogo, ?UploadedFile $homeLogo): TeamMatch
     {
         $prepared = $this->prepareData($data, $opponentLogo, $homeLogo, $match);
 
-        if ($opponentLogo && $match->opponent_logo && $match->opponent_logo !== $match->opponent?->logo_path) {
+        if ($opponentLogo && $match->opponent_logo) {
             Storage::disk('public')->delete($match->opponent_logo);
         }
 
@@ -39,9 +32,9 @@ class MatchGameService
         return $match;
     }
 
-    public function delete(MatchGame $match): void
+    public function delete(TeamMatch $match): void
     {
-        if ($match->opponent_logo && $match->opponent_logo !== $match->opponent?->logo_path) {
+        if ($match->opponent_logo) {
             Storage::disk('public')->delete($match->opponent_logo);
         }
 
@@ -52,15 +45,11 @@ class MatchGameService
         $match->delete();
     }
 
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
     private function prepareData(
         array $data,
         ?UploadedFile $opponentLogo,
         ?UploadedFile $homeLogo,
-        ?MatchGame $match = null
+        ?TeamMatch $match = null
     ): array {
         $status = $data['status'];
         $opponentName = trim((string) $data['opponent_name']);
@@ -68,9 +57,19 @@ class MatchGameService
         $opponent = $this->findOrCreateOpponent($opponentName);
         $sportsHall = $this->findOrCreateSportsHall($locationName);
 
+        if ($opponentLogo) {
+            if ($opponent->logo_path) {
+                Storage::disk('public')->delete($opponent->logo_path);
+            }
+
+            $opponent->update([
+                'logo_path' => $opponentLogo->store('opponents', 'public'),
+            ]);
+        }
+
         unset($data['opponent'], $data['opponent_logo'], $data['home_logo']);
 
-        if ($status === MatchGame::STATUS_UPCOMING) {
+        if ($status === TeamMatch::STATUS_UPCOMING) {
             $data['our_score'] = null;
             $data['opponent_score'] = null;
         }
@@ -87,17 +86,12 @@ class MatchGameService
         $data['location'] = $locationName;
         $data['opponent_id'] = $opponent->id;
         $data['sports_hall_id'] = $sportsHall->id;
-        $data['opponent_logo'] = $opponentLogo
-            ? $opponentLogo->store('match-opponents', 'public')
-            : ($match?->opponent_logo ?? $opponent->logo_path);
+        $data['opponent_logo'] = $opponent->logo_path ?? $match?->opponent_logo;
 
         if ($homeLogo) {
             $data['home_logo'] = $homeLogo->store('team-logos', 'public');
-            AppSetting::setValue('default_home_logo', $data['home_logo']);
         } elseif ($match) {
             $data['home_logo'] = $match->home_logo;
-        } else {
-            $data['home_logo'] = AppSetting::getValue('default_home_logo');
         }
 
         return $data;

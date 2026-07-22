@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Storage;
 class NewsService
 {
     /**
-     * @param array<string, mixed> $data
-     * @param array<int, UploadedFile> $gallery
+     * @param  array<string, mixed>  $data
+     * @param  array<int, UploadedFile>  $gallery
      */
     public function create(array $data, int $authorId, ?UploadedFile $mainImage, array $gallery): News
     {
@@ -32,8 +32,8 @@ class NewsService
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param array<int, UploadedFile> $gallery
+     * @param  array<string, mixed>  $data
+     * @param  array<int, UploadedFile>  $gallery
      */
     public function update(News $news, array $data, ?UploadedFile $mainImage, array $gallery): News
     {
@@ -83,7 +83,7 @@ class NewsService
     }
 
     /**
-     * @param array<int, UploadedFile> $gallery
+     * @param  array<int, UploadedFile>  $gallery
      */
     private function storeGallery(News $news, array $gallery): void
     {

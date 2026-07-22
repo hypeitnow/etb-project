@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\MatchGame;
+use App\Models\TeamMatch;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +22,7 @@ class UpdateMatchRequest extends FormRequest
     {
         $match = $this->route('match');
 
-        return $this->user()?->can('update', $match instanceof MatchGame ? $match : MatchGame::class) ?? false;
+        return $this->user()?->can('update', $match instanceof TeamMatch ? $match : TeamMatch::class) ?? false;
     }
 
     /**
@@ -31,15 +31,15 @@ class UpdateMatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'string', Rule::in([MatchGame::STATUS_UPCOMING, MatchGame::STATUS_FINISHED])],
+            'status' => ['required', 'string', Rule::in([TeamMatch::STATUS_UPCOMING, TeamMatch::STATUS_FINISHED])],
             'season' => ['nullable', 'string', 'max:20'],
             'include_in_lzkosz' => ['boolean'],
-            'lzkosz_round' => ['nullable', 'string', Rule::requiredIf($this->boolean('include_in_lzkosz')), Rule::in([MatchGame::LZKOSZ_ROUND_ONE, MatchGame::LZKOSZ_ROUND_TWO])],
+            'lzkosz_round' => ['nullable', 'string', Rule::requiredIf($this->boolean('include_in_lzkosz')), Rule::in([TeamMatch::LZKOSZ_ROUND_ONE, TeamMatch::LZKOSZ_ROUND_TWO])],
             'opponent_name' => ['required', 'string', 'max:255'],
             'match_date' => [
                 'required',
                 'date',
-                Rule::when($this->input('status') === MatchGame::STATUS_UPCOMING, ['after_or_equal:today']),
+                Rule::when($this->input('status') === TeamMatch::STATUS_UPCOMING, ['after_or_equal:today']),
             ],
             'location' => ['required', 'string', 'max:255'],
             'is_home' => ['boolean'],
@@ -48,14 +48,14 @@ class UpdateMatchRequest extends FormRequest
                 'integer',
                 'min:0',
                 'max:999',
-                Rule::requiredIf($this->input('status') === MatchGame::STATUS_FINISHED),
+                Rule::requiredIf($this->input('status') === TeamMatch::STATUS_FINISHED),
             ],
             'opponent_score' => [
                 'nullable',
                 'integer',
                 'min:0',
                 'max:999',
-                Rule::requiredIf($this->input('status') === MatchGame::STATUS_FINISHED),
+                Rule::requiredIf($this->input('status') === TeamMatch::STATUS_FINISHED),
             ],
             'opponent_logo' => ['nullable', 'image', 'max:2048'],
             'home_logo' => ['nullable', 'image', 'max:2048'],

@@ -4,28 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMatchRequest;
 use App\Http\Requests\UpdateMatchRequest;
-use App\Models\MatchGame;
+use App\Models\TeamMatch;
 use App\Services\AdminNotificationService;
-use App\Services\MatchGameService;
+use App\Services\MatchService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class MatchController extends Controller
 {
     public function __construct(
-        private readonly MatchGameService $matchGameService,
+        private readonly MatchService $matchService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function index(): View
     {
-        $this->authorize('viewAny', MatchGame::class);
-
-        $matches = MatchGame::query()
+        $matches = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
-            ->where(function ($query): void {
+            ->where(function ($query) {
                 $query->whereNull('publish_at')
                     ->orWhere('publish_at', '<=', now());
             })
@@ -35,23 +31,25 @@ class MatchController extends Controller
         return view('matches.index', compact('matches'));
     }
 
-    public function show(MatchGame $match): View
+    public function show(TeamMatch $match): View
     {
-        $this->authorize('view', $match);
+        if (! $match->isPublished() && auth()->guest()) {
+            abort(403);
+        }
 
         return view('matches.show', ['match' => $match]);
     }
 
     public function create(): View
     {
-        $this->authorize('create', MatchGame::class);
+        $this->authorize('create', TeamMatch::class);
 
         return view('matches.create');
     }
 
     public function store(StoreMatchRequest $request): RedirectResponse
     {
-        $match = $this->matchGameService->create(
+        $match = $this->matchService->create(
             $request->validated(),
             $request->file('opponent_logo'),
             $request->file('home_logo')
@@ -63,16 +61,16 @@ class MatchController extends Controller
             ->with('success', 'Mecz został dodany.');
     }
 
-    public function edit(MatchGame $match): View
+    public function edit(TeamMatch $match): View
     {
         $this->authorize('update', $match);
 
         return view('matches.edit', ['match' => $match]);
     }
 
-    public function update(UpdateMatchRequest $request, MatchGame $match): RedirectResponse
+    public function update(UpdateMatchRequest $request, TeamMatch $match): RedirectResponse
     {
-        $this->matchGameService->update(
+        $this->matchService->update(
             $match,
             $request->validated(),
             $request->file('opponent_logo'),
@@ -85,18 +83,17 @@ class MatchController extends Controller
             ->with('success', 'Mecz został zaktualizowany.');
     }
 
-    public function destroy(MatchGame $match): RedirectResponse
+    public function destroy(TeamMatch $match): RedirectResponse
     {
         $this->authorize('delete', $match);
 
         $label = "Mecz: ETB - {$match->opponent_name}";
         $id = $match->id;
-        $this->matchGameService->delete($match);
-        $this->notificationService->recordDeleted(request()->user(), MatchGame::class, $id, $label);
+        $this->matchService->delete($match);
+        $this->notificationService->recordDeleted(request()->user(), TeamMatch::class, $id, $label);
 
         return redirect()
             ->route('profile.edit')
             ->with('success', 'Mecz został usunięty.');
     }
-
 }

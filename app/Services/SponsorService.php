@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class SponsorService
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data, UploadedFile $logo): Sponsor
     {
@@ -21,7 +21,7 @@ class SponsorService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Sponsor $sponsor, array $data, ?UploadedFile $logo): Sponsor
     {

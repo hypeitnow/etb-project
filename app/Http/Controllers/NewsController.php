@@ -15,9 +15,7 @@ class NewsController extends Controller
     public function __construct(
         private readonly NewsService $newsService,
         private readonly AdminNotificationService $notificationService
-    )
-    {
-    }
+    ) {}
 
     public function index(): View
     {

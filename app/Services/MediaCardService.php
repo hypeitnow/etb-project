@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Storage;
 class MediaCardService
 {
     /**
-     * @param class-string<Model> $modelClass
-     * @param array<string, mixed> $data
+     * @param  class-string<Model>  $modelClass
+     * @param  array<string, mixed>  $data
      */
     public function create(string $modelClass, array $data, ?UploadedFile $photo, string $directory): Model
     {
@@ -22,7 +22,7 @@ class MediaCardService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Model $model, array $data, ?UploadedFile $photo, string $directory): Model
     {

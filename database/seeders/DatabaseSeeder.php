@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(CategorySeeder::class);
+
         $seedUsers = [
             [
                 'name' => 'System Admin',
@@ -34,6 +36,12 @@ class DatabaseSeeder extends Seeder
                 'email' => 'fan@example.com',
                 'password' => 'FanPassphrase!2026',
                 'role' => User::ROLE_FAN,
+            ],
+            [
+                'name' => 'Team Trainer',
+                'email' => 'trainer@example.com',
+                'password' => 'TrainerPassphrase!2026',
+                'role' => User::ROLE_TRAINER,
             ],
         ];
 

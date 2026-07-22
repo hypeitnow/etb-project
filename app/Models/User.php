@@ -16,9 +16,14 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_ATHLETE = 'athlete';
+
     public const ROLE_FAN = 'fan';
+
     public const ROLE_EMPLOYEE = 'employee';
+
+    public const ROLE_TRAINER = 'trainer';
 
     /**
      * The attributes that are mass assignable.
@@ -65,6 +70,7 @@ class User extends Authenticatable
             self::ROLE_ATHLETE,
             self::ROLE_FAN,
             self::ROLE_EMPLOYEE,
+            self::ROLE_TRAINER,
         ];
     }
 
@@ -74,7 +80,7 @@ class User extends Authenticatable
     }
 
     /**
-     * @param list<string> $roles
+     * @param  list<string>  $roles
      */
     public function hasAnyRole(array $roles): bool
     {
@@ -100,5 +106,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(News::class, 'author_id');
     }
-}
 
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+}

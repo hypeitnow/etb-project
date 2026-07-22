@@ -1,0 +1,8 @@
+[variables]
+APP_ENV = "production"
+APP_DEBUG = false
+SESSION_DRIVER = "database"
+SESSION_SECURE_COOKIE = true
+QUEUE_CONNECTION = "database"
+CACHE_STORE = "database"
+FILESYSTEM_DISK = "local"
