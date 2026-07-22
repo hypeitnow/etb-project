@@ -3,6 +3,7 @@
 use App\Enums\ThreeXThreeCategory;
 use App\Models\ThreeXThreeTournament;
 use App\Models\User;
+use App\Services\ThreeXThreeTournamentFlowService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -193,6 +194,101 @@ it('draws teams into groups and creates a FIBA style tournament flow', function 
     expect($tournament->fresh()->teams()->whereNotNull('group_id')->count())->toBe(4);
     expect($tournament->fresh()->matches()->where('stage', 'group')->count())->toBe(2);
     expect($tournament->fresh()->matches()->where('stage', 'playoff')->where('round_label', 'Finał')->count())->toBe(1);
+});
+
+it('calculates a group table from scored 3x3 matches', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $tournament = ThreeXThreeTournament::query()->create([
+        'name' => 'Tabela 3x3',
+        'date' => now()->addMonth()->toDateString(),
+        'location' => 'Lodz',
+        'status' => ThreeXThreeTournament::STATUS_UPCOMING,
+        'type' => ThreeXThreeTournament::TYPE_ORGANIZED,
+        'team_size' => 3,
+    ]);
+    $group = $tournament->groups()->create([
+        'name' => 'Grupa A',
+        'sort_order' => 1,
+    ]);
+    $teamA = $tournament->teams()->create([
+        'user_id' => $admin->id,
+        'group_id' => $group->id,
+        'name' => 'ETB Yellow',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+    $teamB = $tournament->teams()->create([
+        'user_id' => $admin->id,
+        'group_id' => $group->id,
+        'name' => 'ETB Black',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+
+    $group->matches()->create([
+        'three_x_three_tournament_id' => $tournament->id,
+        'stage' => 'group',
+        'team_one_id' => $teamA->id,
+        'team_two_id' => $teamB->id,
+        'team_one_score' => 21,
+        'team_two_score' => 17,
+        'played_at' => now(),
+    ]);
+
+    $table = app(ThreeXThreeTournamentFlowService::class)->groupTable($group->fresh(['teams', 'matches']));
+
+    expect($table)->toHaveCount(2)
+        ->and($table[0]['team']->is($teamA))->toBeTrue()
+        ->and($table[0]['played'])->toBe(1)
+        ->and($table[0]['wins'])->toBe(1)
+        ->and($table[0]['fiba_points'])->toBe(2)
+        ->and($table[0]['form'])->toBe(['W'])
+        ->and($table[1]['losses'])->toBe(1)
+        ->and($table[1]['form'])->toBe(['L']);
+});
+
+it('renders the profile tournament section with scored 3x3 group matches', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $tournament = ThreeXThreeTournament::query()->create([
+        'name' => 'Panel 3x3',
+        'date' => now()->addMonth()->toDateString(),
+        'location' => 'Lodz',
+        'status' => ThreeXThreeTournament::STATUS_UPCOMING,
+        'type' => ThreeXThreeTournament::TYPE_ORGANIZED,
+        'team_size' => 3,
+    ]);
+    $group = $tournament->groups()->create([
+        'name' => 'Grupa A',
+        'sort_order' => 1,
+    ]);
+    $teamA = $tournament->teams()->create([
+        'user_id' => $admin->id,
+        'group_id' => $group->id,
+        'name' => 'ETB Yellow',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+    $teamB = $tournament->teams()->create([
+        'user_id' => $admin->id,
+        'group_id' => $group->id,
+        'name' => 'ETB Black',
+        'category' => ThreeXThreeCategory::OpenM->value,
+    ]);
+
+    $group->matches()->create([
+        'three_x_three_tournament_id' => $tournament->id,
+        'stage' => 'group',
+        'team_one_id' => $teamA->id,
+        'team_two_id' => $teamB->id,
+        'team_one_score' => 21,
+        'team_two_score' => 17,
+        'played_at' => now(),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('profile.edit', ['section' => 'tournaments']));
+
+    $response->assertOk();
+    $response->assertSee('Panel 3x3');
+    $response->assertSee('ETB Yellow');
+    $response->assertSee('value="21"', false);
+    $response->assertSee('value="17"', false);
 });
 
 it('shows team history with wins losses win rate and latest roster', function () {

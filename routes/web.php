@@ -8,10 +8,14 @@ use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicAcademyController;
+use App\Http\Controllers\PublicClubController;
 use App\Http\Controllers\PublicNewsController;
 use App\Http\Controllers\PublicProductController;
 use App\Http\Controllers\PublicScheduleController;
 use App\Http\Controllers\PublicTeamController;
+use App\Http\Controllers\ThreeXThreeTournamentController;
+use App\Http\Controllers\ThreeXThreeTournamentTeamController;
 use App\Http\Controllers\UserDataController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,26 +87,26 @@ Route::post('/payment/przelewy24/webhook', [CheckoutController::class, 'webhook'
 | Strony główne menu
 |--------------------------------------------------------------------------
 */
-Route::view('/club', 'pages.club')->name('club');
+Route::get('/club', [PublicClubController::class, 'index'])->name('club');
 Route::get('/schedule', [PublicScheduleController::class, 'index'])->name('schedule');
 Route::get('/schedule/matches/{match}', [PublicScheduleController::class, 'show'])->name('schedule.matches.show');
 Route::view('/team', 'pages.team')->name('team');
-Route::view('/contact', 'pages.contact')->name('contact');
+Route::get('/contact', [PublicClubController::class, 'contact'])->name('contact');
 
 /* Klub */
-Route::view('/club/history', 'pages.club-history')->name('club.history');
-Route::view('/club/board', 'pages.club-board')->name('club.board');
-Route::view('/club/venue', 'pages.club-venue')->name('club.venue');
-Route::view('/club/business', 'pages.club-business')->name('club.business');
-Route::view('/club/investors', 'pages.club-investors')->name('club.investors');
-Route::view('/club/success', 'pages.club-success')->name('club.success');
-Route::view('/club/sponsors', 'pages.club-sponsors')->name('club.sponsors');
+Route::get('/club/history', [PublicClubController::class, 'show'])->defaults('section', 'history')->name('club.history');
+Route::get('/club/board', [PublicClubController::class, 'show'])->defaults('section', 'board')->name('club.board');
+Route::get('/club/venue', [PublicClubController::class, 'show'])->defaults('section', 'venue')->name('club.venue');
+Route::get('/club/business', [PublicClubController::class, 'show'])->defaults('section', 'business')->name('club.business');
+Route::get('/club/success', [PublicClubController::class, 'show'])->defaults('section', 'success')->name('club.success');
+Route::get('/club/sponsors', [PublicClubController::class, 'show'])->defaults('section', 'sponsors')->name('club.sponsors');
+Route::get('/club/contact', [PublicClubController::class, 'contact'])->name('club.contact');
 
 /* Rozgrywki */
 Route::get('/schedule/lzkosz', [PublicScheduleController::class, 'lzkosz'])->name('schedule.lzkosz');
 Route::redirect('/schedule/third-league', 'https://www.lzkosz.pl/liga/215.html')->name('schedule.third-league');
 Route::view('/schedule/table', 'pages.schedule-table')->name('schedule.table');
-Route::get('/schedule/3x3', [ThreeXThreeTournamentController::class, 'index'])->name('schedule.3x3');
+Route::get('/schedule/3x3', [ThreeXThreeTournamentController::class, 'participating'])->name('schedule.3x3');
 Route::redirect('/schedule/3x3-tournaments', '/schedule/3x3')->name('schedule.3x3.tournaments.old');
 Route::redirect('/schedule/3x3/tournaments', '/schedule/3x3')->name('schedule.3x3.tournaments');
 Route::view('/schedule/3x3/team', 'pages.schedule-3x3-team')->name('schedule.3x3.team');
@@ -115,7 +119,12 @@ Route::get('/team/3x3', [PublicTeamController::class, 'threeXThree'])->name('tea
 Route::redirect('/team-3x3/players', '/team/3x3')->name('team3x3.players');
 Route::get('/3x3/tournaments', [ThreeXThreeTournamentController::class, 'index'])->name('three-x-three.tournaments.index');
 Route::get('/3x3/tournaments/{tournament}', [ThreeXThreeTournamentController::class, 'show'])->name('three-x-three.tournaments.show');
+Route::post('/3x3/tournaments/{tournament}/teams', [ThreeXThreeTournamentTeamController::class, 'store'])
+    ->middleware('auth')
+    ->name('three-x-three.tournaments.teams.store');
+Route::get('/3x3/teams/{team}', [ThreeXThreeTournamentTeamController::class, 'show'])->name('three-x-three.teams.show');
 
 /* CTA */
 Route::view('/tickets', 'pages.tickets')->name('tickets');
-Route::view('/academy', 'pages.academy')->name('academy');
+Route::get('/academy', [PublicAcademyController::class, 'index'])->name('academy');
+Route::get('/academy/groups/{group}', [PublicAcademyController::class, 'show'])->name('academy.groups.show');

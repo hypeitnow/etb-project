@@ -18,7 +18,14 @@ class ThreeXThreeTournamentTeamService
         unset($data['players'], $data['logo']);
 
         if ($logo) {
-            $data['logo_path'] = $logo->store('3x3-team-logos', 'public');
+            $storedPath = Storage::disk('public')->putFile('3x3-team-logos', $logo);
+
+            if (! is_string($storedPath) || $storedPath === '') {
+                $storedPath = '3x3-team-logos/'.$logo->hashName();
+                Storage::disk('public')->put($storedPath, (string) file_get_contents($logo->getRealPath()));
+            }
+
+            $data['logo_path'] = $storedPath;
         }
 
         $data['user_id'] = $userId;

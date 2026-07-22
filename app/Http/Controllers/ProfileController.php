@@ -3,7 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\AcademyCalendarNote;
+use App\Models\AcademyGroup;
+use App\Models\AcademyTraining;
 use App\Models\AdminNotification;
+use App\Models\AppSetting;
+use App\Models\ClubSection;
+use App\Models\LeagueStanding;
 use App\Models\News;
 use App\Models\Player;
 use App\Models\Sponsor;
@@ -23,6 +29,31 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
+        $userRoleFilter = in_array($request->query('user_role'), User::roles(), true)
+            ? (string) $request->query('user_role')
+            : 'all';
+        $marketingConsentFilter = in_array($request->query('marketing_consent'), ['yes', 'no'], true)
+            ? (string) $request->query('marketing_consent')
+            : 'all';
+        $allowedSections = [
+            'dashboard',
+            'users',
+            'matches',
+            'club-content',
+            'academy',
+            'news',
+            'players',
+            'staff',
+            'three-x-three',
+            'tournaments',
+            'notifications-history',
+            'league-table',
+            'sponsors',
+            'account',
+        ];
+        $activeSection = in_array($request->query('section'), $allowedSections, true)
+            ? (string) $request->query('section')
+            : 'dashboard';
 
         $upcomingMatches = TeamMatch::query()
             ->with(['opponent', 'sportsHall'])
@@ -56,22 +87,69 @@ class ProfileController extends Controller
 
         $staff = TeamStaff::query()->orderBy('sort_order')->orderBy('name')->get();
         $threeXThreeMembers = ThreeXThreeMember::query()->orderByDesc('is_coach')->orderBy('sort_order')->orderBy('name')->get();
-        $threeXThreeTournaments = ThreeXThreeTournament::query()->with('categories')->orderByDesc('date')->get();
+        $threeXThreeTournaments = ThreeXThreeTournament::query()
+            ->with(['categories', 'teams.players', 'groups.teams', 'groups.matches.teamOne', 'groups.matches.teamTwo', 'matches.teamOne', 'matches.teamTwo'])
+            ->orderByDesc('date')
+            ->get();
         $sponsors = Sponsor::query()->orderBy('type')->orderBy('sort_order')->orderBy('name')->get();
+        ClubSection::syncDefaults();
+        $clubSections = ClubSection::query()
+            ->with('images')
+            ->whereIn('slug', array_keys(ClubSection::SECTIONS))
+            ->orderBy('sort_order')
+            ->get();
+        $leagueStandings = LeagueStanding::query()
+            ->with('opponent')
+            ->orderBy('position')
+            ->get();
+        $academyGroups = AcademyGroup::query()
+            ->with(['trainers', 'messages', 'trainings'])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $academyTrainingDate = $request->date('academy_training_date')?->format('Y-m-d');
+        $academyTrainings = AcademyTraining::query()
+            ->with('group')
+            ->when($academyTrainingDate, fn ($query) => $query->whereDate('starts_at', $academyTrainingDate))
+            ->orderByDesc('starts_at')
+            ->take(80)
+            ->get();
+        $academyCalendarNotes = AcademyCalendarNote::query()
+            ->orderByDesc('starts_on')
+            ->take(50)
+            ->get();
         $adminNotifications = AdminNotification::query()
             ->with(['actor', 'acceptedBy'])
             ->latest()
             ->get();
+        $notificationHistory = AdminNotification::query()
+            ->withTrashed()
+            ->with(['actor', 'acceptedBy'])
+            ->latest()
+            ->paginate(20, ['*'], 'notifications_page')
+            ->withQueryString();
         $unreadNotificationsCount = $adminNotifications->whereNull('read_at')->count();
+        $users = $user->role === User::ROLE_ADMIN
+            ? User::query()
+                ->with('fanProfile')
+                ->when($userRoleFilter !== 'all', fn ($query) => $query->where('role', $userRoleFilter))
+                ->when($marketingConsentFilter !== 'all', function ($query) use ($marketingConsentFilter): void {
+                    $query->whereHas('fanProfile', fn ($profileQuery) => $profileQuery->where('marketing_email_consent', $marketingConsentFilter === 'yes'));
+                })
+                ->orderBy('name')
+                ->paginate(10, ['*'], 'users_page')
+                ->withQueryString()
+            : collect();
 
         return view('profile.edit', [
             'user' => $user,
+            'activeSection' => $activeSection,
             'isAdmin' => $user->role === User::ROLE_ADMIN,
             'isEmployee' => $user->role === User::ROLE_EMPLOYEE,
             'isAthlete' => $user->role === User::ROLE_ATHLETE,
-            'users' => $user->role === User::ROLE_ADMIN
-                ? User::query()->orderBy('name')->paginate(5, ['id', 'name', 'email', 'role'])
-                : collect(),
+            'users' => $users,
+            'userRoleFilter' => $userRoleFilter,
+            'marketingConsentFilter' => $marketingConsentFilter,
             'athleteProfile' => $user->role === User::ROLE_ATHLETE
                 ? $user->athleteProfile()->first()
                 : null,
@@ -86,7 +164,15 @@ class ProfileController extends Controller
             'threeXThreeTournaments' => $threeXThreeTournaments,
             'sponsors' => $sponsors,
             'sponsorTypes' => Sponsor::types(),
+            'clubSections' => $clubSections,
+            'leagueStandings' => $leagueStandings,
+            'defaultHomeLogo' => AppSetting::getValue('default_home_logo'),
+            'academyGroups' => $academyGroups,
+            'academyTrainings' => $academyTrainings,
+            'academyTrainingDate' => $academyTrainingDate,
+            'academyCalendarNotes' => $academyCalendarNotes,
             'adminNotifications' => $adminNotifications,
+            'notificationHistory' => $notificationHistory,
             'unreadNotificationsCount' => $unreadNotificationsCount,
         ]);
     }

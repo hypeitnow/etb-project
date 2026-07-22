@@ -73,3 +73,41 @@ it('guest cannot access product admin', function () {
     $response = $this->get(route('admin.products.create'));
     $response->assertRedirect(route('login'));
 });
+
+it('shows public shop with published products', function () {
+    $publishedProduct = Product::factory()->published()->create([
+        'name' => 'Koszulka ETB',
+        'category_id' => $this->category->id,
+        'stock_qty' => 10,
+    ]);
+    $hiddenProduct = Product::factory()->create([
+        'name' => 'Ukryty produkt',
+        'category_id' => $this->category->id,
+        'is_published' => false,
+    ]);
+
+    $response = $this->get(route('shop.index'));
+
+    $response->assertOk();
+    $response->assertSee($publishedProduct->name);
+    $response->assertDontSee($hiddenProduct->name);
+});
+
+it('shows only published product details', function () {
+    $publishedProduct = Product::factory()->published()->create([
+        'name' => 'Bluza ETB',
+        'category_id' => $this->category->id,
+        'stock_qty' => 10,
+    ]);
+    $hiddenProduct = Product::factory()->create([
+        'category_id' => $this->category->id,
+        'is_published' => false,
+    ]);
+
+    $this->get(route('shop.show', $publishedProduct))
+        ->assertOk()
+        ->assertSee($publishedProduct->name);
+
+    $this->get(route('shop.show', $hiddenProduct))
+        ->assertNotFound();
+});

@@ -20,8 +20,36 @@ class ThreeXThreeTournamentController extends Controller
 
     public function index(): View
     {
-        $upcomingTournaments = ThreeXThreeTournament::query()->with('categories')->upcoming()->orderBy('date')->get();
-        $finishedTournaments = ThreeXThreeTournament::query()->with('categories')->finished()->orderByDesc('date')->get();
+        $upcomingTournaments = ThreeXThreeTournament::query()
+            ->with('categories')
+            ->organized()
+            ->upcoming()
+            ->orderBy('date')
+            ->get();
+        $finishedTournaments = ThreeXThreeTournament::query()
+            ->with('categories')
+            ->organized()
+            ->finished()
+            ->orderByDesc('date')
+            ->get();
+
+        return view('pages.schedule-3x3-tournaments', compact('upcomingTournaments', 'finishedTournaments'));
+    }
+
+    public function participating(): View
+    {
+        $upcomingTournaments = ThreeXThreeTournament::query()
+            ->with('categories')
+            ->participating()
+            ->upcoming()
+            ->orderBy('date')
+            ->get();
+        $finishedTournaments = ThreeXThreeTournament::query()
+            ->with('categories')
+            ->participating()
+            ->finished()
+            ->orderByDesc('date')
+            ->get();
 
         return view('pages.schedule-3x3-tournaments', compact('upcomingTournaments', 'finishedTournaments'));
     }

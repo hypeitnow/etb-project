@@ -29,7 +29,7 @@ class ThreeXThreeTournamentFlowService
             'point_diff' => 0,
             'fiba_points' => 0,
             'form' => [],
-        ]]);
+        ]])->all();
 
         foreach ($group->matches->where('stage', ThreeXThreeTournamentMatch::STAGE_GROUP)->sortBy('played_at') as $match) {
             if (! $match->hasResult() || ! $match->team_one_id || ! $match->team_two_id) {
@@ -55,7 +55,7 @@ class ThreeXThreeTournamentFlowService
             }
         }
 
-        return $rows
+        return collect($rows)
             ->map(function (array $row): array {
                 $row['point_diff'] = $row['points_for'] - $row['points_against'];
                 $row['form'] = array_slice($row['form'], -5);

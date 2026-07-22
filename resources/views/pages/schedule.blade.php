@@ -10,7 +10,7 @@
 
     <nav class="mb-12 flex flex-wrap gap-2" aria-label="Sekcje rozgrywek">
         @foreach ([
-            [route('schedule.matches.index'), 'Terminarz'],
+            [route('schedule'), 'Terminarz'],
             [route('schedule.third-league'), 'III liga ŁZKosz'],
             [route('schedule.lzkosz'), 'Terminarz ŁZKosz'],
             [route('schedule.table'), 'Tabela'],
